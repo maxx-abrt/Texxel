@@ -1,0 +1,292 @@
+{
+  "nav": {
+    "home": "Home",
+    "tasks": "My Tasks",
+    "projects": "Projects",
+    "teams": "Teams",
+    "inbox": "Inbox",
+    "notes": "Notes",
+    "settings": "Settings",
+    "trash": "Trash",
+    "search": "Search",
+    "newNote": "New note",
+    "calendar": "Calendar"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "loading": "Loading...",
+    "back": "Back",
+    "noDescription": "No description",
+    "untitled": "Untitled",
+    "optional": "optional",
+    "add": "Add",
+    "remove": "Remove",
+    "confirm": "Confirm",
+    "close": "Close",
+    "search": "Search...",
+    "markAllRead": "Mark all read",
+    "clearAll": "Clear all",
+    "today": "Today",
+    "earlier": "Earlier",
+    "noResults": "No results"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "newTask": "New Task",
+    "addTask": "Add task",
+    "taskTitle": "Task title",
+    "addDescription": "Add description...",
+    "priority": "Priority",
+    "status": "Status",
+    "assignee": "Assignee",
+    "dueDate": "Due date",
+    "noDueDate": "No due date",
+    "unassigned": "Unassigned",
+    "noTeam": "No team",
+    "noProject": "No project",
+    "creating": "Creating...",
+    "created": "Task created!",
+    "createFailed": "Failed to create task",
+    "updated": "Updated!",
+    "updateFailed": "Failed to update task",
+    "deleted": "Task deleted",
+    "deleteFailed": "Failed to delete task",
+    "notFound": "Task not found",
+    "comments": "Comments",
+    "noComments": "No comments yet. Start the conversation.",
+    "writeComment": "Write a comment...",
+    "deleteTask": "Delete task",
+    "overdue": "Overdue",
+    "priorities": {
+      "none": "No priority",
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "urgent": "Urgent"
+    },
+    "statuses": {
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "in_review": "In Review",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "filters": {
+      "all": "All",
+      "todo": "To Do",
+      "in_progress": "In Progress",
+      "in_review": "In Review",
+      "done": "Done",
+      "cancelled": "Cancelled"
+    },
+    "empty": {
+      "title": "No tasks",
+      "description": "Create your first task to get started."
+    },
+    "noOverdue": "No overdue tasks 🎉",
+    "noDueToday": "Nothing due today",
+    "open": "open",
+    "done_count": "done",
+    "overdue_count": "overdue",
+    "overdue_filter": "Overdue",
+    "dueToday": "Due Today",
+    "sort": "Sort",
+    "sortPriority": "Priority",
+    "sortDueDate": "Due date",
+    "sortName": "Name",
+    "addTaskPlaceholder": "Add task... (Enter to create)"
+  },
+  "projects": {
+    "title": "Projects",
+    "newProject": "New Project",
+    "projectName": "Project name",
+    "addDescription": "Add a description...",
+    "creating": "Creating...",
+    "created": "Project created!",
+    "createFailed": "Failed to create project",
+    "notFound": "Project not found",
+    "addTask": "Add Task",
+    "noTasks": "No tasks yet.",
+    "dropTasks": "Drop tasks here",
+    "sections": {
+      "active": "Active",
+      "completed": "Completed",
+      "archived": "Archived"
+    },
+    "statuses": {
+      "active": "active",
+      "completed": "completed",
+      "archived": "archived"
+    },
+    "empty": {
+      "title": "No projects yet",
+      "description": "Create your first project to organize tasks and collaborate with your team."
+    },
+    "views": {
+      "board": "Board",
+      "list": "List"
+    },
+    "edit": "Edit Project",
+    "updated": "Project updated",
+    "updateFailed": "Failed to update project",
+    "deleted": "Project deleted",
+    "deleteFailed": "Failed to delete project",
+    "backToProjects": "Projects",
+    "saveChanges": "Save Changes",
+    "saving": "Saving...",
+    "editColor": "Color",
+    "editStatus": "Status",
+    "editTeam": "Team",
+    "noTeam": "No team"
+  },
+  "teams": {
+    "title": "Teams",
+    "newTeam": "New Team",
+    "createTeam": "Create Team",
+    "teamName": "Team name",
+    "slug": "Slug",
+    "description": "Description",
+    "descriptionPlaceholder": "What does this team work on?",
+    "creating": "Creating...",
+    "created": "Team created!",
+    "createFailed": "Failed to create team",
+    "notFound": "Team not found",
+    "invite": "Invite",
+    "inviteMember": "Invite Member",
+    "inviteEmail": "Email address",
+    "role": "Role",
+    "sending": "Sending...",
+    "sendInvite": "Send Invite",
+    "inviteCreated": "Invitation created — copy the link below to share",
+    "inviteFailed": "Failed to send invitation",
+    "memberRemoved": "Member removed",
+    "removeFailed": "Failed to remove member",
+    "roleUpdated": "Role updated",
+    "roleFailed": "Failed to update role",
+    "inviteCancelled": "Invitation cancelled",
+    "cancelFailed": "Failed to cancel invitation",
+    "invitedAs": "Invited as",
+    "expires": "expires",
+    "copyLink": "Copy link",
+    "copied": "Copied",
+    "sections": {
+      "members": "Members",
+      "projects": "Projects",
+      "documents": "Documents",
+      "pendingInvitations": "Pending Invitations"
+    },
+    "roles": {
+      "owner": "Owner",
+      "admin": "Admin",
+      "member": "Member"
+    },
+    "you": "you",
+    "empty": {
+      "title": "No teams yet",
+      "description": "Create a team to collaborate with others on projects, tasks, and notes."
+    }
+  },
+  "inbox": {
+    "title": "Inbox",
+    "unread": "{count} unread",
+    "unread_plural": "{count} unread",
+    "dueSoonTitle": "Task due soon",
+    "allCaughtUp": "All caught up",
+    "markAllRead": "Mark all read",
+    "markedAllRead": "All marked as read",
+    "cleared": "Inbox cleared",
+    "today": "Today",
+    "earlier": "Earlier",
+    "empty": {
+      "title": "No notifications",
+      "description": "You'll see team invites, task assignments, and @mentions here."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "profile": "Profile",
+      "appearance": "Appearance",
+      "notifications": "Notifications",
+      "language": "Language",
+      "import": "Import",
+      "shortcuts": "Shortcuts"
+    },
+    "notifications": {
+      "dueDateReminders": "Due-date reminders",
+      "dueDateDesc": "Get notified in your inbox before tasks are due",
+      "alertMeBefore": "Alert me",
+      "beforeDueDate": "before due date"
+    },
+    "profile": {
+      "title": "Profile",
+      "displayName": "Display name",
+      "email": "Email",
+      "role": "Role",
+      "rolePlaceholder": "e.g. Designer, Engineer...",
+      "saving": "Saving...",
+      "saved": "Profile saved!"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "themes": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose your preferred language for the interface.",
+      "select": "Select language",
+      "languages": {
+        "en": "English",
+        "fr": "French"
+      },
+      "saved": "Language saved!"
+    }
+  },
+  "calendar": {
+    "title": "Calendar",
+    "today": "Today",
+    "month": "Month",
+    "agenda": "Agenda",
+    "noTasks": "No scheduled tasks",
+    "noTasksDesc": "Add a due date to your tasks to see them here.",
+    "scheduled": "scheduled",
+    "overdue": "overdue",
+    "upcoming": "Upcoming",
+    "late": "Late",
+    "done": "Done"
+  },
+  "dashboard": {
+    "greeting": "Good {period}",
+    "periods": {
+      "morning": "morning",
+      "afternoon": "afternoon",
+      "evening": "evening"
+    },
+    "stats": {
+      "openTasks": "Open tasks",
+      "doneToday": "Done today",
+      "unread": "Unread",
+      "notes": "Notes"
+    },
+    "quickActions": "Quick actions",
+    "recentActivity": "Recent activity",
+    "myTasks": "My Tasks",
+    "recentNotes": "Recent Notes",
+    "myProjects": "My Projects",
+    "myTeams": "My Teams",
+    "viewAll": "View all",
+    "noTasks": "No open tasks",
+    "noNotes": "No notes yet",
+    "noProjects": "No projects yet",
+    "noTeams": "No teams yet"
+  }
+}

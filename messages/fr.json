@@ -1,0 +1,292 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "tasks": "Mes tâches",
+    "projects": "Projets",
+    "teams": "Équipes",
+    "inbox": "Boîte de réception",
+    "notes": "Notes",
+    "settings": "Paramètres",
+    "trash": "Corbeille",
+    "search": "Rechercher",
+    "newNote": "Nouvelle note",
+    "calendar": "Calendrier"
+  },
+  "common": {
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "loading": "Chargement...",
+    "back": "Retour",
+    "noDescription": "Aucune description",
+    "untitled": "Sans titre",
+    "optional": "optionnel",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "search": "Rechercher...",
+    "markAllRead": "Tout marquer comme lu",
+    "clearAll": "Tout effacer",
+    "today": "Aujourd'hui",
+    "earlier": "Précédemment",
+    "noResults": "Aucun résultat"
+  },
+  "tasks": {
+    "title": "Tâches",
+    "newTask": "Nouvelle tâche",
+    "addTask": "Ajouter une tâche",
+    "taskTitle": "Titre de la tâche",
+    "addDescription": "Ajouter une description...",
+    "priority": "Priorité",
+    "status": "Statut",
+    "assignee": "Assigné à",
+    "dueDate": "Date d'échéance",
+    "noDueDate": "Pas de date d'échéance",
+    "unassigned": "Non assigné",
+    "noTeam": "Aucune équipe",
+    "noProject": "Aucun projet",
+    "creating": "Création...",
+    "created": "Tâche créée !",
+    "createFailed": "Échec de la création",
+    "updated": "Mis à jour !",
+    "updateFailed": "Échec de la mise à jour",
+    "deleted": "Tâche supprimée",
+    "deleteFailed": "Échec de la suppression",
+    "notFound": "Tâche introuvable",
+    "comments": "Commentaires",
+    "noComments": "Aucun commentaire. Commencez la conversation.",
+    "writeComment": "Écrire un commentaire...",
+    "deleteTask": "Supprimer la tâche",
+    "overdue": "En retard",
+    "priorities": {
+      "none": "Aucune priorité",
+      "low": "Faible",
+      "medium": "Moyenne",
+      "high": "Haute",
+      "urgent": "Urgent"
+    },
+    "statuses": {
+      "todo": "À faire",
+      "in_progress": "En cours",
+      "in_review": "En révision",
+      "done": "Terminé",
+      "cancelled": "Annulé"
+    },
+    "filters": {
+      "all": "Tout",
+      "todo": "À faire",
+      "in_progress": "En cours",
+      "in_review": "En révision",
+      "done": "Terminé",
+      "cancelled": "Annulé"
+    },
+    "empty": {
+      "title": "Aucune tâche",
+      "description": "Créez votre première tâche pour commencer."
+    },
+    "noOverdue": "Aucune tâche en retard 🎉",
+    "noDueToday": "Rien d'attendu aujourd'hui",
+    "open": "ouvertes",
+    "done_count": "terminées",
+    "overdue_count": "en retard",
+    "overdue_filter": "En retard",
+    "dueToday": "Échéance aujourd'hui",
+    "sort": "Trier",
+    "sortPriority": "Priorité",
+    "sortDueDate": "Date d'échéance",
+    "sortName": "Nom",
+    "addTaskPlaceholder": "Ajouter une tâche... (Entrée pour créer)"
+  },
+  "projects": {
+    "title": "Projets",
+    "newProject": "Nouveau projet",
+    "projectName": "Nom du projet",
+    "addDescription": "Ajouter une description...",
+    "creating": "Création...",
+    "created": "Projet créé !",
+    "createFailed": "Échec de la création",
+    "notFound": "Projet introuvable",
+    "addTask": "Ajouter une tâche",
+    "noTasks": "Aucune tâche pour l'instant.",
+    "dropTasks": "Déposer les tâches ici",
+    "sections": {
+      "active": "Actifs",
+      "completed": "Terminés",
+      "archived": "Archivés"
+    },
+    "statuses": {
+      "active": "actif",
+      "completed": "terminé",
+      "archived": "archivé"
+    },
+    "empty": {
+      "title": "Aucun projet",
+      "description": "Créez votre premier projet pour organiser vos tâches et collaborer avec votre équipe."
+    },
+    "views": {
+      "board": "Tableau",
+      "list": "Liste"
+    },
+    "edit": "Modifier le projet",
+    "updated": "Projet mis à jour",
+    "updateFailed": "Échec de la mise à jour",
+    "deleted": "Projet supprimé",
+    "deleteFailed": "Échec de la suppression",
+    "backToProjects": "Projets",
+    "saveChanges": "Enregistrer",
+    "saving": "Enregistrement...",
+    "editColor": "Couleur",
+    "editStatus": "Statut",
+    "editTeam": "Équipe",
+    "noTeam": "Aucune équipe"
+  },
+  "teams": {
+    "title": "Équipes",
+    "newTeam": "Nouvelle équipe",
+    "createTeam": "Créer une équipe",
+    "teamName": "Nom de l'équipe",
+    "slug": "Identifiant",
+    "description": "Description",
+    "descriptionPlaceholder": "Sur quoi travaille cette équipe ?",
+    "creating": "Création...",
+    "created": "Équipe créée !",
+    "createFailed": "Échec de la création",
+    "notFound": "Équipe introuvable",
+    "invite": "Inviter",
+    "inviteMember": "Inviter un membre",
+    "inviteEmail": "Adresse e-mail",
+    "role": "Rôle",
+    "sending": "Envoi...",
+    "sendInvite": "Envoyer l'invitation",
+    "inviteCreated": "Invitation créée — copiez le lien ci-dessous pour le partager",
+    "inviteFailed": "Échec de l'envoi de l'invitation",
+    "memberRemoved": "Membre retiré",
+    "removeFailed": "Échec du retrait",
+    "roleUpdated": "Rôle mis à jour",
+    "roleFailed": "Échec de la mise à jour du rôle",
+    "inviteCancelled": "Invitation annulée",
+    "cancelFailed": "Échec de l'annulation",
+    "invitedAs": "Invité en tant que",
+    "expires": "expire le",
+    "copyLink": "Copier le lien",
+    "copied": "Copié",
+    "sections": {
+      "members": "Membres",
+      "projects": "Projets",
+      "documents": "Documents",
+      "pendingInvitations": "Invitations en attente"
+    },
+    "roles": {
+      "owner": "Propriétaire",
+      "admin": "Administrateur",
+      "member": "Membre"
+    },
+    "you": "vous",
+    "empty": {
+      "title": "Aucune équipe",
+      "description": "Créez une équipe pour collaborer sur des projets, tâches et notes."
+    }
+  },
+  "inbox": {
+    "title": "Boîte de réception",
+    "unread": "{count} non lue",
+    "unread_plural": "{count} non lues",
+    "dueSoonTitle": "Tâche bientôt due",
+    "allCaughtUp": "Tout est à jour",
+    "markAllRead": "Tout marquer comme lu",
+    "markedAllRead": "Tout marqué comme lu",
+    "cleared": "Boîte vidée",
+    "today": "Aujourd'hui",
+    "earlier": "Précédemment",
+    "empty": {
+      "title": "Aucune notification",
+      "description": "Vous verrez ici les invitations d'équipe, les assignations et les @mentions."
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "tabs": {
+      "profile": "Profil",
+      "appearance": "Apparence",
+      "notifications": "Notifications",
+      "language": "Langue",
+      "import": "Importer",
+      "shortcuts": "Raccourcis"
+    },
+    "notifications": {
+      "dueDateReminders": "Rappels d'échéance",
+      "dueDateDesc": "Recevoir une notification avant l'échéance des tâches",
+      "alertMeBefore": "M'alerter",
+      "beforeDueDate": "avant l'échéance"
+    },
+    "profile": {
+      "title": "Profil",
+      "displayName": "Nom d'affichage",
+      "email": "E-mail",
+      "role": "Rôle",
+      "rolePlaceholder": "ex. Designer, Ingénieur...",
+      "saving": "Enregistrement...",
+      "saved": "Profil enregistré !"
+    },
+    "appearance": {
+      "title": "Apparence",
+      "theme": "Thème",
+      "themes": {
+        "light": "Clair",
+        "dark": "Sombre",
+        "system": "Système"
+      }
+    },
+    "language": {
+      "title": "Langue",
+      "description": "Choisissez la langue de l'interface.",
+      "select": "Choisir une langue",
+      "languages": {
+        "en": "Anglais",
+        "fr": "Français"
+      },
+      "saved": "Langue enregistrée !"
+    }
+  },
+  "calendar": {
+    "title": "Calendrier",
+    "today": "Aujourd'hui",
+    "month": "Mois",
+    "agenda": "Agenda",
+    "noTasks": "Aucune tâche planifiée",
+    "noTasksDesc": "Ajoutez une date d'échéance à vos tâches pour les voir ici.",
+    "scheduled": "planifiées",
+    "overdue": "en retard",
+    "upcoming": "À venir",
+    "late": "En retard",
+    "done": "Terminé"
+  },
+  "dashboard": {
+    "greeting": "Bon{period}",
+    "periods": {
+      "morning": "jour",
+      "afternoon": " après-midi",
+      "evening": "soir"
+    },
+    "stats": {
+      "openTasks": "Tâches ouvertes",
+      "doneToday": "Terminées aujourd'hui",
+      "unread": "Non lues",
+      "notes": "Notes"
+    },
+    "quickActions": "Actions rapides",
+    "recentActivity": "Activité récente",
+    "myTasks": "Mes tâches",
+    "recentNotes": "Notes récentes",
+    "myProjects": "Mes projets",
+    "myTeams": "Mes équipes",
+    "viewAll": "Voir tout",
+    "noTasks": "Aucune tâche ouverte",
+    "noNotes": "Aucune note",
+    "noProjects": "Aucun projet",
+    "noTeams": "Aucune équipe"
+  }
+}

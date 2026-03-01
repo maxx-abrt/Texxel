@@ -5,4 +5,9 @@ export const auth = createNeonAuth({
   cookies: {
     secret: process.env.NEON_AUTH_COOKIE_SECRET!,
   },
+  allowedOrigins: [
+    "https://texxel.vercel.app",
+    "https://www.texxel.app",
+    "https://texxel.app",
+  ],
 });

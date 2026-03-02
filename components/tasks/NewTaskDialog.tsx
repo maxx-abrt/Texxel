@@ -38,6 +38,7 @@ interface NewTaskDialogProps {
   onClose: () => void;
   projectId?: Id<"projects">;
   teamId?: Id<"teams">;
+  initialStatus?: "todo" | "in_progress" | "in_review" | "done" | "cancelled";
 }
 
 export function NewTaskDialog({
@@ -45,6 +46,7 @@ export function NewTaskDialog({
   onClose,
   projectId: initialProjectId,
   teamId: initialTeamId,
+  initialStatus,
 }: NewTaskDialogProps) {
   const t = useTranslations("tasks");
   const tc = useTranslations("common");
@@ -96,6 +98,7 @@ export function NewTaskDialog({
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
+        status: initialStatus ?? "todo",
         projectId: selectedProjectId ? (selectedProjectId as Id<"projects">) : undefined,
         teamId: selectedTeamId ? (selectedTeamId as Id<"teams">) : undefined,
         assigneeId: selectedAssigneeId || undefined,
@@ -127,42 +130,54 @@ export function NewTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
-        <DialogHeader className="px-5 pt-5 pb-0">
-          <DialogTitle className="text-sm font-semibold">{t("newTask")}</DialogTitle>
+      <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-0">
+          <DialogTitle className="text-base font-semibold">{t("newTask")}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           {/* Title + description */}
-          <div className="px-5 pt-4 pb-2 space-y-2">
-            <Input
-              placeholder={t("taskTitle")}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              autoFocus
-              required
-              className="text-sm font-medium border-0 px-0 h-auto py-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40"
-            />
-            <Textarea
-              placeholder={t("addDescription")}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="resize-none text-sm border-0 px-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40 min-h-0"
-            />
+          <div className="px-6 pt-5 pb-4 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {t("taskTitle")}
+              </label>
+              <Input
+                placeholder={t("taskTitle")}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoFocus
+                required
+                className="h-10 text-sm font-medium"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {t("addDescription")}
+              </label>
+              <Textarea
+                placeholder={t("addDescription")}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="resize-none text-sm"
+              />
+            </div>
           </div>
 
           {/* Divider */}
-          <div className="mx-5 border-t" />
+          <div className="border-t" />
 
-          {/* Properties — full-width rows, no cramped chips */}
-          <div className="px-5 py-3 space-y-1">
+          {/* Properties */}
+          <div className="px-6 py-4 space-y-3">
             {/* Priority */}
-            <div className="flex items-center gap-3 h-8">
-              <Flag className={cn("h-3.5 w-3.5 shrink-0", priorityColors[priority])} />
-              <span className="text-xs text-muted-foreground w-20 shrink-0">{t("priority")}</span>
+            <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Flag className={cn("h-3.5 w-3.5 shrink-0", priorityColors[priority])} />
+                <span className="text-xs font-medium text-muted-foreground">{t("priority")}</span>
+              </div>
               <Select value={priority} onValueChange={(v) => setPriority(v as any)} {...selectProps("priority")}>
-                <SelectTrigger className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus:ring-0 hover:bg-accent/50 rounded-md transition-colors">
+                <SelectTrigger className="h-9 text-xs border bg-muted/30 hover:bg-muted/50 transition-colors focus:ring-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -178,22 +193,26 @@ export function NewTaskDialog({
             </div>
 
             {/* Due date */}
-            <div className="flex items-center gap-3 h-8">
-              <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground w-20 shrink-0">{t("dueDate")}</span>
+            <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="text-xs font-medium text-muted-foreground">{t("dueDate")}</span>
+              </div>
               <Input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus-visible:ring-0 hover:bg-accent/50 rounded-md transition-colors"
+                className="h-9 text-xs border bg-muted/30 hover:bg-muted/50 transition-colors"
               />
             </div>
 
             {/* Team */}
             {showTeamSelect && (
-              <div className="flex items-center gap-3 h-8">
-                <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground w-20 shrink-0">{t("noTeam").replace("No ", "")}</span>
+              <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Équipe</span>
+                </div>
                 <Select
                   value={selectedTeamId || "none"}
                   onValueChange={(v) => {
@@ -202,7 +221,7 @@ export function NewTaskDialog({
                   }}
                   {...selectProps("team")}
                 >
-                  <SelectTrigger className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus:ring-0 hover:bg-accent/50 rounded-md transition-colors">
+                  <SelectTrigger className="h-9 text-xs border bg-muted/30 hover:bg-muted/50 transition-colors focus:ring-1">
                     <SelectValue placeholder={t("noTeam")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -217,15 +236,17 @@ export function NewTaskDialog({
 
             {/* Project */}
             {showProjectSelect && (
-              <div className="flex items-center gap-3 h-8">
-                <FolderKanban className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground w-20 shrink-0">{t("noProject").replace("No ", "")}</span>
+              <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <FolderKanban className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">Projet</span>
+                </div>
                 <Select
                   value={selectedProjectId || "none"}
                   onValueChange={(v) => setSelectedProjectId(v === "none" ? "" : v)}
                   {...selectProps("project")}
                 >
-                  <SelectTrigger className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus:ring-0 hover:bg-accent/50 rounded-md transition-colors">
+                  <SelectTrigger className="h-9 text-xs border bg-muted/30 hover:bg-muted/50 transition-colors focus:ring-1">
                     <SelectValue placeholder={t("noProject")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -240,15 +261,17 @@ export function NewTaskDialog({
 
             {/* Assignee */}
             {showAssigneeSelect && (
-              <div className="flex items-center gap-3 h-8">
-                <UserCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground w-20 shrink-0">{t("assignee")}</span>
+              <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <UserCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-xs font-medium text-muted-foreground">{t("assignee")}</span>
+                </div>
                 <Select
                   value={selectedAssigneeId || "none"}
                   onValueChange={(v) => setSelectedAssigneeId(v === "none" ? "" : v)}
                   {...selectProps("assignee")}
                 >
-                  <SelectTrigger className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus:ring-0 hover:bg-accent/50 rounded-md transition-colors">
+                  <SelectTrigger className="h-9 text-xs border bg-muted/30 hover:bg-muted/50 transition-colors focus:ring-1">
                     <SelectValue placeholder={t("unassigned")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,11 +288,11 @@ export function NewTaskDialog({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-muted/20">
-            <Button type="button" variant="ghost" size="sm" onClick={handleClose} className="h-8 text-xs">
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
+            <Button type="button" variant="ghost" size="sm" onClick={handleClose}>
               {tc("cancel")}
             </Button>
-            <Button type="submit" size="sm" disabled={isSubmitting || !title.trim()} className="h-8 text-xs">
+            <Button type="submit" size="sm" disabled={isSubmitting || !title.trim()}>
               {isSubmitting ? t("creating") : t("newTask")}
             </Button>
           </div>

@@ -28,6 +28,7 @@ type SortKey = "default" | "priority" | "dueDate" | "title";
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
 
 function InlineTaskAdd({ onAdd }: { onAdd: (title: string) => Promise<void> }) {
+  const t = useTranslations("tasks");
   const [value, setValue] = useState("");
   const submittingRef = useRef(false);
 
@@ -52,7 +53,7 @@ function InlineTaskAdd({ onAdd }: { onAdd: (title: string) => Promise<void> }) {
           if (e.key === "Enter") submit(e);
           if (e.key === "Escape") { e.stopPropagation(); setValue(""); }
         }}
-        placeholder="Add task… (Enter to create)"
+        placeholder={t("inlinePlaceholder")}
         className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/30"
       />
       {value.trim() && (
@@ -60,7 +61,7 @@ function InlineTaskAdd({ onAdd }: { onAdd: (title: string) => Promise<void> }) {
           onMouseDown={submit}
           className="text-[10px] text-primary hover:underline font-medium"
         >
-          Add
+          {t("add")}
         </button>
       )}
     </div>
@@ -90,13 +91,13 @@ export default function TasksPage() {
   const handleToggleDone = async (id: Id<"tasks">, current: string) => {
     const newStatus = current === "done" ? "todo" : "done";
     toast.promise(updateTask({ id, status: newStatus as any }), {
-      loading: "Updating...", success: "Updated!", error: "Failed",
+      loading: t("creating"), success: t("updated"), error: t("updateFailed"),
     });
   };
 
   const handleInlineAdd = async (title: string) => {
     await createTask({ title, priority: "none" });
-    toast.success(`"${title}" created`);
+    toast.success(t("created"));
   };
 
   const allTasks = tasks ?? [];
@@ -260,7 +261,7 @@ export default function TasksPage() {
               <div className="text-center py-16">
                 <Sparkles className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">
-                  {search ? "No results" : t("empty.title")}
+                  {search ? tc("noResults") : t("empty.title")}
                 </p>
                 {!search && (
                   <>

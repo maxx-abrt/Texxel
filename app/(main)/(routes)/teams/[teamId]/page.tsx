@@ -24,14 +24,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Check, CheckCircle2, Circle, Copy, Crown, FileText, FolderKanban, Mail, Plus, Shield, Trash2, User as UserIcon, Users } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Circle, Copy, Crown, FileText, FolderKanban, Mail, Pencil, Plus, Shield, Trash2, User as UserIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { useTranslations } from "next-intl";
 
 const roleConfig = {
-  owner: { label: "Owner", icon: Crown, color: "text-amber-500" },
-  admin: { label: "Admin", icon: Shield, color: "text-blue-500" },
-  member: { label: "Member", icon: UserIcon, color: "text-slate-500" },
+  owner: { labelKey: "roles.owner", icon: Crown, color: "text-amber-500" },
+  admin: { labelKey: "roles.admin", icon: Shield, color: "text-blue-500" },
+  member: { labelKey: "roles.member", icon: UserIcon, color: "text-slate-500" },
 };
 
 function InviteRow({ inv, canManage, onCancel }: { inv: any; canManage: boolean; onCancel: () => void }) {
@@ -44,6 +45,8 @@ function InviteRow({ inv, canManage, onCancel }: { inv: any; canManage: boolean;
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const ti = useTranslations("teams");
+  const tcc = useTranslations("common");
   return (
     <div className="flex items-center gap-3 px-4 py-3">
       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 text-sm font-semibold shrink-0">
@@ -52,16 +55,16 @@ function InviteRow({ inv, canManage, onCancel }: { inv: any; canManage: boolean;
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{inv.invitedEmail}</p>
         <p className="text-muted-foreground text-xs">
-          Invited as {inv.role} · expires {new Date(inv.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {ti("invitedAs")} {inv.role} · {ti("expires")} {new Date(inv.expiresAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
         </p>
       </div>
       <Button variant="ghost" size="sm" onClick={handleCopy} className="h-7 gap-1.5 text-xs text-muted-foreground">
         {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-        {copied ? "Copied" : "Copy link"}
+        {copied ? ti("copied") : ti("copyLink")}
       </Button>
       {canManage && (
         <Button variant="ghost" size="sm" onClick={onCancel} className="text-xs text-muted-foreground hover:text-destructive h-7">
-          Cancel
+          {tcc("cancel")}
         </Button>
       )}
     </div>
@@ -71,6 +74,8 @@ function InviteRow({ inv, canManage, onCancel }: { inv: any; canManage: boolean;
 export default function TeamDetailPage({ params }: { params: Promise<{ teamId: string }> }) {
   const { teamId } = use(params);
   const router = useRouter();
+  const t = useTranslations("teams");
+  const tc = useTranslations("common");
   const { data: session } = authClient.useSession();
   const team = useQuery(api.teams.getById, { id: teamId as Id<"teams"> });
   const members = useQuery(api.teams.getMembers, { teamId: teamId as Id<"teams"> });
@@ -84,11 +89,46 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
 
   const teamTasks = useQuery(api.tasks.getByTeam, { teamId: teamId as Id<"teams"> });
   const updateTask = useMutation(api.tasks.update);
+  const updateTeam = useMutation(api.teams.update);
+
+  const TEAM_COLORS = ["#f76c5e","#7c3aed","#2563eb","#0d9488","#059669","#d97706","#e11d48","#475569","#ec4899","#f59e0b"];
+  const EMOJI_LIST = ["🚀","⚡","🔥","🌟","💡","🎯","🏆","🛠","💎","🎨","🐉","🦄"];
+
+  const [showIconEdit, setShowIconEdit] = useState(false);
+  const [iconEmoji, setIconEmoji] = useState("");
+  const [iconColor, setIconColor] = useState("#f76c5e");
+  const [iconGradientTo, setIconGradientTo] = useState("");
+  const [isSavingIcon, setIsSavingIcon] = useState(false);
 
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member");
   const [isInviting, setIsInviting] = useState(false);
+
+  const teamIconStyle = (() => {
+    const from = (team as any)?.iconColor ?? "#f76c5e";
+    const to = (team as any)?.iconGradientTo;
+    if (to) return { background: `linear-gradient(135deg, ${from}, ${to})` };
+    return { background: `linear-gradient(135deg, ${from}cc, ${from})` };
+  })();
+
+  const handleSaveIcon = async () => {
+    setIsSavingIcon(true);
+    try {
+      await updateTeam({
+        id: teamId as Id<"teams">,
+        icon: iconEmoji || undefined,
+        iconColor: iconColor || undefined,
+        iconGradientTo: iconGradientTo || undefined,
+      });
+      toast.success(t("iconSaved"));
+      setShowIconEdit(false);
+    } catch (err: any) {
+      toast.error(err.message ?? t("iconSaveFailed"));
+    } finally {
+      setIsSavingIcon(false);
+    }
+  };
 
   if (team === undefined) {
     return (
@@ -100,9 +140,9 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
   if (!team) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <p className="text-sm text-muted-foreground">Team not found</p>
+        <p className="text-sm text-muted-foreground">{t("notFound")}</p>
         <Button variant="ghost" size="sm" onClick={() => router.push("/teams")} className="mt-2 gap-1.5">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to teams
+          <ArrowLeft className="h-3.5 w-3.5" /> {t("backToTeams")}
         </Button>
       </div>
     );
@@ -117,11 +157,11 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
     setIsInviting(true);
     try {
       await inviteMember({ teamId: teamId as Id<"teams">, email: inviteEmail.trim(), role: inviteRole });
-      toast.success(`Invitation created for ${inviteEmail} — copy the link below to share`);
+      toast.success(t("inviteCreated"));
       setShowInvite(false);
       setInviteEmail("");
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to send invitation");
+      toast.error(err.message ?? t("inviteFailed"));
     } finally {
       setIsInviting(false);
     }
@@ -130,27 +170,27 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
   const handleRemoveMember = async (targetUserId: string) => {
     try {
       await removeMember({ teamId: teamId as Id<"teams">, targetUserId });
-      toast.success("Member removed");
+      toast.success(t("memberRemoved"));
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to remove member");
+      toast.error(err.message ?? t("removeFailed"));
     }
   };
 
   const handleUpdateRole = async (targetUserId: string, role: "admin" | "member") => {
     try {
       await updateRole({ teamId: teamId as Id<"teams">, targetUserId, role });
-      toast.success("Role updated");
+      toast.success(t("roleUpdated"));
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to update role");
+      toast.error(err.message ?? t("roleFailed"));
     }
   };
 
   const handleCancelInvitation = async (invId: Id<"teamInvitations">) => {
     try {
       await cancelInvitation({ invitationId: invId });
-      toast.success("Invitation cancelled");
+      toast.success(t("inviteCancelled"));
     } catch {
-      toast.error("Failed to cancel invitation");
+      toast.error(t("cancelFailed"));
     }
   };
 
@@ -162,13 +202,31 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Teams
+          {t("backToTeams")}
         </button>
 
         {/* Header */}
         <div className="mb-8 flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-primary/20 to-primary/5 text-2xl font-bold text-primary">
-            {(team as any).icon ?? (team as any).name[0].toUpperCase()}
+          <div className="relative group/icon">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-sm"
+              style={teamIconStyle}
+            >
+              {(team as any).icon ?? (team as any).name[0].toUpperCase()}
+            </div>
+            {canManage && (
+              <button
+                onClick={() => {
+                  setIconEmoji((team as any).icon ?? "");
+                  setIconColor((team as any).iconColor ?? "#f76c5e");
+                  setIconGradientTo((team as any).iconGradientTo ?? "");
+                  setShowIconEdit(true);
+                }}
+                className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 opacity-0 group-hover/icon:opacity-100 transition-opacity"
+              >
+                <Pencil className="h-4 w-4 text-white" />
+              </button>
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-bold">{(team as any).name}</h1>
@@ -184,13 +242,13 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-base font-semibold">Members</h2>
+              <h2 className="text-base font-semibold">{t("sections.members")}</h2>
               <Badge variant="secondary" className="text-xs">{(members ?? []).length}</Badge>
             </div>
             {canManage && (
               <Button onClick={() => setShowInvite(true)} size="sm" variant="outline" className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
-                Invite
+                {t("invite")}
               </Button>
             )}
           </div>
@@ -208,7 +266,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
                       {member.userName || member.userEmail}
-                      {isCurrentUser && <span className="text-muted-foreground text-xs ml-1">(you)</span>}
+                      {isCurrentUser && <span className="text-muted-foreground text-xs ml-1">({t("you")})</span>}
                     </p>
                     {member.userName && (
                       <p className="text-muted-foreground text-xs truncate">{member.userEmail}</p>
@@ -224,14 +282,14 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="member">Member</SelectItem>
+                          <SelectItem value="admin">{t("roles.admin")}</SelectItem>
+                          <SelectItem value="member">{t("roles.member")}</SelectItem>
                         </SelectContent>
                       </Select>
                     ) : (
                       <Badge variant="secondary" className={cn("text-xs gap-1", roleCfg.color)}>
                         <roleCfg.icon className="h-3 w-3" />
-                        {roleCfg.label}
+                        {t(roleCfg.labelKey as any)}
                       </Badge>
                     )}
                     {canManage && !isOwner && !isCurrentUser && (
@@ -253,7 +311,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           <div className="mb-6">
             <div className="mb-3 flex items-center gap-2">
               <FolderKanban className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-base font-semibold">Projects</h2>
+              <h2 className="text-base font-semibold">{t("sections.projects")}</h2>
               <Badge variant="secondary" className="text-xs">{(teamProjects ?? []).length}</Badge>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
@@ -286,7 +344,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           <div className="mb-6">
             <div className="mb-3 flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Documents</h2>
+              <h2 className="text-sm font-semibold">{t("sections.documents")}</h2>
               <span className="text-[10px] text-muted-foreground font-medium">{(teamDocs ?? []).length}</span>
             </div>
             <div className="rounded-xl border divide-y">
@@ -309,7 +367,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           <div className="mb-6">
             <div className="mb-3 flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-base font-semibold">Tasks</h2>
+              <h2 className="text-base font-semibold">{t("tasks")}</h2>
               <Badge variant="secondary" className="text-xs">{(teamTasks ?? []).length}</Badge>
             </div>
             <div className="rounded-xl border bg-card divide-y">
@@ -354,7 +412,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
             </div>
             {(teamTasks ?? []).length > 12 && (
               <p className="mt-2 text-xs text-muted-foreground text-center">
-                +{(teamTasks ?? []).length - 12} more tasks
+                +{(teamTasks ?? []).length - 12} {t("moreTasks")}
               </p>
             )}
           </div>
@@ -365,7 +423,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           <div>
             <div className="mb-3 flex items-center gap-2">
               <Mail className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-base font-semibold">Pending Invitations</h2>
+              <h2 className="text-base font-semibold">{t("sections.pendingInvitations")}</h2>
               <Badge variant="secondary" className="text-xs">{(pendingInvitations ?? []).length}</Badge>
             </div>
             <div className="rounded-xl border bg-card divide-y">
@@ -382,37 +440,150 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
         )}
       </div>
 
+      {/* Icon edit dialog */}
+      <Dialog open={showIconEdit} onOpenChange={setShowIconEdit}>
+        <DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="text-base font-semibold">{t("iconCustomize")}</DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pt-5 pb-4 space-y-5">
+            {/* Preview */}
+            <div className="flex justify-center">
+              <div
+                className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-md"
+                style={{
+                  background: iconGradientTo
+                    ? `linear-gradient(135deg, ${iconColor}, ${iconGradientTo})`
+                    : `linear-gradient(135deg, ${iconColor}cc, ${iconColor})`,
+                }}
+              >
+                {iconEmoji || (team as any).name[0].toUpperCase()}
+              </div>
+            </div>
+
+            {/* Emoji */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("iconEmoji")}</label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {EMOJI_LIST.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setIconEmoji(iconEmoji === e ? "" : e)}
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-lg border text-base transition-all hover:scale-110",
+                      iconEmoji === e ? "border-primary bg-primary/10" : "hover:border-primary/40",
+                    )}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+              <Input
+                value={iconEmoji}
+                onChange={(e) => setIconEmoji(e.target.value)}
+                placeholder={t("iconEmojiPlaceholder")}
+                className="h-9 text-sm"
+                maxLength={4}
+              />
+            </div>
+
+            {/* Background colour */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("iconBgColor")}</label>
+              <div className="flex flex-wrap gap-2">
+                {TEAM_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setIconColor(c)}
+                    className={cn(
+                      "h-6 w-6 rounded-full border-2 transition-all hover:scale-110",
+                      iconColor === c ? "border-foreground scale-110" : "border-transparent",
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <input
+                  type="color"
+                  value={iconColor}
+                  onChange={(e) => setIconColor(e.target.value)}
+                  className="h-6 w-6 cursor-pointer rounded-full border-0 p-0 bg-transparent"
+                  title="Custom colour"
+                />
+              </div>
+            </div>
+
+            {/* Gradient to */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("iconGradientEnd")}</label>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-wrap gap-2 flex-1">
+                  {["#f76c5e","#7c3aed","#2563eb","#0d9488","#059669"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setIconGradientTo(iconGradientTo === c ? "" : c)}
+                      className={cn(
+                        "h-6 w-6 rounded-full border-2 transition-all hover:scale-110",
+                        iconGradientTo === c ? "border-foreground scale-110" : "border-transparent",
+                      )}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+                {iconGradientTo && (
+                  <button
+                    type="button"
+                    onClick={() => setIconGradientTo("")}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {tc("remove")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
+            <Button variant="ghost" size="sm" onClick={() => setShowIconEdit(false)}>{tc("cancel")}</Button>
+            <Button size="sm" onClick={handleSaveIcon} disabled={isSavingIcon}>
+              {isSavingIcon ? tc("loading") : t("saveIcon")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Invite dialog */}
       <Dialog open={showInvite} onOpenChange={setShowInvite}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Invite Member</DialogTitle>
+            <DialogTitle>{t("inviteMember")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleInvite} className="space-y-4">
             <Input
               type="email"
-              placeholder="Email address"
+              placeholder={t("inviteEmail")}
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               autoFocus
               required
             />
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Role</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("role")}</label>
               <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "admin" | "member")}>
                 <SelectTrigger className="h-9">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="member">{t("roles.member")}</SelectItem>
+                  <SelectItem value="admin">{t("roles.admin")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setShowInvite(false)}>Cancel</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowInvite(false)}>{tc("cancel")}</Button>
               <Button type="submit" size="sm" disabled={isInviting || !inviteEmail.trim()}>
-                {isInviting ? "Sending..." : "Send Invite"}
+                {isInviting ? t("sending") : t("sendInvite")}
               </Button>
             </DialogFooter>
           </form>

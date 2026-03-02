@@ -90,8 +90,9 @@ export function CommandPalette() {
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 50);
       setSelectedIdx(0);
+      // Double-rAF ensures the DOM is painted and focus works reliably
+      requestAnimationFrame(() => requestAnimationFrame(() => inputRef.current?.focus()));
     }
   }, [open]);
 

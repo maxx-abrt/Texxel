@@ -6,6 +6,7 @@ import { authClient } from "@/lib/auth/client";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +17,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, FileCode, FileText, MoreHorizontal, Printer, Trash } from "lucide-react";
+import { Download, FileText, FileType2, History, MessageSquare, MoreHorizontal, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDocumentUI } from "@/hooks/useDocumentUI";
 
 interface MenuProps {
   documentId: Id<"documents">;
@@ -96,45 +98,6 @@ function blocksToMarkdown(blocks: any[]): string {
   return blocks.map((b) => blockToMarkdown(b)).join("\n\n");
 }
 
-function blockToHtml(block: any): string {
-  const text = inlinesToText(block.content ?? [])
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  switch (block.type) {
-    case "heading":
-      return `<h${block.props?.level ?? 1}>${text}</h${block.props?.level ?? 1}>`;
-    case "bulletListItem":
-      return `<li>${text}</li>`;
-    case "numberedListItem":
-      return `<li>${text}</li>`;
-    case "paragraph":
-      return `<p>${text || "&nbsp;"}</p>`;
-    case "codeBlock":
-      return `<pre><code class="language-${block.props?.language ?? ""}">${text}</code></pre>`;
-    case "table": {
-      const rows = (block.content?.rows ?? [])
-        .map(
-          (row: any, i: number) =>
-            `<tr>${(row.cells ?? []).map((c: any[]) => i === 0 ? `<th>${inlinesToText(c)}</th>` : `<td>${inlinesToText(c)}</td>`).join("")}</tr>`,
-        )
-        .join("");
-      return `<table><tbody>${rows}</tbody></table>`;
-    }
-    case "divider":
-      return "<hr>";
-    case "checkListItem":
-      return `<p><input type="checkbox" ${block.props?.checked ? "checked" : ""} disabled> ${text}</p>`;
-    default:
-      return `<p>${text || "&nbsp;"}</p>`;
-  }
-}
-
-function blocksToHtml(blocks: any[]): string {
-  if (!Array.isArray(blocks)) return "";
-  return blocks.map((b) => blockToHtml(b)).join("\n");
-}
 
 function downloadBlob(content: string, filename: string, mime: string) {
   const blob = new Blob([content], { type: mime });
@@ -148,8 +111,10 @@ function downloadBlob(content: string, filename: string, mime: string) {
 
 export const Menu = ({ documentId }: MenuProps) => {
   const router = useRouter();
+  const t = useTranslations("editor");
   const { data: session } = authClient.useSession();
   const user = session?.user;
+  const { toggleComments, toggleVersionHistory, showComments, showVersionHistory, exportHandlers } = useDocumentUI();
 
   const archive = useMutation(api.documents.archive);
   const doc = useQuery(api.documents.getById, { documentId });
@@ -157,148 +122,80 @@ export const Menu = ({ documentId }: MenuProps) => {
   const onArchive = () => {
     const promise = archive({ id: documentId });
     toast.promise(promise, {
-      loading: "Moving to trash...",
-      success: "Note moved to trash!",
-      error: "Failed to archive note.",
+      loading: t("menuTrashLoading"),
+      success: t("menuTrashSuccess"),
+      error: t("menuTrashFailed"),
     });
     router.push("/documents");
   };
 
-  const getBlocks = (): any[] => {
-    try {
-      return JSON.parse(doc?.content ?? "[]");
-    } catch {
-      return [];
-    }
-  };
-
   const onExportMarkdown = () => {
     if (!doc) return;
-    const blocks = getBlocks();
+    let blocks: any[] = [];
+    try { blocks = JSON.parse(doc.content ?? "[]"); } catch {}
     const md = `# ${doc.title || "Untitled"}\n\n${blocksToMarkdown(blocks)}`;
     downloadBlob(md, `${doc.title || "note"}.md`, "text/markdown;charset=utf-8");
-    toast.success("Exported as Markdown");
-  };
-
-  const onExportHtml = () => {
-    if (!doc) return;
-    const blocks = getBlocks();
-    const body = blocksToHtml(blocks);
-    const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${doc.title || "Untitled"}</title>
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 48px auto; padding: 0 24px; line-height: 1.6; color: #111; }
-  h1,h2,h3,h4,h5,h6 { font-weight: 700; margin-top: 2em; margin-bottom: 0.5em; }
-  h1 { font-size: 2em; border-bottom: 2px solid #eee; padding-bottom: 0.3em; }
-  p { margin: 0.75em 0; }
-  pre { background: #f4f4f4; border-radius: 6px; padding: 16px; overflow-x: auto; }
-  code { font-family: 'Fira Code', monospace; font-size: 0.9em; }
-  table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-  th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
-  th { background: #f8f8f8; font-weight: 600; }
-  hr { border: none; border-top: 2px solid #eee; margin: 2em 0; }
-  ul, ol { padding-left: 1.5em; }
-  li { margin: 0.3em 0; }
-</style>
-</head>
-<body>
-<h1>${doc.title || "Untitled"}</h1>
-${body}
-</body>
-</html>`;
-    downloadBlob(html, `${doc.title || "note"}.html`, "text/html;charset=utf-8");
-    toast.success("Exported as HTML");
-  };
-
-  const onExportPdf = () => {
-    if (!doc) return;
-    const blocks = getBlocks();
-    const body = blocksToHtml(blocks);
-    const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>${doc.title || "Untitled"}</title>
-<style>
-  @page { margin: 2cm; }
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 12pt; line-height: 1.7; color: #111; }
-  h1 { font-size: 22pt; font-weight: 800; border-bottom: 2px solid #ddd; padding-bottom: 6pt; margin-bottom: 18pt; margin-top: 0; }
-  h2 { font-size: 16pt; font-weight: 700; margin-top: 24pt; margin-bottom: 8pt; }
-  h3 { font-size: 13pt; font-weight: 600; margin-top: 18pt; margin-bottom: 6pt; }
-  p { margin: 6pt 0; orphans: 3; widows: 3; }
-  pre { background: #f6f6f6; border-radius: 4pt; padding: 10pt; font-size: 9pt; page-break-inside: avoid; overflow-wrap: break-word; }
-  code { font-family: 'Courier New', monospace; font-size: 9pt; }
-  table { border-collapse: collapse; width: 100%; margin: 12pt 0; page-break-inside: avoid; }
-  th, td { border: 1pt solid #ccc; padding: 6pt 10pt; text-align: left; }
-  th { background: #f0f0f0; font-weight: 600; }
-  hr { border: none; border-top: 1pt solid #ddd; margin: 18pt 0; }
-  ul, ol { padding-left: 18pt; margin: 6pt 0; }
-  li { margin: 3pt 0; }
-  a { color: #4f46e5; text-decoration: underline; }
-</style>
-</head>
-<body>
-<h1>${doc.title || "Untitled"}</h1>
-${body}
-</body>
-</html>`;
-    const win = window.open("", "_blank", "width=900,height=700");
-    if (!win) {
-      toast.error("Please allow pop-ups to export PDF");
-      return;
-    }
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => {
-      win.print();
-      win.close();
-    }, 400);
-    toast.success("Print dialog opened — save as PDF");
+    toast.success(t("exportSuccess"));
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="sm" variant="ghost">
+        <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" alignOffset={8}>
+      <DropdownMenuContent className="w-52" align="end" alignOffset={8}>
+        <DropdownMenuItem onClick={toggleComments}>
+          <MessageSquare className={`mr-2 h-4 w-4 ${showComments ? "text-primary" : ""}`} />
+          <span>{t("menuComments")}</span>
+          {showComments && <span className="ml-auto text-[10px] text-primary font-medium">{t("menuOpen")}</span>}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={toggleVersionHistory}>
+          <History className={`mr-2 h-4 w-4 ${showVersionHistory ? "text-primary" : ""}`} />
+          <span>{t("menuVersionHistory")}</span>
+          {showVersionHistory && <span className="ml-auto text-[10px] text-primary font-medium">{t("menuOpen")}</span>}
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Download className="mr-2 h-4 w-4" />
-            Export
+            {t("menuExport")}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={onExportPdf} disabled={!doc}>
-              <Printer className="mr-2 h-4 w-4" />
-              PDF
+            <DropdownMenuItem
+              onClick={() => exportHandlers.pdf?.()}
+              disabled={!exportHandlers.pdf}
+            >
+              <FileType2 className="mr-2 h-4 w-4 text-red-500" />
+              {t("menuExportPdf")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onExportHtml} disabled={!doc}>
-              <FileCode className="mr-2 h-4 w-4" />
-              HTML
+            <DropdownMenuItem
+              onClick={() => exportHandlers.docx?.()}
+              disabled={!exportHandlers.docx}
+            >
+              <FileType2 className="mr-2 h-4 w-4 text-blue-500" />
+              {t("menuExportWord")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={onExportMarkdown} disabled={!doc}>
               <FileText className="mr-2 h-4 w-4" />
-              Markdown
+              {t("menuExportMarkdown")}
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onArchive} className="text-destructive focus:text-destructive">
           <Trash className="mr-2 h-4 w-4" />
-          Delete
+          {t("menuTrash")}
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <div className="text-muted-foreground p-2 text-xs">
-          Last edited by {user?.name}
-        </div>
+        {user?.name && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1.5 text-[10px] text-muted-foreground">
+              {t("menuEditedBy", { name: user.name })}
+            </div>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -1,82 +1,77 @@
 "use client";
+import { useTranslations } from "next-intl";
 
-import { CheckSquare, FolderKanban, FileText, Users, Bell, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const features = [
-  {
-    icon: FileText,
-    title: "Collaborative Docs",
-    desc: "Rich block-based editor with real-time sync. Write together, never overwrite each other.",
-    accent: "from-violet-500/20 to-violet-500/5",
-    iconColor: "text-violet-500",
-  },
-  {
-    icon: CheckSquare,
-    title: "Task Tracking",
-    desc: "Track tasks with priorities, assignments, and due dates. Simple, powerful, and fast.",
-    accent: "from-blue-500/20 to-blue-500/5",
-    iconColor: "text-blue-500",
-  },
-  {
-    icon: FolderKanban,
-    title: "Project Boards",
-    desc: "Organize work across projects. See progress at a glance with visual boards.",
-    accent: "from-emerald-500/20 to-emerald-500/5",
-    iconColor: "text-emerald-500",
-  },
-  {
-    icon: Users,
-    title: "Team Workspaces",
-    desc: "Invite teammates, assign roles, and collaborate across all your work in one place.",
-    accent: "from-amber-500/20 to-amber-500/5",
-    iconColor: "text-amber-500",
-  },
-  {
-    icon: Bell,
-    title: "Smart Inbox",
-    desc: "Mentions, assignments, and updates in one feed. Never miss what matters.",
-    accent: "from-pink-500/20 to-pink-500/5",
-    iconColor: "text-pink-500",
-  },
-  {
-    icon: Zap,
-    title: "Instant Sync",
-    desc: "Changes appear live for your whole team. No refresh needed, ever.",
-    accent: "from-orange-500/20 to-orange-500/5",
-    iconColor: "text-orange-500",
-  },
+const FEATURE_COLORS = [
+  { num: "[01]", tagColor: "#f76c5e", accent: true },
+  { num: "[02]", tagColor: "#60a5fa", accent: false },
+  { num: "[03]", tagColor: "#4ade80", accent: false },
+  { num: "[04]", tagColor: "#a78bfa", accent: false },
+  { num: "[05]", tagColor: "#f76c5e", accent: false },
+  { num: "[06]", tagColor: "#fbbf24", accent: false },
 ];
 
+const FEATURE_KEYS = ["f1", "f2", "f3", "f4", "f5", "f6"] as const;
+
 export function Features() {
+  const tf = useTranslations("landing.features");
+
+  const row1 = FEATURE_KEYS.slice(0, 3);
+  const row2 = FEATURE_KEYS.slice(3);
+
   return (
-    <section className="w-full max-w-5xl">
-      <div className="mb-12 text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Everything you need</p>
-        <h2 className="text-2xl font-bold sm:text-3xl tracking-tight">Built for speed, designed for clarity</h2>
-        <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-          Every feature is crafted to help you and your team move faster.
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {features.map((f) => (
-          <div
-            key={f.title}
-            className="group relative overflow-hidden rounded-2xl border bg-card p-6 text-left transition-all hover:border-primary/20 hover:shadow-lg hover:-translate-y-0.5"
-          >
-            <div className={cn(
-              "pointer-events-none absolute inset-0 bg-linear-to-br opacity-0 transition-opacity group-hover:opacity-100",
-              f.accent,
-            )} />
-            <div className="relative">
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50">
-                <f.icon className={cn("h-5 w-5", f.iconColor)} />
+    <section id="features" className="w-full py-20 md:py-[100px] bg-gray-50 dark:bg-[#0d0d0d]">
+      <div className="mx-auto max-w-[1100px] px-5 md:px-10">
+        <div className="mb-12 flex flex-col gap-3">
+          <span className="font-mono text-[10px] md:text-[12px] font-bold uppercase tracking-[3px] text-[#f76c5e]">{tf("sectionNum")}</span>
+          <h2 className="font-mono text-[32px] md:text-[52px] font-bold leading-[1.05] tracking-[-1px] text-gray-900 dark:text-[#f0f0ee]">
+            {tf("heading")}<br />
+            <span className="text-[#f76c5e]">{tf("headingAccent")}</span>
+          </h2>
+          <p className="font-mono text-[11px] md:text-[13px] leading-[1.6] tracking-[1px] max-w-[500px] text-gray-500 dark:text-[#666]">{tf("subheading")}</p>
+        </div>
+
+        <div className="flex flex-col gap-[2px]">
+          <div className="flex flex-col md:flex-row gap-[2px]">
+            {/* Accent card */}
+            <div className="flex flex-col gap-4 p-8 md:p-10 w-full md:flex-1" style={{ backgroundColor: "#f76c5e", minHeight: 280 }}>
+              <span className="font-mono text-[11px] font-bold uppercase tracking-[2px]" style={{ color: "rgba(0,0,0,0.5)" }}>{FEATURE_COLORS[0].num}</span>
+              <h3 className="font-mono text-[22px] md:text-[26px] font-bold leading-[1.1] whitespace-pre-line" style={{ color: "#fff" }}>{tf("f1Title")}</h3>
+              <p className="font-mono text-[11px] leading-[1.6] tracking-[0.5px]" style={{ color: "rgba(255,255,255,0.75)" }}>{tf("f1Desc")}</p>
+              <div className="flex items-center h-7 px-3 w-fit rounded" style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>
+                <span className="font-mono text-[9px] font-bold uppercase tracking-[2px]" style={{ color: "#fff" }}>{tf("liveBadge")}</span>
               </div>
-              <h3 className="font-semibold mb-1.5">{f.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
             </div>
+            {row1.slice(1).map((key, i) => {
+              const fc = FEATURE_COLORS[i + 1];
+              return (
+                <div key={key} className="flex flex-col gap-4 p-8 md:p-10 w-full md:flex-1 group transition-colors bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#2d2d2d] hover:border-gray-400 dark:hover:border-[#3a3a3a]" style={{ minHeight: 280 }}>
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{fc.num}</span>
+                  <h3 className="font-mono text-[22px] md:text-[26px] font-bold leading-[1.1] whitespace-pre-line text-gray-900 dark:text-[#f0f0ee]">{tf(`${key}Title` as any)}</h3>
+                  <p className="font-mono text-[11px] leading-[1.6] tracking-[0.5px] text-gray-500 dark:text-[#666]">{tf(`${key}Desc` as any)}</p>
+                  <div className="flex items-center h-7 px-3 w-fit rounded bg-gray-100 dark:bg-[#1a1a1a]" style={{ border: `1px solid ${fc.tagColor}` }}>
+                    <span className="font-mono text-[9px] uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{tf(`${key}Tag` as any)}</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
+
+          <div className="flex flex-col md:flex-row gap-[2px]">
+            {row2.map((key, i) => {
+              const fc = FEATURE_COLORS[i + 3];
+              return (
+                <div key={key} className="flex flex-col gap-4 p-8 md:p-10 w-full md:flex-1 transition-colors bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#2d2d2d] hover:border-gray-400 dark:hover:border-[#3a3a3a]" style={{ minHeight: 240 }}>
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{fc.num}</span>
+                  <h3 className="font-mono text-[20px] md:text-[24px] font-bold leading-[1.1] whitespace-pre-line text-gray-900 dark:text-[#f0f0ee]">{tf(`${key}Title` as any)}</h3>
+                  <p className="font-mono text-[11px] leading-[1.6] tracking-[0.5px] text-gray-500 dark:text-[#666]">{tf(`${key}Desc` as any)}</p>
+                  <div className="flex items-center h-7 px-3 w-fit rounded bg-gray-100 dark:bg-[#1a1a1a]" style={{ border: `1px solid ${fc.tagColor}` }}>
+                    <span className="font-mono text-[9px] uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{tf(`${key}Tag` as any)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </section>
   );

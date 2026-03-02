@@ -280,7 +280,11 @@ export const getById = query({
       throw new Error("Document not found");
     }
 
-    if (document.isPublished && !document.isArchived) {
+    if (document.isArchived) {
+      throw new Error("Document is archived");
+    }
+
+    if (document.isPublished) {
       return document;
     }
 
@@ -290,11 +294,119 @@ export const getById = query({
 
     const userId = identity.subject;
 
-    if (document.userId !== userId) {
-      throw new Error("Not authorized");
+    if (document.userId === userId) {
+      return document;
     }
 
-    return document;
+    // Allow team members to access docs shared with their team
+    if (document.sharedTeamId) {
+      const member = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_team_user", (q: any) =>
+          q.eq("teamId", document.sharedTeamId).eq("userId", userId),
+        )
+        .first();
+      if (member) return document;
+    }
+
+    throw new Error("Not authorized");
+  },
+});
+
+export const updateSharing = mutation({
+  args: {
+    id: v.id("documents"),
+    isPublished: v.optional(v.boolean()),
+    collaborationMode: v.optional(
+      v.union(v.literal("view_only"), v.literal("open"), v.literal("restricted")),
+    ),
+    sharedTeamId: v.optional(v.id("teams")),
+    allowedEditorEmails: v.optional(v.array(v.string())),
+    guestCanEdit: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const doc = await ctx.db.get(args.id);
+    if (!doc || doc.userId !== userId) throw new Error("Not authorized");
+    const { id, ...rest } = args;
+    await ctx.db.patch(id, rest);
+    return true;
+  },
+});
+
+export const generateShareToken = mutation({
+  args: { id: v.id("documents"), guestCanEdit: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const doc = await ctx.db.get(args.id);
+    if (!doc || doc.userId !== userId) throw new Error("Not authorized");
+    const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    await ctx.db.patch(args.id, {
+      shareToken: token,
+      guestCanEdit: args.guestCanEdit ?? true,
+    });
+    return token;
+  },
+});
+
+export const revokeShareToken = mutation({
+  args: { id: v.id("documents") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const doc = await ctx.db.get(args.id);
+    if (!doc || doc.userId !== userId) throw new Error("Not authorized");
+    await ctx.db.patch(args.id, { shareToken: undefined });
+    return true;
+  },
+});
+
+export const getByShareToken = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("documents")
+      .withIndex("by_share_token", (q) => q.eq("shareToken", args.token))
+      .first();
+    if (!doc || doc.isArchived) return null;
+    return doc;
+  },
+});
+
+export const updateContentByToken = mutation({
+  args: { token: v.string(), content: v.string() },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("documents")
+      .withIndex("by_share_token", (q) => q.eq("shareToken", args.token))
+      .first();
+    if (!doc || doc.isArchived) throw new Error("Document not found");
+    if (doc.guestCanEdit !== true) throw new Error("Document is read-only");
+    await ctx.db.patch(doc._id, { content: args.content });
+    return true;
+  },
+});
+
+export const updateContentPublic = mutation({
+  args: {
+    id: v.id("documents"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.id);
+    if (!doc) throw new Error("Document not found");
+    if (!doc.isPublished) throw new Error("Document is not public");
+    if (!doc.collaborationMode || doc.collaborationMode === "view_only") {
+      throw new Error("Document is not editable");
+    }
+    // For restricted mode, check is handled on the client by revealing the doc only if invited
+    await ctx.db.patch(args.id, { content: args.content });
+    return true;
   },
 });
 
@@ -507,6 +619,138 @@ export const getByProject = query({
       .filter((q) => q.eq(q.field("isArchived"), false))
       .order("desc")
       .collect();
+  },
+});
+
+export const saveVersion = mutation({
+  args: {
+    documentId: v.id("documents"),
+    label: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) throw new Error("Document not found");
+    if (doc.userId !== userId) throw new Error("Not authorized");
+
+    const existing = await ctx.db
+      .query("documentVersions")
+      .withIndex("by_document_time", (q) => q.eq("documentId", args.documentId))
+      .order("asc")
+      .collect();
+
+    if (existing.length >= 50) {
+      await ctx.db.delete(existing[0]._id);
+    }
+
+    return ctx.db.insert("documentVersions", {
+      documentId: args.documentId,
+      content: doc.content ?? "",
+      title: doc.title,
+      savedAt: Date.now(),
+      savedBy: userId,
+      savedByName: identity.name ?? undefined,
+      label: args.label,
+    });
+  },
+});
+
+export const getVersions = query({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const userId = identity.subject;
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc || doc.userId !== userId) return [];
+
+    return ctx.db
+      .query("documentVersions")
+      .withIndex("by_document_time", (q) => q.eq("documentId", args.documentId))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const restoreVersion = mutation({
+  args: { versionId: v.id("documentVersions") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const version = await ctx.db.get(args.versionId);
+    if (!version) throw new Error("Version not found");
+    const doc = await ctx.db.get(version.documentId);
+    if (!doc || doc.userId !== userId) throw new Error("Not authorized");
+    await ctx.db.patch(version.documentId, { content: version.content });
+    return true;
+  },
+});
+
+export const updatePresence = mutation({
+  args: {
+    documentId: v.id("documents"),
+    userName: v.string(),
+    userColor: v.string(),
+    userImage: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return;
+    const userId = identity.subject;
+    const existing = await ctx.db
+      .query("documentPresence")
+      .withIndex("by_document_user", (q: any) =>
+        q.eq("documentId", args.documentId).eq("userId", userId),
+      )
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        lastSeen: Date.now(),
+        userName: args.userName,
+        userColor: args.userColor,
+        userImage: args.userImage,
+      });
+    } else {
+      await ctx.db.insert("documentPresence", {
+        documentId: args.documentId,
+        userId,
+        userName: args.userName,
+        userColor: args.userColor,
+        userImage: args.userImage,
+        lastSeen: Date.now(),
+      });
+    }
+  },
+});
+
+export const getDocumentPresence = query({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const cutoff = Date.now() - 30_000;
+    return ctx.db
+      .query("documentPresence")
+      .withIndex("by_document", (q: any) => q.eq("documentId", args.documentId))
+      .filter((q) => q.gte(q.field("lastSeen"), cutoff))
+      .collect();
+  },
+});
+
+export const removePresence = mutation({
+  args: { documentId: v.id("documents") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return;
+    const userId = identity.subject;
+    const existing = await ctx.db
+      .query("documentPresence")
+      .withIndex("by_document_user", (q: any) =>
+        q.eq("documentId", args.documentId).eq("userId", userId),
+      )
+      .first();
+    if (existing) await ctx.db.delete(existing._id);
   },
 });
 

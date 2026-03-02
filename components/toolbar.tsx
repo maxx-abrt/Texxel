@@ -13,6 +13,7 @@ import TextareaAutosize from "react-textarea-autosize";
 import { IconPicker } from "./icon-picker";
 import { ImageIcon, Smile, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface ToolbarProps {
   initialData: Doc<"documents">;
@@ -20,13 +21,15 @@ interface ToolbarProps {
 }
 
 export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
   const inputRef = useRef<ComponentRef<"textarea">>(null);
 
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialData.title);
 
-  const update = useMutation(api.documents.update);
-  const removeIcon = useMutation(api.documents.removeIcon);
+  const updateMutation = useMutation(api.documents.update);
+  const removeIconMutation = useMutation(api.documents.removeIcon);
   const coverImage = useCoverImage();
 
   const enableInput = () => {
@@ -38,7 +41,7 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   const disableInput = () => {
     setIsEditing(false);
     if (value === "") {
-      setValue(initialData.title || "Untitled");
+      setValue(initialData.title || tc("untitled"));
     }
   };
 
@@ -49,17 +52,18 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   }, [initialData.title]);
 
   useEffect(() => {
+    if (preview) return;
     if (value === initialData.title) return;
 
     const timer = setTimeout(() => {
-      update({
+      updateMutation({
         id: initialData._id,
-        title: value || "Untitled",
+        title: value || tc("untitled"),
       });
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [value, initialData._id, initialData.title, update]);
+  }, [value, initialData._id, initialData.title, updateMutation, preview]);
 
   const onInput = (value: string) => {
     setValue(value);
@@ -68,10 +72,12 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      update({
-        id: initialData._id,
-        title: value || "Untitled",
-      });
+      if (!preview) {
+        updateMutation({
+          id: initialData._id,
+          title: value || tc("untitled"),
+        });
+      }
       setTimeout(() => {
         inputRef.current?.blur();
       }, 400);
@@ -79,14 +85,16 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
   };
 
   const onIconSelect = (icon: string) => {
-    update({
+    if (preview) return;
+    updateMutation({
       id: initialData._id,
       icon,
     });
   };
 
   const onRemoveIcon = () => {
-    removeIcon({
+    if (preview) return;
+    removeIconMutation({
       id: initialData._id,
     });
   };
@@ -136,7 +144,7 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
               size="sm"
             >
               <Smile className="mr-2 h-4 w-4" />
-              Add icon
+              {t("addIcon")}
             </Button>
           </IconPicker>
         )}
@@ -148,14 +156,14 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
             size="sm"
           >
             <ImageIcon className="mr-2 h-4 w-4" />
-            Add Cover
+            {t("addCover")}
           </Button>
         )}
       </div>
 
       <TextareaAutosize
         ref={inputRef}
-        placeholder="Untitled"
+        placeholder={tc("untitled")}
         spellCheck="false"
         onBlur={disableInput}
         onFocus={() => setIsEditing(true)}

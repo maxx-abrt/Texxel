@@ -16,23 +16,25 @@ import {
   ArrowRight,
   AlertCircle,
   Circle,
-  TrendingUp,
-  Inbox,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
+import { useTranslations } from "next-intl";
 
-function timeAgo(ts: number): string {
-  const diff = Date.now() - ts;
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d ago`;
-  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+function useTimeAgo() {
+  const tc = useTranslations("common");
+  return (ts: number): string => {
+    const diff = Date.now() - ts;
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return tc("justNow");
+    if (m < 60) return `${m}${tc("minAgo")}`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}${tc("hAgo")}`;
+    const d = Math.floor(h / 24);
+    if (d < 7) return `${d}${tc("dAgo")}`;
+    return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
 }
 
 const priorityDot: Record<string, string> = {
@@ -47,6 +49,9 @@ const DocumentsPage = () => {
   const { data: session } = authClient.useSession();
   const user = session?.user;
   const router = useRouter();
+  const td = useTranslations("dashboard");
+  const tc = useTranslations("common");
+  const timeAgo = useTimeAgo();
   const create = useMutation(api.documents.create);
   const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
   const myTasks = useQuery(api.tasks.getMyTasks, {});
@@ -60,15 +65,15 @@ const DocumentsPage = () => {
 
   const getGreeting = () => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
+    if (h < 12) return td("greeting.morning");
+    if (h < 17) return td("greeting.afternoon");
+    return td("greeting.evening");
   };
 
   const onCreateDoc = () => {
     toast.promise(
-      create({ title: "Untitled" }).then((id) => router.push(`/documents/${id}`)),
-      { loading: "Creating note...", success: "Note created!", error: "Failed" },
+      create({ title: tc("untitled") }).then((id) => router.push(`/documents/${id}`)),
+      { loading: td("creating"), success: td("created"), error: td("createFailed") },
     );
   };
 
@@ -89,17 +94,17 @@ const DocumentsPage = () => {
             {getGreeting()}, {firstName}
           </h1>
           <p className="text-muted-foreground mt-1.5">
-            Here&apos;s an overview of your workspace.
+            {td("overview")}
           </p>
         </div>
 
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-4">
           {[
-            { label: "Open Tasks", value: activeTasks.length, icon: CheckSquare, gradient: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-500", href: "/tasks" },
-            { label: "Overdue", value: overdueTaskCount, icon: AlertCircle, gradient: overdueTaskCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", iconColor: overdueTaskCount > 0 ? "text-red-500" : "text-emerald-500", href: "/tasks" },
-            { label: "Projects", value: (myProjects ?? []).length, icon: FolderKanban, gradient: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-500", href: "/projects" },
-            { label: "Teams", value: (myTeams ?? []).length, icon: Users, gradient: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-500", href: "/teams" },
+            { label: td("stats.openTasks"), value: activeTasks.length, icon: CheckSquare, gradient: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-500", href: "/tasks" },
+            { label: td("stats.overdue"), value: overdueTaskCount, icon: AlertCircle, gradient: overdueTaskCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", iconColor: overdueTaskCount > 0 ? "text-red-500" : "text-emerald-500", href: "/tasks" },
+            { label: td("stats.projects"), value: (myProjects ?? []).length, icon: FolderKanban, gradient: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-500", href: "/projects" },
+            { label: td("stats.teams"), value: (myTeams ?? []).length, icon: Users, gradient: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-500", href: "/teams" },
           ].map((stat) => (
             <button
               key={stat.label}
@@ -123,16 +128,16 @@ const DocumentsPage = () => {
         {/* Quick actions row */}
         <div className="flex flex-wrap gap-2 mb-10">
           <Button onClick={onCreateDoc} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <FileText className="h-3.5 w-3.5" /> New Note
+            <FileText className="h-3.5 w-3.5" /> {td("newNote")}
           </Button>
           <Button onClick={() => setShowNewTask(true)} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <CheckSquare className="h-3.5 w-3.5" /> New Task
+            <CheckSquare className="h-3.5 w-3.5" /> {td("newTask")}
           </Button>
           <Button onClick={() => router.push("/projects")} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <FolderKanban className="h-3.5 w-3.5" /> Projects
+            <FolderKanban className="h-3.5 w-3.5" /> {td("myProjects")}
           </Button>
           <Button onClick={() => router.push("/teams")} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <Users className="h-3.5 w-3.5" /> Teams
+            <Users className="h-3.5 w-3.5" /> {td("myTeams")}
           </Button>
         </div>
 
@@ -142,21 +147,21 @@ const DocumentsPage = () => {
             {/* Active tasks */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">My Tasks</h2>
+                <h2 className="text-sm font-semibold">{td("myTasks")}</h2>
                 <button
                   onClick={() => router.push("/tasks")}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
-                  View all <ArrowRight className="h-3 w-3" />
+                  {td("viewAll")} <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
               {activeTasks.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-8 text-center">
                   <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground font-medium">All caught up!</p>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">No open tasks. Create one to get started.</p>
+                  <p className="text-sm text-muted-foreground font-medium">{td("allCaughtUp")}</p>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">{td("noTasksDesc")}</p>
                   <Button size="sm" variant="outline" onClick={() => setShowNewTask(true)} className="mt-3 gap-1.5 h-7 text-xs">
-                    <Plus className="h-3 w-3" /> Add task
+                    <Plus className="h-3 w-3" /> {td("addTask")}
                   </Button>
                 </div>
               ) : (
@@ -175,7 +180,7 @@ const DocumentsPage = () => {
                         )}
                         {task.dueDate && task.dueDate < Date.now() ? (
                           <span className="text-[10px] font-medium text-red-500 flex items-center gap-0.5">
-                            <AlertCircle className="h-2.5 w-2.5" /> overdue
+                            <AlertCircle className="h-2.5 w-2.5" /> {td("overdue")}
                           </span>
                         ) : task.dueDate ? (
                           <span className="text-[10px] text-muted-foreground">
@@ -190,7 +195,7 @@ const DocumentsPage = () => {
                       onClick={() => router.push("/tasks")}
                       className="w-full text-center text-xs text-muted-foreground hover:text-primary py-2.5 transition-colors rounded-b-xl hover:bg-accent/50"
                     >
-                      +{activeTasks.length - 6} more
+                      +{activeTasks.length - 6} {td("more")}
                     </button>
                   )}
                 </div>
@@ -202,7 +207,7 @@ const DocumentsPage = () => {
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-semibold">Inbox</h2>
+                    <h2 className="text-sm font-semibold">{td("inbox")}</h2>
                     <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-semibold text-white">
                       {unreadCount}
                     </div>
@@ -211,7 +216,7 @@ const DocumentsPage = () => {
                     onClick={() => router.push("/inbox")}
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                   >
-                    View all <ArrowRight className="h-3 w-3" />
+                    {td("viewAll")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
                 <div className="rounded-xl border divide-y">
@@ -236,20 +241,20 @@ const DocumentsPage = () => {
             {/* Recent notes */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">Recent Notes</h2>
+                <h2 className="text-sm font-semibold">{td("recentNotes")}</h2>
                 <button
                   onClick={onCreateDoc}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
-                  <Plus className="h-3 w-3" /> New
+                  <Plus className="h-3 w-3" /> {tc("add")}
                 </button>
               </div>
               {(recentDocs ?? []).length === 0 ? (
                 <div className="rounded-xl border border-dashed p-8 text-center">
                   <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground font-medium">No notes yet</p>
+                  <p className="text-sm text-muted-foreground font-medium">{td("noNotes")}</p>
                   <Button size="sm" variant="outline" onClick={onCreateDoc} className="mt-3 gap-1.5 h-7 text-xs">
-                    <Plus className="h-3 w-3" /> Create note
+                    <Plus className="h-3 w-3" /> {td("createNote")}
                   </Button>
                 </div>
               ) : (
@@ -264,7 +269,7 @@ const DocumentsPage = () => {
                         {doc.icon ?? "📄"}
                       </span>
                       <span className="flex-1 text-sm truncate group-hover:text-primary transition-colors">
-                        {doc.title || "Untitled"}
+                        {doc.title || tc("untitled")}
                       </span>
                     </div>
                   ))}
@@ -276,12 +281,12 @@ const DocumentsPage = () => {
             {(myProjects ?? []).length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold">Projects</h2>
+                  <h2 className="text-sm font-semibold">{td("myProjects")}</h2>
                   <button
                     onClick={() => router.push("/projects")}
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                   >
-                    View all <ArrowRight className="h-3 w-3" />
+                    {td("viewAll")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -313,12 +318,12 @@ const DocumentsPage = () => {
             {(myTeams ?? []).length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold">Teams</h2>
+                  <h2 className="text-sm font-semibold">{td("myTeams")}</h2>
                   <button
                     onClick={() => router.push("/teams")}
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
                   >
-                    View all <ArrowRight className="h-3 w-3" />
+                    {td("viewAll")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
                 <div className="space-y-2">

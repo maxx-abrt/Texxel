@@ -202,48 +202,50 @@ export default function ProjectsPage() {
       </div>
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
-        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-5 pb-0">
-            <DialogTitle className="text-sm font-semibold">{t("newProject")}</DialogTitle>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="text-base font-semibold">{t("newProject")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate}>
-            <div className="px-5 pt-4 pb-2 space-y-2">
-              <Input
-                placeholder={t("projectName")}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoFocus
-                required
-                className="text-sm font-medium border-0 px-0 h-auto py-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40"
-              />
-              <Textarea
-                placeholder={t("addDescription")}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                className="resize-none text-sm border-0 px-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40 min-h-0"
-              />
+            <div className="px-6 pt-5 pb-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("projectName")}</label>
+                <Input
+                  placeholder={t("projectName")}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoFocus
+                  required
+                  className="h-10 text-sm font-medium"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("addDescription")}</label>
+                <Textarea
+                  placeholder={t("addDescription")}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="resize-none text-sm"
+                />
+              </div>
             </div>
 
-            <div className="mx-5 border-t" />
+            <div className="border-t" />
 
-            <div className="px-5 py-3 space-y-3">
+            <div className="px-6 py-4 space-y-4">
               {/* Color */}
-              <div className="flex items-center gap-3">
-                <div
-                  className="h-3.5 w-3.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-xs text-muted-foreground w-20 shrink-0">Couleur</span>
-                <div className="flex items-center gap-1.5">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Couleur</label>
+                <div className="flex items-center gap-2">
                   {PROJECT_COLORS.map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setColor(c)}
                       className={cn(
-                        "h-5 w-5 rounded-full transition-all hover:scale-110",
-                        color === c && "ring-2 ring-offset-1 ring-primary scale-110",
+                        "h-6 w-6 rounded-full transition-all hover:scale-110",
+                        color === c && "ring-2 ring-offset-2 ring-primary scale-110",
                       )}
                       style={{ backgroundColor: c }}
                     />
@@ -251,43 +253,43 @@ export default function ProjectsPage() {
                 </div>
               </div>
 
-              {/* Team */}
-              {(myTeams ?? []).length > 0 && (
-                <div className="flex items-center gap-3 h-8">
-                  <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground w-20 shrink-0">{tt("title")}</span>
-                  <Select value={selectedTeamId || "none"} onValueChange={(v) => setSelectedTeamId(v === "none" ? "" : v)}>
-                    <SelectTrigger className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus:ring-0 hover:bg-accent/50 rounded-md transition-colors">
-                      <SelectValue placeholder={tt("title")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">{tt("title")} —</SelectItem>
-                      {(myTeams ?? []).filter(Boolean).map((team: any) => (
-                        <SelectItem key={team._id} value={team._id}>{team.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Team */}
+                {(myTeams ?? []).length > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{tt("title")}</label>
+                    <Select value={selectedTeamId || "none"} onValueChange={(v) => setSelectedTeamId(v === "none" ? "" : v)}>
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue placeholder={tt("title")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— {tt("title")}</SelectItem>
+                        {(myTeams ?? []).filter(Boolean).map((team: any) => (
+                          <SelectItem key={team._id} value={team._id}>{team.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-              {/* Due date */}
-              <div className="flex items-center gap-3 h-8">
-                <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground w-20 shrink-0">Échéance</span>
-                <Input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="h-7 flex-1 border-0 shadow-none px-0 text-xs focus-visible:ring-0 hover:bg-accent/50 rounded-md transition-colors"
-                />
+                {/* Due date */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Échéance</label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="h-9 text-xs"
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-muted/20">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setShowNew(false)} className="h-8 text-xs">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowNew(false)}>
                 {tc("cancel")}
               </Button>
-              <Button type="submit" size="sm" disabled={isSubmitting || !name.trim()} className="h-8 text-xs">
+              <Button type="submit" size="sm" disabled={isSubmitting || !name.trim()}>
                 {isSubmitting ? t("creating") : t("newProject")}
               </Button>
             </div>

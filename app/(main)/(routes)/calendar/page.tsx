@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, List } from "lucide-react";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 const PRIORITY_DOT: Record<string, string> = {
   none: "bg-slate-400",
@@ -27,11 +27,10 @@ const STATUS_DOT: Record<string, string> = {
   cancelled: "bg-red-400",
 };
 
-const FR_DAY_SHORT = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-const EN_DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 export default function CalendarPage() {
   const t = useTranslations("tasks");
+  const tc = useTranslations("calendar");  
+  const locale = useLocale();
   const router = useRouter();
   const tasks = useQuery(api.tasks.getMyTasks, {});
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -75,7 +74,7 @@ export default function CalendarPage() {
     return d < today;
   };
 
-  const monthLabel = firstDay.toLocaleDateString("fr-FR", {
+  const monthLabel = firstDay.toLocaleDateString(locale, {
     month: "long",
     year: "numeric",
   });
@@ -98,7 +97,7 @@ export default function CalendarPage() {
     const grouped: Record<string, any[]> = {};
     upcomingTasks.forEach((task) => {
       const d = new Date(task.dueDate!);
-      const key = d.toLocaleDateString("fr-FR", {
+      const key = d.toLocaleDateString(locale, {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -124,10 +123,10 @@ export default function CalendarPage() {
               {monthLabel}
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              {tasksWithDates} planifiées
+              {tasksWithDates} {tc("scheduled")}
               {overdueCount > 0 && (
                 <span className="ml-2 text-red-500 font-medium">
-                  · {overdueCount} en retard
+                  · {overdueCount} {tc("overdue")}
                 </span>
               )}
             </p>
@@ -184,7 +183,7 @@ export default function CalendarPage() {
                 onClick={() => setCurrentDate(new Date())}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent"
               >
-                Aujourd&apos;hui
+                {tc("today")}
               </button>
               <Button
                 variant="ghost"
@@ -198,7 +197,9 @@ export default function CalendarPage() {
 
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-1">
-              {FR_DAY_SHORT.map((d) => (
+              {Array.from({ length: 7 }, (_, i) =>
+                new Date(2023, 0, i + 1).toLocaleDateString(locale, { weekday: "short" })
+              ).map((d) => (
                 <div
                   key={d}
                   className="py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
@@ -294,15 +295,15 @@ export default function CalendarPage() {
             <div className="flex items-center gap-4 mt-4 text-[11px] text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-primary/60" />
-                À venir
+                {tc("upcoming")}
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-red-500/60" />
-                En retard
+                {tc("late")}
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-emerald-500/60" />
-                Terminé
+                {tc("done")}
               </div>
             </div>
           </>
@@ -313,11 +314,10 @@ export default function CalendarPage() {
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <CalendarDays className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
                 <p className="text-sm font-medium text-muted-foreground">
-                  Aucune tâche planifiée
+                  {tc("noTasks")}
                 </p>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  Ajoutez une date d&apos;échéance à vos tâches pour les voir
-                  ici.
+                  {tc("noTasksDesc")}
                 </p>
                 <Button
                   size="sm"
@@ -364,7 +364,7 @@ export default function CalendarPage() {
                                 variant="secondary"
                                 className="text-[10px] bg-red-500/10 text-red-600 border-0"
                               >
-                                En retard
+                                {tc("late")}
                               </Badge>
                             )}
                             {task.priority !== "none" && (

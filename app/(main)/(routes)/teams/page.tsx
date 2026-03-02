@@ -68,7 +68,7 @@ export default function TeamsPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              {(teams ?? []).length} {(teams ?? []).length !== 1 ? "équipes" : "équipe"}
+              {(teams ?? []).length} {t("title").toLowerCase()}
             </p>
           </div>
           <Button onClick={() => setShowCreate(true)} size="sm" className="gap-1.5 h-8">
@@ -98,7 +98,14 @@ export default function TeamsPage() {
                   onClick={() => router.push(`/teams/${team._id}`)}
                   className="group flex items-center gap-4 rounded-xl border p-4 cursor-pointer hover:border-primary/20 hover:shadow-sm transition-all"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-lg font-bold text-primary shrink-0">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold text-white shrink-0 shadow-sm"
+                    style={{
+                      background: team.iconGradientTo
+                        ? `linear-gradient(135deg, ${team.iconColor ?? "#f76c5e"}, ${team.iconGradientTo})`
+                        : `linear-gradient(135deg, ${team.iconColor ?? "#f76c5e"}cc, ${team.iconColor ?? "#f76c5e"})`,
+                    }}
+                  >
                     {team.icon ?? team.name[0].toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -125,14 +132,14 @@ export default function TeamsPage() {
       </div>
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="sm:max-w-sm p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-5 pt-5 pb-0">
-            <DialogTitle className="text-sm font-semibold">{t("createTeam")}</DialogTitle>
+        <DialogContent className="sm:max-w-lg p-0 gap-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle className="text-base font-semibold">{t("createTeam")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate}>
-            <div className="px-5 pt-4 pb-3 space-y-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{t("teamName")}</label>
+            <div className="px-6 pt-5 pb-4 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("teamName")}</label>
                 <Input
                   value={name}
                   onChange={(e) => {
@@ -142,40 +149,40 @@ export default function TeamsPage() {
                   placeholder="Acme Inc."
                   autoFocus
                   required
-                  className="h-9"
+                  className="h-10 text-sm font-medium"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{t("slug")}</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{t("slug")}</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">/</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-mono">/</span>
                   <Input
                     value={slug}
                     onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                     placeholder="acme-inc"
                     required
-                    className="h-9 pl-6 font-mono text-xs"
+                    className="h-10 pl-7 font-mono text-sm"
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("description")} <span className="normal-case">({tc("optional")})</span>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  {t("description")} <span className="normal-case opacity-60">({tc("optional")})</span>
                 </label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder={t("descriptionPlaceholder")}
-                  rows={2}
+                  rows={3}
                   className="resize-none text-sm"
                 />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-muted/20">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setShowCreate(false)} className="h-8 text-xs">
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/20">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setShowCreate(false)}>
                 {tc("cancel")}
               </Button>
-              <Button type="submit" size="sm" disabled={isCreating || !name.trim() || !slug.trim()} className="h-8 text-xs">
+              <Button type="submit" size="sm" disabled={isCreating || !name.trim() || !slug.trim()}>
                 {isCreating ? t("creating") : t("createTeam")}
               </Button>
             </div>

@@ -33,26 +33,29 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { useTranslations } from "next-intl";
 
-const statusConfig: Record<string, { label: string; color: string; dot: string }> = {
-  todo: { label: "To Do", color: "text-slate-500", dot: "bg-slate-400" },
-  in_progress: { label: "In Progress", color: "text-blue-500", dot: "bg-blue-500" },
-  in_review: { label: "In Review", color: "text-amber-500", dot: "bg-amber-500" },
-  done: { label: "Done", color: "text-emerald-500", dot: "bg-emerald-500" },
-  cancelled: { label: "Cancelled", color: "text-red-400", dot: "bg-red-400" },
+const STATUS_COLORS: Record<string, { color: string; dot: string }> = {
+  todo: { color: "text-slate-500", dot: "bg-slate-400" },
+  in_progress: { color: "text-blue-500", dot: "bg-blue-500" },
+  in_review: { color: "text-amber-500", dot: "bg-amber-500" },
+  done: { color: "text-emerald-500", dot: "bg-emerald-500" },
+  cancelled: { color: "text-red-400", dot: "bg-red-400" },
 };
 
-const priorityConfig: Record<string, { label: string; color: string }> = {
-  none: { label: "No priority", color: "text-muted-foreground" },
-  low: { label: "Low", color: "text-sky-500" },
-  medium: { label: "Medium", color: "text-amber-500" },
-  high: { label: "High", color: "text-orange-500" },
-  urgent: { label: "Urgent", color: "text-red-500" },
+const PRIORITY_COLORS: Record<string, { color: string }> = {
+  none: { color: "text-muted-foreground" },
+  low: { color: "text-sky-500" },
+  medium: { color: "text-amber-500" },
+  high: { color: "text-orange-500" },
+  urgent: { color: "text-red-500" },
 };
 
 export default function TaskDetailPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = use(params);
   const router = useRouter();
+  const tt = useTranslations("tasks");
+  const tc = useTranslations("common");
   const { data: session } = authClient.useSession();
   const task = useQuery(api.tasks.getById, { id: taskId as Id<"tasks"> });
   const comments = useQuery(api.tasks.getComments, { taskId: taskId as Id<"tasks"> });
@@ -86,9 +89,9 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   if (!task) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <p className="text-sm text-muted-foreground">Task not found</p>
+        <p className="text-sm text-muted-foreground">{tt("notFound")}</p>
         <Button variant="ghost" size="sm" onClick={() => router.push("/tasks")} className="mt-2 gap-1.5">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to tasks
+          <ArrowLeft className="h-3.5 w-3.5" /> {tt("backToTasks")}
         </Button>
       </div>
     );
@@ -98,7 +101,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
     try {
       await updateTask({ id: task._id, ...patch });
     } catch {
-      toast.error("Failed to update task");
+      toast.error(tt("updateFailed"));
     }
   };
 
@@ -112,10 +115,10 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const handleDelete = async () => {
     try {
       await removeTask({ id: task._id });
-      toast.success("Task deleted");
+      toast.success(tt("deleted"));
       router.push("/tasks");
     } catch {
-      toast.error("Failed to delete task");
+      toast.error(tt("deleteFailed"));
     }
   };
 
@@ -132,14 +135,16 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
       });
       setCommentText("");
     } catch {
-      toast.error("Failed to add comment");
+      toast.error(tc("save") + " failed");
     } finally {
       setIsSubmittingComment(false);
     }
   };
 
-  const sCfg = statusConfig[task.status] ?? statusConfig.todo;
-  const pCfg = priorityConfig[task.priority] ?? priorityConfig.none;
+  const sCfg = STATUS_COLORS[task.status] ?? STATUS_COLORS.todo;
+  const pCfg = PRIORITY_COLORS[task.priority] ?? PRIORITY_COLORS.none;
+  const STATUS_KEYS = Object.keys(STATUS_COLORS);
+  const PRIORITY_KEYS = Object.keys(PRIORITY_COLORS);
   const isOverdue = task.dueDate && task.dueDate < Date.now() && task.status !== "done";
 
   return (
@@ -151,7 +156,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
           className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back
+          {tc("back")}
         </button>
 
         <div className="flex flex-col gap-8 lg:flex-row">
@@ -195,7 +200,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             {/* Description */}
             <div className="mb-8">
               <Textarea
-                placeholder="Add a description..."
+                placeholder={tt("addDescription")}
                 defaultValue={task.description ?? ""}
                 onBlur={(e) => {
                   if (e.target.value !== (task.description ?? "")) {
@@ -212,7 +217,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
               <div className="mb-4 flex items-center gap-2">
                 <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 <h2 className="text-sm font-semibold">
-                  Comments
+                  {tt("comments")}
                   {(comments?.length ?? 0) > 0 && (
                     <span className="text-muted-foreground font-normal ml-1">({comments?.length})</span>
                   )}
@@ -221,7 +226,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
               <div className="space-y-3 mb-4">
                 {(comments ?? []).length === 0 && (
-                  <p className="text-xs text-muted-foreground/60 py-4">No comments yet. Start the conversation.</p>
+                  <p className="text-xs text-muted-foreground/60 py-4">{tt("noComments")}</p>
                 )}
                 {(comments ?? []).map((c) => (
                   <div key={c._id} className="flex gap-3">
@@ -247,7 +252,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
               <form onSubmit={handleComment} className="flex gap-2">
                 <Input
-                  placeholder="Write a comment..."
+                  placeholder={tt("writeComment")}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
                   className="text-sm h-9"
@@ -264,7 +269,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
             <div className="rounded-xl border p-4 space-y-4">
               {/* Status */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Status</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("status")}</p>
                 <Select value={task.status} onValueChange={(v) => handleUpdate({ status: v })} {...selectProps("status")}>
                   <SelectTrigger className="h-8 text-xs gap-2">
                     <div className="flex items-center gap-2">
@@ -273,11 +278,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(statusConfig).map(([k, v]) => (
+                    {STATUS_KEYS.map((k) => (
                       <SelectItem key={k} value={k}>
                         <span className="flex items-center gap-2">
-                          <span className={cn("h-2 w-2 rounded-full", v.dot)} />
-                          {v.label}
+                          <span className={cn("h-2 w-2 rounded-full", STATUS_COLORS[k].dot)} />
+                          {tt(`statuses.${k}` as any)}
                         </span>
                       </SelectItem>
                     ))}
@@ -287,7 +292,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
               {/* Priority */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Priority</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("priority")}</p>
                 <Select value={task.priority} onValueChange={(v) => handleUpdate({ priority: v })} {...selectProps("priority")}>
                   <SelectTrigger className="h-8 text-xs gap-2">
                     <div className="flex items-center gap-2">
@@ -296,9 +301,9 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(priorityConfig).map(([k, v]) => (
+                    {PRIORITY_KEYS.map((k) => (
                       <SelectItem key={k} value={k}>
-                        <span className={cn("flex items-center gap-2", v.color)}>{v.label}</span>
+                        <span className={cn("flex items-center gap-2", PRIORITY_COLORS[k].color)}>{tt(`priorities.${k}` as any)}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -307,7 +312,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
               {/* Due date */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Due date</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("dueDate")}</p>
                 <div className="flex items-center gap-1.5">
                   <Calendar className={cn("h-3 w-3 shrink-0", isOverdue ? "text-red-500" : "text-muted-foreground")} />
                   <input
@@ -326,7 +331,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
               {/* Project */}
               {project && (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Project</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("project")}</p>
                   <button
                     onClick={() => router.push(`/projects/${project._id}`)}
                     className="flex items-center gap-1.5 text-xs text-foreground hover:text-primary transition-colors group"
@@ -343,7 +348,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
 
               {/* Assignee */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Assignee</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("assignee")}</p>
                 {task.assigneeId ? (
                   <div className="flex items-center gap-2">
                     {task.assigneeImage ? (
@@ -353,19 +358,19 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                         {task.assigneeName?.[0]?.toUpperCase() ?? "?"}
                       </div>
                     )}
-                    <span className="text-xs">{task.assigneeName ?? "Assigned"}</span>
+                    <span className="text-xs">{task.assigneeName ?? tt("assigned")}</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <UserCircle className="h-3.5 w-3.5" />
-                    Unassigned
+                    {tt("unassigned")}
                   </div>
                 )}
               </div>
 
               {/* Created */}
               <div className="space-y-1.5">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">Created</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("createdLabel")}</p>
                 <p className="text-xs text-muted-foreground">
                   {new Date(task.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
@@ -375,7 +380,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                 <ConfirmModal onConfirm={handleDelete}>
                   <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive h-8 text-xs">
                     <Trash2 className="h-3.5 w-3.5" />
-                    Delete task
+                    {tt("deleteTask")}
                   </Button>
                 </ConfirmModal>
               </div>

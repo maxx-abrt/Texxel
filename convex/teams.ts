@@ -54,6 +54,9 @@ export const update = mutation({
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
+    iconColor: v.optional(v.string()),
+    iconGradientFrom: v.optional(v.string()),
+    iconGradientTo: v.optional(v.string()),
     coverImage: v.optional(v.string()),
   },
   handler: async (ctx, args) => {

@@ -10,7 +10,8 @@
     "trash": "Trash",
     "search": "Search",
     "newNote": "New note",
-    "calendar": "Calendar"
+    "calendar": "Calendar",
+    "workspace": "Workspace"
   },
   "common": {
     "cancel": "Cancel",
@@ -32,7 +33,11 @@
     "clearAll": "Clear all",
     "today": "Today",
     "earlier": "Earlier",
-    "noResults": "No results"
+    "noResults": "No results",
+    "justNow": "just now",
+    "minAgo": "m ago",
+    "hAgo": "h ago",
+    "dAgo": "d ago"
   },
   "tasks": {
     "title": "Tasks",
@@ -98,7 +103,13 @@
     "sortPriority": "Priority",
     "sortDueDate": "Due date",
     "sortName": "Name",
-    "addTaskPlaceholder": "Add task... (Enter to create)"
+    "addTaskPlaceholder": "Add task... (Enter to create)",
+    "inlinePlaceholder": "Add task… (Enter to create)",
+    "add": "Add",
+    "project": "Project",
+    "createdLabel": "Created",
+    "backToTasks": "Back to tasks",
+    "assigned": "Assigned"
   },
   "projects": {
     "title": "Projects",
@@ -143,6 +154,90 @@
     "editTeam": "Team",
     "noTeam": "No team"
   },
+  "inbox": {
+    "title": "Inbox",
+    "unread": "{count} unread",
+    "unread_plural": "{count} unread",
+    "dueSoonTitle": "Task due soon",
+    "allCaughtUp": "All caught up",
+    "markAllRead": "Mark all read",
+    "markedAllRead": "All marked as read",
+    "cleared": "Inbox cleared",
+    "today": "Today",
+    "earlier": "Earlier",
+    "empty": {
+      "title": "No notifications",
+      "description": "You'll see team invites, task assignments, and @mentions here."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account preferences and workspace settings.",
+    "tabs": {
+      "profile": "Profile",
+      "appearance": "Appearance",
+      "notifications": "Notifications",
+      "language": "Language",
+      "import": "Import",
+      "shortcuts": "Shortcuts"
+    },
+    "notifications": {
+      "dueDateReminders": "Due-date reminders",
+      "dueDateDesc": "Get notified in your inbox before tasks are due",
+      "alertMeBefore": "Alert me",
+      "beforeDueDate": "before due date"
+    },
+    "profile": {
+      "title": "Profile",
+      "subtitle": "Manage your personal information and appearance.",
+      "displayName": "Display name",
+      "email": "Email",
+      "emailNote": "Managed by your auth provider.",
+      "role": "Role",
+      "rolePlaceholder": "e.g. Designer, Engineer...",
+      "bio": "Bio / Description",
+      "bioPlaceholder": "Tell people a bit about yourself...",
+      "icon": "Profile Icon (emoji)",
+      "iconPlaceholder": "or type any emoji",
+      "accentColor": "Profile Accent Colour",
+      "customColor": "Custom colour",
+      "saving": "Saving...",
+      "saved": "Profile saved!",
+      "saveChanges": "Save Changes"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "subtitle": "Customize how Texxel looks.",
+      "theme": "Theme",
+      "themes": {
+        "light": "Light",
+        "dark": "Dark",
+        "system": "System"
+      },
+      "accentColor": "Accent Colour",
+      "accentColorDesc": "Changes buttons, highlights and interactive elements across the entire app.",
+      "palettes": {
+        "coral": "Coral",
+        "violet": "Violet",
+        "blue": "Blue",
+        "teal": "Teal",
+        "emerald": "Emerald",
+        "amber": "Amber",
+        "rose": "Rose",
+        "slate": "Slate"
+      }
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose your preferred language for the interface.",
+      "select": "Select language",
+      "languages": {
+        "en": "English",
+        "fr": "French"
+      },
+      "saved": "Language saved!"
+    }
+  },
   "teams": {
     "title": "Teams",
     "newTeam": "New Team",
@@ -173,6 +268,14 @@
     "expires": "expires",
     "copyLink": "Copy link",
     "copied": "Copied",
+    "iconCustomize": "Customize Team Icon",
+    "iconEmoji": "Icon Emoji",
+    "iconEmojiPlaceholder": "or type any emoji",
+    "iconBgColor": "Background Colour",
+    "iconGradientEnd": "Gradient End (optional)",
+    "iconSaved": "Team icon updated",
+    "iconSaveFailed": "Failed to update icon",
+    "saveIcon": "Save Icon",
     "sections": {
       "members": "Members",
       "projects": "Projects",
@@ -184,72 +287,130 @@
       "admin": "Admin",
       "member": "Member"
     },
+    "backToTeams": "Back to teams",
+    "tasks": "Tasks",
+    "moreTasks": "more tasks",
     "you": "you",
+    "acceptInvite": "Accept Invitation",
+    "inviteJoin": "You've been invited to join",
+    "inviteRole": "as",
+    "inviteAccepted": "Invitation accepted! Welcome to the team.",
+    "inviteAcceptFailed": "Failed to accept invitation",
+    "inviteExpired": "This invitation has expired or is no longer valid.",
+    "inviteLoading": "Loading invitation...",
+    "inviteAccepting": "Accepting...",
     "empty": {
       "title": "No teams yet",
       "description": "Create a team to collaborate with others on projects, tasks, and notes."
     }
   },
-  "inbox": {
-    "title": "Inbox",
-    "unread": "{count} unread",
-    "unread_plural": "{count} unread",
-    "dueSoonTitle": "Task due soon",
-    "allCaughtUp": "All caught up",
-    "markAllRead": "Mark all read",
-    "markedAllRead": "All marked as read",
-    "cleared": "Inbox cleared",
-    "today": "Today",
-    "earlier": "Earlier",
-    "empty": {
-      "title": "No notifications",
-      "description": "You'll see team invites, task assignments, and @mentions here."
-    }
-  },
-  "settings": {
-    "title": "Settings",
-    "tabs": {
-      "profile": "Profile",
-      "appearance": "Appearance",
-      "notifications": "Notifications",
-      "language": "Language",
-      "import": "Import",
-      "shortcuts": "Shortcuts"
+  "editor": {
+    "addIcon": "Add icon",
+    "addCover": "Add cover",
+    "pageNavigation": "Page navigation",
+    "exportPdf": "Export PDF",
+    "exportDocx": "Export Word",
+    "exporting": "Exporting...",
+    "exportSuccess": "Exported successfully",
+    "exportFailed": "Export failed",
+    "share": "Share",
+    "shareWithTeam": "Share with team",
+    "makePublic": "Make public",
+    "collaborative": "Editing access",
+    "restricted": "Restricted (invited only)",
+    "copyLink": "Copy link",
+    "copied": "Copied!",
+    "sharingTitle": "Share & Publish",
+    "publicLink": "Public link",
+    "allowedEditors": "Allowed editors",
+    "addEmail": "Add",
+    "noTeamSharing": "No team sharing",
+    "teamSharingNote": "All members of this team can view and edit this document.",
+    "sharingModes": {
+      "none": "View only",
+      "noneDesc": "Visitors can only read",
+      "open": "Open editing",
+      "openDesc": "Any visitor can edit freely",
+      "restricted": "Invited editors",
+      "restrictedDesc": "Only listed emails can edit"
     },
-    "notifications": {
-      "dueDateReminders": "Due-date reminders",
-      "dueDateDesc": "Get notified in your inbox before tasks are due",
-      "alertMeBefore": "Alert me",
-      "beforeDueDate": "before due date"
+    "publicDesc": "Anyone with the link can view",
+    "privateDesc": "Only you can access this page",
+    "guestName": "Your name",
+    "guestColor": "Your colour",
+    "guestJoin": "Start editing",
+    "guestJoinTitle": "Join as editor",
+    "guestJoinDesc": "Enter a display name and pick a colour before editing.",
+    "readOnlyBanner": "This is a read-only public page",
+    "guestEditing": "editing",
+    "notAvailable": "This page is not available.",
+    "notAvailableDesc": "This link may have been revoked or never existed.",
+    "notFound": "Document not found.",
+    "visibility": "Visibility",
+    "private": "Private",
+    "public": "Public",
+    "teamOnly": "Team only",
+    "guestLink": "Guest link",
+    "guestLinkDesc": "Anyone with this link can view or edit without signing in.",
+    "createGuestLink": "Create guest link",
+    "regenerateLink": "Regenerate",
+    "revokeLink": "Revoke",
+    "guestLinkCreated": "Guest link created",
+    "guestLinkRevoked": "Guest link revoked",
+    "canEdit": "Can edit",
+    "viewOnly": "View only",
+    "published": "Published",
+    "sharingSuccess": "Sharing settings saved",
+    "sharingFailed": "Failed to save settings",
+    "pdfGenerate": "Generating PDF…",
+    "pdfSuccess": "PDF downloaded",
+    "pdfFailed": "Failed to generate PDF",
+    "docxGenerate": "Generating Word document…",
+    "docxSuccess": "Word document downloaded",
+    "docxFailed": "Failed to generate Word document",
+    "roles": {
+      "viewer": "Viewer",
+      "editor": "Editor",
+      "owner": "Owner"
     },
-    "profile": {
-      "title": "Profile",
-      "displayName": "Display name",
-      "email": "Email",
-      "role": "Role",
-      "rolePlaceholder": "e.g. Designer, Engineer...",
-      "saving": "Saving...",
-      "saved": "Profile saved!"
-    },
-    "appearance": {
-      "title": "Appearance",
-      "theme": "Theme",
-      "themes": {
-        "light": "Light",
-        "dark": "Dark",
-        "system": "System"
-      }
-    },
-    "language": {
-      "title": "Language",
-      "description": "Choose your preferred language for the interface.",
-      "select": "Select language",
-      "languages": {
-        "en": "English",
-        "fr": "French"
-      },
-      "saved": "Language saved!"
-    }
+    "comments": "Comments",
+    "noComments": "No comments yet",
+    "noCommentsHint": "Select text in the document to add a comment",
+    "addComment": "Add comment",
+    "commentPlaceholder": "Write a comment… (⌘↵ to submit)",
+    "submitComment": "Comment",
+    "commentAdded": "Comment added",
+    "commentFailed": "Failed to add comment",
+    "commentsTitle": "Comments",
+    "publish": "Publish",
+    "vhTitle": "Version History",
+    "vhSave": "Save current version",
+    "vhSaving": "Saving…",
+    "vhAutoHint": "Auto-saves every 5 min · up to 50 versions",
+    "vhEmpty": "No versions yet",
+    "vhEmptyDesc": "Save a version to keep a snapshot you can restore.",
+    "vhLatest": "Latest version",
+    "vhVersion": "Version {n}",
+    "vhRestore": "Restore this version",
+    "vhRestoring": "Restoring…",
+    "vhSaved": "Version saved",
+    "vhSaveFailed": "Failed to save version",
+    "vhRestored": "Version restored",
+    "vhRestoreFailed": "Failed to restore version",
+    "menuComments": "Comments",
+    "menuVersionHistory": "Version history",
+    "menuExport": "Export",
+    "menuExportPdf": "PDF (print)",
+    "menuExportHtml": "HTML",
+    "menuExportMarkdown": "Markdown",
+    "menuTrash": "Move to trash",
+    "menuTrashLoading": "Moving to trash...",
+    "menuTrashSuccess": "Note moved to trash!",
+    "menuTrashFailed": "Failed to archive note.",
+    "menuEditedBy": "Edited by {name}",
+    "menuOpen": "Open",
+    "pdfPopupBlocked": "Please allow pop-ups to export PDF",
+    "menuExportWord": "Word (DOCX)"
   },
   "calendar": {
     "title": "Calendar",
@@ -265,14 +426,25 @@
     "done": "Done"
   },
   "dashboard": {
-    "greeting": "Good {period}",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "creating": "Creating note...",
+    "created": "Note created!",
+    "createFailed": "Failed to create note",
     "periods": {
       "morning": "morning",
       "afternoon": "afternoon",
       "evening": "evening"
     },
+    "overview": "Here's an overview of your workspace.",
     "stats": {
-      "openTasks": "Open tasks",
+      "openTasks": "Open Tasks",
+      "overdue": "Overdue",
+      "projects": "Projects",
+      "teams": "Teams",
       "doneToday": "Done today",
       "unread": "Unread",
       "notes": "Notes"
@@ -284,9 +456,102 @@
     "myProjects": "My Projects",
     "myTeams": "My Teams",
     "viewAll": "View all",
+    "newNote": "New Note",
+    "newTask": "New Task",
+    "inbox": "Inbox",
     "noTasks": "No open tasks",
+    "noTasksDesc": "No open tasks. Create one to get started.",
+    "allCaughtUp": "All caught up!",
+    "addTask": "Add task",
+    "overdue": "overdue",
+    "more": "more",
     "noNotes": "No notes yet",
+    "createNote": "Create note",
     "noProjects": "No projects yet",
     "noTeams": "No teams yet"
+  },
+  "landing": {
+    "nav": {
+      "features": "Features",
+      "howItWorks": "How it works",
+      "pricing": "Pricing",
+      "login": "Log in",
+      "getStarted": "Get started",
+      "openApp": "Open app",
+      "logout": "Log out"
+    },
+    "hero": {
+      "badge": "Now in public beta",
+      "headline1": "Your team's",
+      "headline2": "second brain.",
+      "subheading": "Notes, tasks, projects, and teams — one workspace, zero context-switching.",
+      "noContextLoss": "Everything your team needs to think clearly and ship on time.",
+      "openWorkspace": "Open workspace →",
+      "startFree": "Get started free →",
+      "signIn": "Sign in",
+      "freePlan": "Free forever · No credit card required"
+    },
+    "stats": {
+      "builders": "Active teams",
+      "toolsInOne": "Tools unified",
+      "storage": "Free storage",
+      "uptime": "Uptime SLA"
+    },
+    "features": {
+      "sectionNum": "[01] Features",
+      "heading": "Everything you need.",
+      "headingAccent": "Nothing you don't.",
+      "subheading": "Fast by default. Built for collaboration. Designed to replace the tools you're juggling.",
+      "f1Title": "Rich document\neditor",
+      "f1Desc": "Block-based editing with real-time sync. Write together without conflicts. Export to PDF or Word in one click.",
+      "f1Tag": "Live sync",
+      "f2Title": "Kanban\ntask boards",
+      "f2Desc": "Drag-and-drop boards with priorities, assignments, and due dates. Visualize your team's progress.",
+      "f2Tag": "Boards",
+      "f3Title": "Project\nworkspaces",
+      "f3Desc": "Group tasks, docs, and team members under projects. Track everything in one view.",
+      "f3Tag": "Projects",
+      "f4Title": "Team\ncollaboration",
+      "f4Desc": "Invite members, assign roles, share documents. Real-time collaboration without the overhead.",
+      "f4Tag": "Teams",
+      "f5Title": "Smart\ninbox",
+      "f5Desc": "Mentions, assignments, and updates in a single feed. Nothing falls through the cracks.",
+      "f5Tag": "Inbox",
+      "f6Title": "Fully\ncustomizable",
+      "f6Desc": "Accent colors, themes, team icons, and profile badges. Make the workspace truly yours.",
+      "f6Tag": "Custom",
+      "liveBadge": "Live"
+    },
+    "howItWorks": {
+      "sectionNum": "[02] How it works",
+      "heading": "Up and running",
+      "headingAccent": "in 60 seconds.",
+      "step1Num": "01",
+      "step1Title": "Create your\nworkspace",
+      "step1Desc": "Sign up free. Your workspace is ready in seconds — no setup, no configuration.",
+      "step2Num": "02",
+      "step2Title": "Invite your\nteam",
+      "step2Desc": "Add members with a single link. Assign roles and start collaborating instantly.",
+      "step3Num": "03",
+      "step3Title": "Build &\nship faster",
+      "step3Desc": "Write docs, track tasks, manage projects. Everything in one place, in real time."
+    },
+    "cta": {
+      "sectionNum": "[03] Get started",
+      "heading": "Free forever.",
+      "headingAccent": "Seriously.",
+      "desc": "Full access to every feature. No credit card. No hidden limits.",
+      "desc2": "Upgrade only when your team outgrows the free plan.",
+      "button": "Start building free →",
+      "noSetup": "No setup required"
+    },
+    "footer": {
+      "tagline": "The all-in-one workspace for modern teams. Notes, tasks, projects — unified.",
+      "systemsOk": "All systems operational",
+      "product": "Product",
+      "company": "Company",
+      "copyright": "Texxel · All rights reserved",
+      "madeWith": "Built with ♥ for teams that ship"
+    }
   }
 }

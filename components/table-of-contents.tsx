@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { BlockNoteEditor } from "@blocknote/core";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import {
   Popover,
   PopoverContent,
@@ -20,6 +21,7 @@ interface TableOfContentsProps {
 }
 
 export const TableOfContents = ({ editor }: TableOfContentsProps) => {
+  const t = useTranslations("editor");
   const [headings, setHeadings] = useState<HeadingItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -137,7 +139,7 @@ export const TableOfContents = ({ editor }: TableOfContentsProps) => {
           onMouseLeave={handleMouseLeave}
         >
           <p className="text-muted-foreground mb-2 px-2 text-[10px] font-semibold tracking-widest uppercase">
-            Page Navigation
+            {t("pageNavigation")}
           </p>
           <div className="max-h-[50vh] space-y-0.5 overflow-y-auto">
             {headings.map((heading) => (

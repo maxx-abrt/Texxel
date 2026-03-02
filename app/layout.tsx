@@ -8,11 +8,12 @@ import { ModalProvider } from "@/components/providers/modal-provider";
 import { EdgeStoreProvider } from "@/lib/edgestore";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
+import { PaletteProvider } from "@/components/providers/palette-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "A2E Thread",
+  title: "Texxel",
   description:
     "The connected workspace where tasks, teams, and ideas come together.",
   icons: {
@@ -43,15 +44,17 @@ export default function RootLayout({
           <EdgeStoreProvider>
             <ThemeProvider
               attribute="class"
-              defaultTheme="system"
+              defaultTheme="light"
               enableSystem
               disableTransitionOnChange
-              storageKey="a2e-theme"
+              storageKey="texxel-theme"
             >
               <LocaleProvider>
-                <ToasterProvider />
-                <ModalProvider />
-                {children}
+                <PaletteProvider>
+                  <ToasterProvider />
+                  <ModalProvider />
+                  {children}
+                </PaletteProvider>
               </LocaleProvider>
             </ThemeProvider>
           </EdgeStoreProvider>

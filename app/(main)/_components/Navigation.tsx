@@ -114,14 +114,16 @@ const Navigation = () => {
     }
   };
 
+  const td = useTranslations("dashboard");
+
   const handleCreate = () => {
     const promise = create({ title: "Untitled" }).then((documentId) =>
       router.push(`/documents/${documentId}`),
     );
     toast.promise(promise, {
-      loading: "Creating note...",
-      success: "Note created.",
-      error: "Failed to create note.",
+      loading: td("creating"),
+      success: td("created"),
+      error: td("createFailed"),
     });
   };
 
@@ -195,7 +197,7 @@ const Navigation = () => {
         {/* Workspace section */}
         <div className="shrink-0 px-3 pb-2 border-b border-sidebar-border">
           <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-            Workspace
+            {t("workspace")}
           </p>
           <Item
             label={t("tasks")}
@@ -227,7 +229,7 @@ const Navigation = () => {
         <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
           <div className="flex items-center justify-between px-3 pb-1 pt-2">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-              Notes
+              {t("notes")}
             </p>
             <button
               onClick={handleCreate}
@@ -245,7 +247,7 @@ const Navigation = () => {
             <Item onClick={handleCreate} icon={PlusCircle} label={t("newNote")} />
             <Popover>
               <PopoverTrigger className="w-full">
-                <Item label="Trash" icon={Trash} />
+                <Item label={t("trash")} icon={Trash} />
               </PopoverTrigger>
               <PopoverContent
                 side={isMobile ? "bottom" : "right"}

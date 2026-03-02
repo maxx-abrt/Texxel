@@ -8,72 +8,84 @@
 :root {
   --radius: 0.625rem;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.13 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.13 0 0);
+  --primary: oklch(0.655 0.21 22);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.965 0.012 22);
+  --secondary-foreground: oklch(0.25 0 0);
+  --muted: oklch(0.963 0.006 22);
+  --muted-foreground: oklch(0.52 0.015 22);
+  --accent: oklch(0.96 0.01 22);
+  --accent-foreground: oklch(0.25 0 0);
   --destructive: oklch(58.302% 0.23867 28.465);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
+  --border: oklch(0.912 0.006 22);
+  --input: oklch(0.912 0.006 22);
+  --ring: oklch(0.655 0.21 22);
+  --chart-1: oklch(0.655 0.21 22);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.978 0.008 22);
+  --sidebar-foreground: oklch(0.13 0 0);
+  --sidebar-primary: oklch(0.655 0.21 22);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.955 0.012 22);
+  --sidebar-accent-foreground: oklch(0.25 0 0);
+  --sidebar-border: oklch(0.906 0.006 22);
+  --sidebar-ring: oklch(0.655 0.21 22);
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --dark: oklch(23.929% 0.00003 271.152);
+  --foreground: oklch(0.13 0 0);
+  --dark: oklch(0.165 0.008 280);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  /* Deep dark grey — not pure black */
+  --background: #141414;
+  --foreground: #f0f0ee;
+  --card: #1c1c1c;
+  --card-foreground: #f0f0ee;
+  --popover: #1c1c1c;
+  --popover-foreground: #f0f0ee;
+  --primary: oklch(0.72 0.19 22);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: #272727;
+  --secondary-foreground: #e8e8e6;
+  --muted: #222222;
+  --muted-foreground: #7a7a7a;
+  --accent: #252525;
+  --accent-foreground: #e8e8e6;
   --destructive: oklch(62.813% 0.25739 28.782);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
+  --border: #2e2e2e;
+  --input: #2a2a2a;
+  --ring: oklch(0.72 0.19 22);
+  --chart-1: oklch(0.72 0.19 22);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --dark: oklch(23.929% 0.00003 271.152);
+  --sidebar: #111111;
+  --sidebar-foreground: #f0f0ee;
+  --sidebar-primary: oklch(0.72 0.19 22);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: #1e1e1e;
+  --sidebar-accent-foreground: #e8e8e6;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: oklch(0.72 0.19 22);
+  --dark: #141414;
+  /* Texxel design tokens */
+  --tx-surface-0: #0f0f0f;
+  --tx-surface-1: #141414;
+  --tx-surface-2: #1c1c1c;
+  --tx-surface-3: #252525;
+  --tx-border: #2e2e2e;
+  --tx-border-subtle: #222222;
+  --tx-text: #f0f0ee;
+  --tx-text-muted: #7a7a7a;
+  --tx-text-dim: #444444;
+  --tx-accent: #f76c5e;
 }
 
 @theme inline {
@@ -155,6 +167,146 @@
 
   .bn-color-picker-dropdown {
     top: -110px !important;
+  }
+}
+
+/* ── BlockNote ThreadsSidebar: sleek card redesign ──────────────────────── */
+@layer utilities {
+  /* Container */
+  .bn-thread-sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    padding: 0.75rem !important;
+    background: transparent !important;
+  }
+
+  /* Each thread card */
+  .bn-thread-sidebar-item {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .bn-thread {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.625rem !important;
+    padding: 0.625rem 0.75rem !important;
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,.06) !important;
+    transition: box-shadow 0.15s !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .bn-thread:hover {
+    box-shadow: 0 2px 8px 0 rgba(0,0,0,.1) !important;
+  }
+
+  /* Thread header (resolved badge, actions) */
+  .bn-thread-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+    margin-bottom: 0.375rem !important;
+  }
+
+  /* Individual comment inside a thread */
+  .bn-thread-comment {
+    padding: 0.375rem 0 !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  .bn-thread-comment:last-of-type {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+
+  .bn-thread-comment-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* Avatar circle */
+  .bn-thread-comment-header img,
+  .bn-thread-comment-header [class*="avatar"] {
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    border-radius: 9999px !important;
+    object-fit: cover !important;
+  }
+
+  /* Author name + timestamp */
+  .bn-thread-comment-author {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: var(--foreground) !important;
+    line-height: 1.2 !important;
+  }
+
+  .bn-thread-comment-date {
+    font-size: 0.65rem !important;
+    color: var(--muted-foreground) !important;
+    margin-left: auto !important;
+  }
+
+  /* Comment body text */
+  .bn-thread-comment-body {
+    font-size: 0.8125rem !important;
+    line-height: 1.5 !important;
+    color: var(--foreground) !important;
+    word-break: break-word !important;
+    white-space: pre-wrap !important;
+  }
+
+  /* Reply / new comment editor */
+  .bn-thread-comment-editor,
+  .bn-composer {
+    background: var(--muted) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.625rem !important;
+    font-size: 0.8125rem !important;
+    margin-top: 0.5rem !important;
+    min-height: 2.25rem !important;
+    color: var(--foreground) !important;
+  }
+
+  /* Action buttons (resolve, delete, etc.) */
+  .bn-thread-actions button,
+  .bn-thread-comment-actions button {
+    color: var(--muted-foreground) !important;
+    background: transparent !important;
+    border-radius: 0.375rem !important;
+    padding: 0.125rem 0.25rem !important;
+    font-size: 0.7rem !important;
+    transition: background 0.1s, color 0.1s !important;
+  }
+
+  .bn-thread-actions button:hover,
+  .bn-thread-comment-actions button:hover {
+    background: var(--accent) !important;
+    color: var(--foreground) !important;
+  }
+
+  /* Resolved thread: muted style */
+  .bn-thread[data-resolved="true"] {
+    opacity: 0.55 !important;
+  }
+
+  /* Reaction pills */
+  .bn-reaction {
+    background: var(--muted) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 9999px !important;
+    padding: 0.1rem 0.45rem !important;
+    font-size: 0.72rem !important;
+    gap: 0.2rem !important;
+  }
+
+  .bn-reaction:hover {
+    background: var(--accent) !important;
   }
 }
 

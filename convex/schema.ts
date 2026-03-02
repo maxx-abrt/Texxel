@@ -14,17 +14,26 @@ export default defineSchema({
     order: v.optional(v.number()),
     teamId: v.optional(v.id("teams")),
     projectId: v.optional(v.id("projects")),
+    collaborationMode: v.optional(v.union(v.literal("view_only"), v.literal("open"), v.literal("restricted"))),
+    sharedTeamId: v.optional(v.id("teams")),
+    allowedEditorEmails: v.optional(v.array(v.string())),
+    shareToken: v.optional(v.string()),
+    guestCanEdit: v.optional(v.boolean()),
   })
     .index("by_user", ["userId"])
     .index("by_user_parent", ["userId", "parentDocument"])
     .index("by_team", ["teamId"])
-    .index("by_project", ["projectId"]),
+    .index("by_project", ["projectId"])
+    .index("by_share_token", ["shareToken"]),
 
   teams: defineTable({
     name: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
+    iconColor: v.optional(v.string()),
+    iconGradientFrom: v.optional(v.string()),
+    iconGradientTo: v.optional(v.string()),
     coverImage: v.optional(v.string()),
     ownerId: v.string(),
     createdAt: v.number(),
@@ -126,13 +135,69 @@ export default defineSchema({
     image: v.optional(v.string()),
     onboardingCompleted: v.boolean(),
     role: v.optional(v.string()),
+    description: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    accentColor: v.optional(v.string()),
+    gradientFrom: v.optional(v.string()),
+    gradientTo: v.optional(v.string()),
     useCases: v.optional(v.array(v.string())),
     dueDateAlertsEnabled: v.optional(v.boolean()),
     dueDateAlertDays: v.optional(v.number()),
+    accentPalette: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"]),
+
+  documentThreads: defineTable({
+    documentId: v.id("documents"),
+    threadId: v.string(),
+    resolved: v.boolean(),
+    resolvedBy: v.optional(v.string()),
+    resolvedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    createdBy: v.string(),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_thread_id", ["threadId"]),
+
+  documentThreadComments: defineTable({
+    threadId: v.string(),
+    documentId: v.id("documents"),
+    commentId: v.string(),
+    userId: v.string(),
+    body: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+    reactions: v.optional(v.string()),
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_document", ["documentId"]),
+
+  documentVersions: defineTable({
+    documentId: v.id("documents"),
+    content: v.string(),
+    title: v.string(),
+    savedAt: v.number(),
+    savedBy: v.string(),
+    savedByName: v.optional(v.string()),
+    label: v.optional(v.string()),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_document_time", ["documentId", "savedAt"]),
+
+  documentPresence: defineTable({
+    documentId: v.id("documents"),
+    userId: v.string(),
+    userName: v.string(),
+    userColor: v.string(),
+    userImage: v.optional(v.string()),
+    lastSeen: v.number(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_document_user", ["documentId", "userId"]),
 
   notifications: defineTable({
     userId: v.string(),

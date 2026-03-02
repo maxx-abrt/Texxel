@@ -2,9 +2,9 @@ import { Navbar } from "./_components/Navbar";
 
 const LandingLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="dark:bg-dark h-full">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="h-full pt-20">{children}</main>
+      <main style={{ paddingTop: "58px" }}>{children}</main>
     </div>
   );
 };

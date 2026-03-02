@@ -1,30 +1,18 @@
 import { Poppins } from "next/font/google";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 
 const font = Poppins({
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["700"],
 });
 
 export const Logo = () => {
   return (
-    <div className="items-center gap-x-2 md:flex">
-      <Image
-        src="/logo.svg"
-        height="40"
-        width="40"
-        alt="logo"
-        className="dark:hidden"
-      />
-      <Image
-        src="/logo-dark.svg"
-        height="40"
-        width="40"
-        alt="logo"
-        className="hidden dark:block"
-      />
-      <p className={cn("font-semibold", font.className)}>A2E Thread</p>
+    <div className="flex items-center gap-2">
+      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-black shadow-sm">
+        Tx
+      </div>
+      <p className={cn("text-base font-bold tracking-tight", font.className)}>Texxel</p>
     </div>
   );
 };

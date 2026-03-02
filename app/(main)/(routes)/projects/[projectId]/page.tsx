@@ -105,6 +105,7 @@ function DroppableColumn({
   onAddTask: () => void;
 }) {
   const tp = useTranslations("projects");
+  const tt = useTranslations("tasks");
   const { setNodeRef } = useDroppable({ id: col.key });
   return (
     <div
@@ -119,7 +120,7 @@ function DroppableColumn({
       <div className="flex items-center gap-2 px-3 py-2.5">
         <div className={cn("h-2 w-2 rounded-full", col.dot)} />
         <span className={cn("text-xs font-semibold uppercase tracking-wider", col.color)}>
-          {col.label}
+          {tt(`statuses.${col.key}` as any)}
         </span>
         <span className="ml-auto text-[10px] text-muted-foreground font-medium bg-muted rounded-full px-1.5 py-0.5">
           {taskCount}
@@ -162,6 +163,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const updateProject = useMutation(api.projects.update);
   const removeProject = useMutation(api.projects.remove);
   const [showNewTask, setShowNewTask] = useState(false);
+  const [newTaskStatus, setNewTaskStatus] = useState<"todo" | "in_progress" | "in_review" | "done" | "cancelled">("todo");
   const [viewMode, setViewMode] = useState<"board" | "list">("board");
   const [activeTask, setActiveTask] = useState<any>(null);
   const [isOver, setIsOver] = useState<string | null>(null);
@@ -233,9 +235,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   if (!project) {
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <p className="text-sm text-muted-foreground">Project not found</p>
+        <p className="text-sm text-muted-foreground">{tp("notFound")}</p>
         <Button variant="ghost" size="sm" onClick={() => router.push("/projects")} className="mt-2 gap-1.5">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to projects
+          <ArrowLeft className="h-3.5 w-3.5" /> {tp("backToProjects")}
         </Button>
       </div>
     );
@@ -244,9 +246,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const handleToggleDone = async (id: Id<"tasks">, current: string) => {
     const newStatus = current === "done" ? "todo" : "done";
     toast.promise(updateTask({ id, status: newStatus as any }), {
-      loading: "Updating...",
-      success: "Updated!",
-      error: "Failed",
+      loading: tp("saving"),
+      success: tp("updated"),
+      error: tp("updateFailed"),
     });
   };
 
@@ -283,7 +285,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
       try {
         await updateTask({ id: draggedTask._id, status: targetStatus as any });
       } catch {
-        toast.error("Failed to move task");
+        toast.error(tt("updateFailed"));
       }
     }
   };
@@ -390,7 +392,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                     col={col}
                     isOver={isOver === col.key}
                     taskCount={col.tasks.length}
-                    onAddTask={() => setShowNewTask(true)}
+                    onAddTask={() => { setNewTaskStatus(col.key as any); setShowNewTask(true); }}
                   >
                     {col.tasks.map((task) => (
                       <SortableTaskCard key={task._id} task={task} onToggleDone={handleToggleDone} compact />
@@ -418,7 +420,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                   <div className="flex items-center gap-2 py-2 px-1">
                     <div className={cn("h-2 w-2 rounded-full", g.dot)} />
                     <span className={cn("text-xs font-semibold uppercase tracking-wider", g.color)}>
-                      {g.label}
+                      {tt(`statuses.${g.key}` as any)}
                     </span>
                     <span className="text-[10px] text-muted-foreground font-medium">{g.tasks.length}</span>
                   </div>
@@ -432,9 +434,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
             )}
             {totalTasks === 0 && (
               <div className="text-center py-16">
-                <p className="text-sm text-muted-foreground">No tasks yet.</p>
+                <p className="text-sm text-muted-foreground">{tp("noTasks")}</p>
                 <Button size="sm" variant="outline" onClick={() => setShowNewTask(true)} className="mt-4 gap-1.5 h-7 text-xs">
-                  <Plus className="h-3 w-3" /> Add Task
+                  <Plus className="h-3 w-3" /> {tp("addTask")}
                 </Button>
               </div>
             )}
@@ -447,6 +449,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
         onClose={() => setShowNewTask(false)}
         projectId={projectId as Id<"projects">}
         teamId={project.teamId as Id<"teams"> | undefined}
+        initialStatus={newTaskStatus}
       />
 
       {/* Edit Project Dialog */}

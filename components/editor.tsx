@@ -26,12 +26,23 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { ConvexThreadStore } from "@/lib/ConvexThreadStore";
+import { ColorChipSpec, DateChipSpec, BadgeChipSpec, buildChipMenuItems } from "@/components/chips";
+import * as Y from "yjs";
+import YPartyKitProvider from "y-partykit/provider";
+
+// BlockNote's hosted dev PartyKit server — no separate server needed
+const PARTYKIT_HOST = process.env.NEXT_PUBLIC_PARTYKIT_HOST ?? "blocknote-dev.yousefed.partykit.dev";
 
 export interface TeamMember {
   userId: string;
   userName: string;
   userEmail: string;
   userImage?: string;
+}
+
+export interface CollabUser {
+  name: string;
+  color: string;
 }
 
 interface EditorProps {
@@ -45,6 +56,9 @@ interface EditorProps {
   onCommentsSidebarClose?: () => void;
   commentsSidebarContainer?: HTMLElement | null;
   userId?: string;
+  /** When set, enables Yjs real-time collaboration for this room. */
+  collabUser?: CollabUser;
+  collabRoom?: string;
 }
 
 const MentionSpec = createReactInlineContentSpec(
@@ -72,6 +86,9 @@ const editorSchema = BlockNoteSchema.create({
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
     mention: MentionSpec,
+    colorChip: ColorChipSpec,
+    dateChip: DateChipSpec,
+    badgeChip: BadgeChipSpec,
   },
 });
 
@@ -100,6 +117,8 @@ const Editor = ({
   onCommentsSidebarClose,
   commentsSidebarContainer,
   userId = "anonymous",
+  collabUser,
+  collabRoom,
 }: EditorProps) => {
   const { resolvedTheme } = useTheme();
   const { edgestore } = useEdgeStore();
@@ -115,13 +134,40 @@ const Editor = ({
     [locale],
   );
 
-  // Convex thread data (only when documentId is provided)
+  // ── Yjs collaboration objects (created once per mount) ──────────────────
+  const isCollab = Boolean(collabRoom && collabUser);
+  const ydocRef = useRef<Y.Doc | null>(null);
+  const providerRef = useRef<YPartyKitProvider | null>(null);
+
+  if (isCollab && !ydocRef.current) {
+    ydocRef.current = new Y.Doc();
+  }
+  if (isCollab && ydocRef.current && !providerRef.current) {
+    providerRef.current = new YPartyKitProvider(
+      PARTYKIT_HOST,
+      // prefix the room so it doesn't clash with other BlockNote apps using the same server
+      `a2e-doc-${collabRoom}`,
+      ydocRef.current,
+      { connect: true },
+    );
+  }
+
+  // Cleanup Yjs objects on unmount
+  useEffect(() => {
+    return () => {
+      providerRef.current?.destroy();
+      providerRef.current = null;
+      ydocRef.current?.destroy();
+      ydocRef.current = null;
+    };
+  }, []);
+
+  // ── Convex comments ─────────────────────────────────────────────────────
   const threadData = useQuery(
     api.comments.getDocumentThreads,
     documentId ? { documentId } : "skip",
   );
 
-  // Convex mutations for thread operations
   const createThreadMutation = useMutation(api.comments.createThread);
   const addCommentMutation = useMutation(api.comments.addComment);
   const updateCommentMutation = useMutation(api.comments.updateComment);
@@ -132,14 +178,12 @@ const Editor = ({
   const addReactionMutation = useMutation(api.comments.addReaction);
   const deleteReactionMutation = useMutation(api.comments.deleteReaction);
 
-  // Stable ConvexThreadStore — created once per documentId+userId
   const threadStore = useMemo(
     () => new ConvexThreadStore(userId, documentId ?? "unknown"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId, documentId],
   );
 
-  // Wire up mutations after store is created (stable refs from useMutation)
   useEffect(() => {
     threadStore.mutations = {
       createThread: (args) => createThreadMutation(args as any),
@@ -165,14 +209,12 @@ const Editor = ({
     deleteReactionMutation,
   ]);
 
-  // Sync Convex thread data into the store
   useEffect(() => {
     if (threadData) {
       threadStore.updateFromConvexData(threadData.threads, threadData.comments);
     }
   }, [threadData, threadStore]);
 
-  // Stable resolveUsers that always reads latest teamMembers via ref
   const resolveUsers = useCallback(async (userIds: string[]) => {
     return userIds.map((id) => {
       const member = teamMembersRef.current.find((m) => m.userId === id);
@@ -182,43 +224,85 @@ const Editor = ({
         avatarUrl: member?.userImage ?? "",
       };
     });
-  }, []); // empty deps — reads from ref
+  }, []);
 
   const handleUpload = async (file: File) => {
     const res = await edgestore.publicFiles.upload({ file });
     return res.url;
   };
 
+  // ── Build useCreateBlockNote options ────────────────────────────────────
+  const collabOptions = isCollab && ydocRef.current && providerRef.current && collabUser
+    ? {
+        provider: providerRef.current,
+        fragment: ydocRef.current.getXmlFragment("document-store"),
+        user: collabUser,
+      }
+    : undefined;
+
   const editor = useCreateBlockNote({
     schema: editorSchema,
     uploadFile: handleUpload,
     dictionary,
     extensions: documentId
-      ? [
-          CommentsExtension({
-            threadStore,
-            resolveUsers,
-          }),
-        ]
+      ? [CommentsExtension({ threadStore, resolveUsers })]
       : [],
+    // When collaboration is active, Yjs manages the document
+    ...(collabOptions ? { collaboration: collabOptions } : {}),
   });
 
+  // ── Seed Yjs doc with Convex content when the room is empty ────────────
   useEffect(() => {
+    if (!isCollab || !providerRef.current || !ydocRef.current) return;
+    if (!initialContent) return;
+
+    const provider = providerRef.current;
+    const ydoc = ydocRef.current;
+    let seeded = false;
+
+    const trySeed = () => {
+      if (seeded) return;
+      const fragment = ydoc.getXmlFragment("document-store");
+      // Only seed if the Yjs shared state is genuinely empty (first user in the room)
+      if (fragment.length === 0) {
+        const blocks = safeParseBlocks(initialContent);
+        if (blocks && blocks.length > 0) {
+          seeded = true;
+          // Small delay to let BlockNote finish its own Yjs init
+          setTimeout(() => {
+            try { editor.replaceBlocks(editor.document, blocks); } catch {}
+          }, 80);
+        }
+      } else {
+        seeded = true; // room already has content — skip seeding
+      }
+    };
+
+    const handleSync = (synced: boolean) => { if (synced) trySeed(); };
+    provider.on("sync", handleSync);
+
+    // If provider already synced before this effect ran, call trySeed immediately
+    if ((provider as any).synced) trySeed();
+
+    return () => { provider.off("sync", handleSync); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCollab, editor]);
+
+  // ── Non-collaborative: load initial content once ────────────────────────
+  useEffect(() => {
+    if (isCollab) return; // Yjs handles content
     if (contentLoadedRef.current) return;
     if (!initialContent) return;
     const blocks = safeParseBlocks(initialContent);
     if (!blocks) return;
-    // Defer to avoid flushSync-inside-lifecycle (React constraint with ProseMirror)
     const id = setTimeout(() => {
       try {
         editor.replaceBlocks(editor.document, blocks);
         contentLoadedRef.current = true;
-      } catch {
-        // Graceful fallback
-      }
+      } catch {}
     }, 0);
     return () => clearTimeout(id);
-  }, [initialContent, editor]);
+  }, [initialContent, editor, isCollab]);
 
   useEffect(() => {
     if (editor && onEditorReady) onEditorReady(editor);
@@ -272,6 +356,11 @@ const Editor = ({
                 },
               }));
           }}
+        />
+        {/* Smart chips — type ~ to open the chip picker */}
+        <SuggestionMenuController
+          triggerCharacter="~"
+          getItems={async (query) => buildChipMenuItems(editor, query) as any[]}
         />
         {documentId && showCommentsSidebar && (
           commentsSidebarContainer

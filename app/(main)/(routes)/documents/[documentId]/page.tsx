@@ -15,9 +15,9 @@ import { useMutation, useQuery } from "convex/react";
 import { TableOfContents } from "@/components/table-of-contents";
 import { VersionHistoryPanel } from "@/components/version-history-panel";
 import { useDocumentUI } from "@/hooks/useDocumentUI";
-import type { TeamMember } from "@/components/editor";
+import type { TeamMember, CollabUser } from "@/components/editor";
 
-// Stable user presence colors
+// Stable user presence colors (also used for Yjs cursors)
 const PRESENCE_COLORS = [
   "#ef4444","#f97316","#eab308","#22c55e",
   "#06b6d4","#6366f1","#ec4899","#8b5cf6",
@@ -61,47 +61,34 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const removePresence = useMutation(api.documents.removePresence);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Track what WE last saved to detect external changes
-  const lastSavedContentRef = useRef<string | undefined>(undefined);
-  // Track when user last typed to avoid overwriting while editing
-  const lastTypedAtRef = useRef(0);
 
-  // Stable user presence color derived from userId
+  // Stable color derived from userId — also used as Yjs cursor color
   const myColor = useMemo(() => {
     const id = myProfile?.userId ?? "";
     const idx = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     return PRESENCE_COLORS[idx % PRESENCE_COLORS.length];
   }, [myProfile?.userId]);
 
+  // collabUser drives both Yjs cursors and the Convex presence avatars
+  const collabUser = useMemo<CollabUser | undefined>(() => {
+    if (!myProfile) return undefined;
+    return {
+      name: myProfile.name ?? myProfile.email ?? "User",
+      color: myColor,
+    };
+  }, [myProfile, myColor]);
+
   const onChange = useCallback(
     (content: string) => {
-      lastTypedAtRef.current = Date.now();
-      lastSavedContentRef.current = content;
       clearTimeout(debounceRef.current);
+      // Save to Convex every 800 ms (Yjs handles real-time; Convex is for persistence)
       debounceRef.current = setTimeout(() => {
         update({ id: documentId, content });
-      }, 350);
+      }, 800);
     },
     [update, documentId],
   );
 
-  // Live sync: when Convex pushes a content change from another user, apply it
-  useEffect(() => {
-    if (!document?.content || !editor) return;
-    if (document.content === lastSavedContentRef.current) return;
-    // Don't overwrite while the user is actively typing (within last 5s)
-    if (Date.now() - lastTypedAtRef.current < 5000) return;
-    try {
-      const blocks = JSON.parse(document.content);
-      if (Array.isArray(blocks)) {
-        editor.replaceBlocks(editor.document, blocks);
-        lastSavedContentRef.current = document.content;
-      }
-    } catch {
-      // Ignore parse errors
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [document?.content]);
 
   // Register native BlockNote export handlers
   useEffect(() => {
@@ -220,6 +207,8 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
             onCommentsSidebarClose={toggleComments}
             commentsSidebarContainer={commentsSidebarEl}
             userId={myProfile?.userId}
+            collabUser={collabUser}
+            collabRoom={documentId}
           />
           <TableOfContents editor={editor} />
         </div>

@@ -146,6 +146,11 @@ export default function SharedDocPage({ params }: { params: Promise<{ token: str
     );
   }
 
+  // Guest joins the same Yjs room as the document owner
+  const guestCollabUser = isEditable && guestConfirmed && guestName.trim()
+    ? { name: guestName.trim(), color: guestColor }
+    : undefined;
+
   return (
     <div className="min-h-screen pb-40 bg-background">
       {/* Guest badge */}
@@ -178,6 +183,8 @@ export default function SharedDocPage({ params }: { params: Promise<{ token: str
           editable={isEditable && guestConfirmed}
           onChange={isEditable ? onGuestChange : () => {}}
           initialContent={document.content}
+          collabUser={guestCollabUser}
+          collabRoom={document._id}
         />
       </div>
     </div>

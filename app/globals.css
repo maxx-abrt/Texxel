@@ -170,6 +170,49 @@
   }
 }
 
+/* ── Yjs collaboration cursors ──────────────────────────────────────────── */
+@layer utilities {
+  /* Remote cursor caret */
+  .collaboration-cursor__caret {
+    position: relative;
+    margin-left: -1px;
+    margin-right: -1px;
+    border-left: 2px solid;
+    border-right: none;
+    word-break: normal;
+    pointer-events: none;
+  }
+
+  /* Floating name label above the cursor */
+  .collaboration-cursor__label {
+    position: absolute;
+    top: -1.5em;
+    left: -2px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    font-style: normal;
+    line-height: normal;
+    user-select: none;
+    color: #fff;
+    padding: 1px 5px 2px;
+    border-radius: 4px 4px 4px 0;
+    white-space: nowrap;
+    pointer-events: none;
+    /* Smooth entrance */
+    animation: cursor-label-in 0.15s ease-out;
+  }
+
+  @keyframes cursor-label-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Remote text selection highlight */
+  .collaboration-cursor__selection {
+    opacity: 0.2;
+  }
+}
+
 /* ── BlockNote ThreadsSidebar: sleek card redesign ──────────────────────── */
 @layer utilities {
   /* Container */

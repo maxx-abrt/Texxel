@@ -44,7 +44,7 @@ export const create = mutation({
       await ctx.db.insert("notifications", {
         userId: args.assigneeId,
         type: "task_assigned",
-        title: "New task assigned to you",
+        title: "task_assigned",
         body: args.title,
         read: false,
         link: `/tasks/${taskId}`,
@@ -52,6 +52,37 @@ export const create = mutation({
         fromUserId: userId,
         createdAt: now,
       });
+    }
+
+    if (args.teamId) {
+      const team = await ctx.db.get(args.teamId);
+      const members = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_team", (q) => q.eq("teamId", args.teamId!))
+        .collect();
+
+      const creatorProfile = await ctx.db
+        .query("userProfiles")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .unique();
+
+      for (const member of members) {
+        if (member.userId === userId) continue;
+        if (member.userId === args.assigneeId) continue;
+        await ctx.db.insert("notifications", {
+          userId: member.userId,
+          type: "task_created_in_team",
+          title: "task_created_in_team",
+          body: args.title,
+          read: false,
+          link: `/tasks/${taskId}`,
+          relatedId: taskId,
+          fromUserId: userId,
+          fromUserName: team?.name ?? "",
+          fromUserImage: creatorProfile?.image,
+          createdAt: now,
+        });
+      }
     }
 
     return taskId;
@@ -90,7 +121,7 @@ export const update = mutation({
       await ctx.db.insert("notifications", {
         userId: args.assigneeId,
         type: "task_assigned",
-        title: "New task assigned to you",
+        title: "task_assigned",
         body: task.title,
         read: false,
         link: `/tasks/${id}`,
@@ -245,7 +276,7 @@ export const addComment = mutation({
       await ctx.db.insert("notifications", {
         userId: task.createdBy,
         type: "task_comment",
-        title: "New comment on your task",
+        title: "task_comment",
         body: args.content.slice(0, 100),
         read: false,
         link: `/tasks/${args.taskId}`,

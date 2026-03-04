@@ -211,7 +211,7 @@ export function NewTaskDialog({
               <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Équipe</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t("team")}</span>
                 </div>
                 <Select
                   value={selectedTeamId || "none"}
@@ -239,7 +239,7 @@ export function NewTaskDialog({
               <div className="grid grid-cols-[1fr_2fr] items-center gap-3">
                 <div className="flex items-center gap-2">
                   <FolderKanban className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Projet</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t("project")}</span>
                 </div>
                 <Select
                   value={selectedProjectId || "none"}

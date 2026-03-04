@@ -12,6 +12,7 @@ import {
   SuggestionMenuController,
   createReactInlineContentSpec,
   ThreadsSidebar,
+  getDefaultReactSlashMenuItems,
 } from "@blocknote/react";
 import { useCoverImage } from "@/hooks/useCoverImage";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -26,7 +27,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { ConvexThreadStore } from "@/lib/ConvexThreadStore";
-import { ColorChipSpec, DateChipSpec, BadgeChipSpec, buildChipMenuItems } from "@/components/chips";
+import { ColorChipSpec, DateChipSpec, BadgeChipSpec, ProgressChipSpec, EventChipSpec, PlaceChipSpec, RefChipSpec, buildChipMenuItems, buildChipSlashMenuItems } from "@/components/chips";
 import * as Y from "yjs";
 import YPartyKitProvider from "y-partykit/provider";
 
@@ -89,6 +90,10 @@ const editorSchema = BlockNoteSchema.create({
     colorChip: ColorChipSpec,
     dateChip: DateChipSpec,
     badgeChip: BadgeChipSpec,
+    progressChip: ProgressChipSpec,
+    eventChip: EventChipSpec,
+    placeChip: PlaceChipSpec,
+    refChip: RefChipSpec,
   },
 });
 
@@ -128,6 +133,7 @@ const Editor = ({
   teamMembersRef.current = teamMembers;
   const locale = useLocale();
   const t = useTranslations("editor");
+  const tChips = useTranslations("chips");
 
   const dictionary = useMemo(
     () => locales[locale as keyof typeof locales] ?? locales.en,
@@ -331,6 +337,7 @@ const Editor = ({
         theme={resolvedTheme === "dark" ? "dark" : "light"}
         onChange={handleEditorChange}
         className="wrap-break-word"
+        slashMenu={false}
       >
         <SuggestionMenuController
           triggerCharacter="@"
@@ -357,7 +364,25 @@ const Editor = ({
               }));
           }}
         />
-        {/* Smart chips — type ~ to open the chip picker */}
+        {/* Primary / slash menu — default blocks + smart chips */}
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={async (query) => {
+            const defaults = getDefaultReactSlashMenuItems(editor);
+            const chipItems = buildChipSlashMenuItems(editor, (key) => {
+              try { return tChips(key as any); } catch { return key; }
+            });
+            const all = [...defaults, ...chipItems];
+            if (!query) return all;
+            const q = query.toLowerCase();
+            return all.filter(
+              (item: any) =>
+                item.title?.toLowerCase().includes(q) ||
+                (item.aliases ?? []).some((a: string) => a.toLowerCase().includes(q)),
+            );
+          }}
+        />
+        {/* Smart chips — type ~ as secondary trigger */}
         <SuggestionMenuController
           triggerCharacter="~"
           getItems={async (query) => buildChipMenuItems(editor, query) as any[]}
@@ -370,22 +395,22 @@ const Editor = ({
                 </div>,
                 commentsSidebarContainer,
               )
-            : <div className="fixed right-0 top-[41px] bottom-0 z-40 flex w-72 flex-col border-l bg-background">
-                <div className="flex shrink-0 items-center justify-between border-b bg-background/95 px-3 py-2.5 backdrop-blur-sm">
-                  <span className="text-sm font-semibold tracking-tight">{t("commentsTitle")}</span>
+            : <div className="fixed right-0 top-[41px] bottom-0 z-40 flex w-72 flex-col border-l bg-background/98">
+                <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-3">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">{t("commentsTitle")}</span>
                   {onCommentsSidebarClose && (
                     <button
                       onClick={onCommentsSidebarClose}
-                      className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                      aria-label="Close comments"
+                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+                      aria-label={t("commentsTitle")}
                     >
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
                       </svg>
                     </button>
                   )}
                 </div>
-                <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&_.bn-thread-sidebar]:max-w-full! [&_.bn-thread-sidebar-item]:max-w-full! [&_.bn-thread]:max-w-full!">
+                <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&_.bn-thread-sidebar]:max-w-full! [&_.bn-thread-sidebar-item]:max-w-full! [&_.bn-thread]:max-w-full! [&_.bn-thread-sidebar-item]:border-b [&_.bn-thread-sidebar-item]:border-border/30 [&_.bn-thread-sidebar-item]:px-4 [&_.bn-thread-sidebar-item]:py-3">
                   <ThreadsSidebar filter="open" sort="position" />
                 </div>
               </div>

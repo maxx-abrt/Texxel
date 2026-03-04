@@ -37,7 +37,8 @@
     "justNow": "just now",
     "minAgo": "m ago",
     "hAgo": "h ago",
-    "dAgo": "d ago"
+    "dAgo": "d ago",
+    "wAgo": "w ago"
   },
   "tasks": {
     "title": "Tasks",
@@ -51,6 +52,8 @@
     "dueDate": "Due date",
     "noDueDate": "No due date",
     "unassigned": "Unassigned",
+    "team": "Team",
+    "project": "Project",
     "noTeam": "No team",
     "noProject": "No project",
     "creating": "Creating...",
@@ -106,7 +109,6 @@
     "addTaskPlaceholder": "Add task... (Enter to create)",
     "inlinePlaceholder": "Add task… (Enter to create)",
     "add": "Add",
-    "project": "Project",
     "createdLabel": "Created",
     "backToTasks": "Back to tasks",
     "assigned": "Assigned"
@@ -168,6 +170,22 @@
     "empty": {
       "title": "No notifications",
       "description": "You'll see team invites, task assignments, and @mentions here."
+    },
+    "notifTypes": {
+      "task_assigned": "New task assigned to you",
+      "task_comment": "{name} commented on your task",
+      "task_completed": "Task completed",
+      "project_invitation": "Project invitation",
+      "mention": "{name} mentioned you",
+      "team_invitation": "New team invitation",
+      "task_due_soon": "Task due soon",
+      "task_created_in_team": "New task in {team}",
+      "reminder": "Reminder",
+      "someone": "Someone",
+      "dueToday": "due today",
+      "dueTomorrow": "due tomorrow",
+      "dueInDays": "due in {n} days",
+      "openItem": "Open {type}"
     }
   },
   "settings": {
@@ -382,6 +400,9 @@
     "commentAdded": "Comment added",
     "commentFailed": "Failed to add comment",
     "commentsTitle": "Comments",
+    "words": "words",
+    "chars": "chars",
+    "minRead": "min read",
     "publish": "Publish",
     "vhTitle": "Version History",
     "vhSave": "Save current version",
@@ -469,6 +490,88 @@
     "createNote": "Create note",
     "noProjects": "No projects yet",
     "noTeams": "No teams yet"
+  },
+  "chips": {
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "search": "Search…",
+    "loading": "Loading…",
+    "noResults": "No results",
+    "formats": {
+      "relative": "Relative",
+      "short": "Short",
+      "long": "Long"
+    },
+    "progress": {
+      "value": "Value",
+      "total": "Total",
+      "unit": "Unit (tasks, pts… — empty = %)",
+      "label": "Label",
+      "bar": "Bar",
+      "ring": "Ring",
+      "auto": "Auto"
+    },
+    "event": {
+      "namePlaceholder": "Event name…",
+      "reminder": "Reminder",
+      "noReminder": "No reminder",
+      "atTime": "At event time",
+      "before10m": "10 min before",
+      "before30m": "30 min before",
+      "before1h": "1 hour before",
+      "before3h": "3 hours before",
+      "before1d": "1 day before"
+    },
+    "place": {
+      "namePlaceholder": "Place name…",
+      "subtitlePlaceholder": "City, country, address… (optional)"
+    },
+    "badge": {
+      "labelPlaceholder": "Label…",
+      "preview": "Preview",
+      "presets": {
+        "todo": "To do",
+        "in_progress": "In progress",
+        "in_review": "In review",
+        "done": "Done",
+        "cancelled": "Cancelled",
+        "blocked": "Blocked",
+        "draft": "Draft",
+        "urgent": "Urgent",
+        "approved": "Approved",
+        "warning": "Warning",
+        "active": "Active",
+        "review": "Review"
+      }
+    },
+    "ref": {
+      "tasks": "Tasks",
+      "projects": "Projects",
+      "open": "Open {type}",
+      "task": "task",
+      "project": "project"
+    },
+    "menu": {
+      "color": "Color",
+      "colorSubtext": "Inline color swatch — HEX, RGB or HSL",
+      "date": "Date",
+      "dateSubtext": "Smart date — relative, short or long",
+      "badge": "Badge",
+      "badgeSubtext": "Colored label — status, tag, category",
+      "progress": "Progress",
+      "progressSubtext": "Inline progress bar with percentage",
+      "status": "Status",
+      "statusSubtext": "Todo · In Progress · Done · Blocked",
+      "event": "Event",
+      "eventSubtext": "Event or meeting — title, date, time & colour",
+      "place": "Place",
+      "placeSubtext": "Location — name, city or address",
+      "taskRef": "Task ref",
+      "taskRefSubtext": "Link to one of your tasks inline",
+      "projectRef": "Project ref",
+      "projectRefSubtext": "Link to one of your projects inline",
+      "group": "Smart Chips"
+    }
   },
   "landing": {
     "nav": {

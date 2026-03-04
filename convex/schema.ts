@@ -209,6 +209,8 @@ export default defineSchema({
       v.literal("project_invitation"),
       v.literal("mention"),
       v.literal("task_due_soon"),
+      v.literal("task_created_in_team"),
+      v.literal("reminder"),
     ),
     title: v.string(),
     body: v.string(),

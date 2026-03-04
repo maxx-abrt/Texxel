@@ -84,7 +84,7 @@ export const createMention = mutation({
     await ctx.db.insert("notifications", {
       userId: args.targetUserId,
       type: "mention",
-      title: `${args.fromUserName ?? "Someone"} mentioned you`,
+      title: "mention",
       body: args.context.slice(0, 200),
       read: false,
       link: args.link,
@@ -156,7 +156,7 @@ export const checkDueDates = mutation({
       await ctx.db.insert("notifications", {
         userId,
         type: "task_due_soon",
-        title: `Task due ${dueStr}`,
+        title: "task_due_soon",
         body: task.title,
         read: false,
         link: `/tasks/${task._id}`,
@@ -164,6 +164,27 @@ export const checkDueDates = mutation({
         createdAt: Date.now(),
       });
     }
+  },
+});
+
+export const createReminder = mutation({
+  args: {
+    title: v.string(),
+    body: v.string(),
+    link: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    await ctx.db.insert("notifications", {
+      userId: identity.subject,
+      type: "reminder",
+      title: args.title,
+      body: args.body,
+      read: false,
+      link: args.link,
+      createdAt: Date.now(),
+    });
   },
 });
 

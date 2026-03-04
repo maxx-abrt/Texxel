@@ -4,7 +4,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { authClient } from "@/lib/auth/client";
-import { Globe, MenuIcon } from "lucide-react";
+import { Expand, Globe, MenuIcon, Minimize } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
@@ -59,7 +59,7 @@ function PresenceAvatars({ documentId }: { documentId: Id<"documents"> }) {
 export const Navbar = ({ isCollapsed, onResetWidth }: NavbarProps) => {
   const params = useParams();
   const t = useTranslations("editor");
-  const { showShare, openShare, closeShare } = useDocumentUI();
+  const { showShare, openShare, closeShare, focusMode, toggleFocusMode } = useDocumentUI();
 
   // Close share dialog when navigating between documents
   useEffect(() => {
@@ -110,6 +110,19 @@ export const Navbar = ({ isCollapsed, onResetWidth }: NavbarProps) => {
                 <Globe className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
               )}
               {t("publish")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0"
+              onClick={toggleFocusMode}
+              title={focusMode ? "Exit focus mode" : "Focus mode"}
+            >
+              {focusMode ? (
+                <Minimize className="h-4 w-4" />
+              ) : (
+                <Expand className="h-4 w-4" />
+              )}
             </Button>
             <Menu documentId={document._id} />
           </div>

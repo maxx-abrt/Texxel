@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 const STATUS_COLORS: Record<string, { color: string; dot: string }> = {
   todo: { color: "text-slate-500", dot: "bg-slate-400" },
@@ -56,6 +56,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const router = useRouter();
   const tt = useTranslations("tasks");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const { data: session } = authClient.useSession();
   const task = useQuery(api.tasks.getById, { id: taskId as Id<"tasks"> });
   const comments = useQuery(api.tasks.getComments, { taskId: taskId as Id<"tasks"> });
@@ -241,7 +242,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                       <div className="flex items-center gap-2 mb-0.5">
                         <span className="text-xs font-semibold">{c.userName}</span>
                         <span className="text-[10px] text-muted-foreground/60">
-                          {new Date(c.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {new Date(c.createdAt).toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
                       <p className="text-sm text-foreground/90">{c.content}</p>
@@ -372,7 +373,7 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
               <div className="space-y-1.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("createdLabel")}</p>
                 <p className="text-xs text-muted-foreground">
-                  {new Date(task.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  {new Date(task.createdAt).toLocaleDateString(locale, { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
 

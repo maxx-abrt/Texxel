@@ -37,7 +37,8 @@
     "justNow": "à l'instant",
     "minAgo": "min",
     "hAgo": "h",
-    "dAgo": "j"
+    "dAgo": "j",
+    "wAgo": "sem"
   },
   "tasks": {
     "title": "Tâches",
@@ -109,7 +110,8 @@
     "project": "Projet",
     "createdLabel": "Créé le",
     "backToTasks": "Retour aux tâches",
-    "assigned": "Assigné"
+    "assigned": "Assigné",
+    "team": "Team"
   },
   "projects": {
     "title": "Projets",
@@ -234,6 +236,22 @@
     "empty": {
       "title": "Aucune notification",
       "description": "Vous verrez ici les invitations d'équipe, les assignations et les @mentions."
+    },
+    "notifTypes": {
+      "task_assigned": "Nouvelle tâche assignée",
+      "task_comment": "{name} a commenté votre tâche",
+      "task_completed": "Tâche terminée",
+      "project_invitation": "Invitation à un projet",
+      "mention": "{name} vous a mentionné",
+      "team_invitation": "Invitation à une équipe",
+      "task_due_soon": "Tâche bientôt due",
+      "task_created_in_team": "Nouvelle tâche dans {team}",
+      "reminder": "Rappel",
+      "someone": "Quelqu'un",
+      "dueToday": "due aujourd'hui",
+      "dueTomorrow": "due demain",
+      "dueInDays": "dans {n} jours",
+      "openItem": "Ouvrir {type}"
     }
   },
   "settings": {
@@ -382,6 +400,9 @@
     "commentAdded": "Commentaire ajouté",
     "commentFailed": "Échec de l'ajout du commentaire",
     "commentsTitle": "Commentaires",
+    "words": "mots",
+    "chars": "car.",
+    "minRead": "min de lecture",
     "publish": "Publier",
     "vhTitle": "Historique des versions",
     "vhSave": "Enregistrer la version actuelle",
@@ -469,6 +490,88 @@
     "createNote": "Créer une note",
     "noProjects": "Aucun projet",
     "noTeams": "Aucune équipe"
+  },
+  "chips": {
+    "cancel": "Annuler",
+    "apply": "Appliquer",
+    "search": "Rechercher…",
+    "loading": "Chargement…",
+    "noResults": "Aucun résultat",
+    "formats": {
+      "relative": "Relatif",
+      "short": "Court",
+      "long": "Long"
+    },
+    "progress": {
+      "value": "Valeur",
+      "total": "Total",
+      "unit": "Unité (tâches, pts… — vide = %)",
+      "label": "Libellé",
+      "bar": "Barre",
+      "ring": "Anneau",
+      "auto": "Auto"
+    },
+    "event": {
+      "namePlaceholder": "Nom de l'événement…",
+      "reminder": "Rappel",
+      "noReminder": "Pas de rappel",
+      "atTime": "À l'heure de l'événement",
+      "before10m": "10 min avant",
+      "before30m": "30 min avant",
+      "before1h": "1 heure avant",
+      "before3h": "3 heures avant",
+      "before1d": "1 jour avant"
+    },
+    "place": {
+      "namePlaceholder": "Nom du lieu…",
+      "subtitlePlaceholder": "Ville, pays, adresse… (optionnel)"
+    },
+    "badge": {
+      "labelPlaceholder": "Libellé…",
+      "preview": "Aperçu",
+      "presets": {
+        "todo": "À faire",
+        "in_progress": "En cours",
+        "in_review": "En révision",
+        "done": "Terminé",
+        "cancelled": "Annulé",
+        "blocked": "Bloqué",
+        "draft": "Brouillon",
+        "urgent": "Urgent",
+        "approved": "Approuvé",
+        "warning": "Attention",
+        "active": "Actif",
+        "review": "Révision"
+      }
+    },
+    "ref": {
+      "tasks": "Tâches",
+      "projects": "Projets",
+      "open": "Ouvrir {type}",
+      "task": "tâche",
+      "project": "projet"
+    },
+    "menu": {
+      "color": "Couleur",
+      "colorSubtext": "Nuance de couleur en ligne — HEX, RGB ou HSL",
+      "date": "Date",
+      "dateSubtext": "Date intelligente — relative, courte ou longue",
+      "badge": "Badge",
+      "badgeSubtext": "Étiquette colorée — statut, tag, catégorie",
+      "progress": "Progression",
+      "progressSubtext": "Barre de progression avec pourcentage",
+      "status": "Statut",
+      "statusSubtext": "À faire · En cours · Terminé · Bloqué",
+      "event": "Événement",
+      "eventSubtext": "Événement ou réunion — titre, date, heure & couleur",
+      "place": "Lieu",
+      "placeSubtext": "Localisation — nom, ville ou adresse",
+      "taskRef": "Réf. tâche",
+      "taskRefSubtext": "Lien vers l'une de vos tâches en ligne",
+      "projectRef": "Réf. projet",
+      "projectRefSubtext": "Lien vers l'un de vos projets en ligne",
+      "group": "Puces intelligentes"
+    }
   },
   "landing": {
     "nav": {

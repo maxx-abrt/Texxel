@@ -9,11 +9,13 @@ type DocumentUIStore = {
   showComments: boolean;
   showShare: boolean;
   showVersionHistory: boolean;
+  focusMode: boolean;
   toggleComments: () => void;
   openShare: () => void;
   closeShare: () => void;
   toggleVersionHistory: () => void;
   closeVersionHistory: () => void;
+  toggleFocusMode: () => void;
   exportHandlers: ExportHandlers;
   setExportHandlers: (handlers: ExportHandlers) => void;
 };
@@ -22,6 +24,7 @@ export const useDocumentUI = create<DocumentUIStore>((set) => ({
   showComments: false,
   showShare: false,
   showVersionHistory: false,
+  focusMode: false,
   toggleComments: () =>
     set((s) => ({
       showComments: !s.showComments,
@@ -35,6 +38,7 @@ export const useDocumentUI = create<DocumentUIStore>((set) => ({
       showComments: !s.showVersionHistory ? false : s.showComments,
     })),
   closeVersionHistory: () => set({ showVersionHistory: false }),
+  toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
   exportHandlers: { pdf: null, docx: null },
   setExportHandlers: (handlers) => set({ exportHandlers: handlers }),
 }));

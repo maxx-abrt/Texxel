@@ -40,6 +40,7 @@ import { Navbar } from "./Navbar";
 import { ScrollableList } from "@/components/scrollable-list";
 import { openCommandPalette } from "@/components/command-palette";
 import { useTranslations } from "next-intl";
+import { useDocumentUI } from "@/hooks/useDocumentUI";
 
 const Navigation = () => {
   const search = useSearch();
@@ -50,6 +51,7 @@ const Navigation = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const create = useMutation(api.documents.create);
   const unreadCount = useQuery(api.notifications.getUnreadCount) ?? 0;
+  const { focusMode } = useDocumentUI();
 
   const isResizingRef = useRef(false);
   const sidebarRef = useRef<ComponentRef<"aside">>(null);
@@ -65,6 +67,15 @@ const Navigation = () => {
   useEffect(() => {
     if (isMobile) collapse();
   }, [pathname, isMobile]);
+
+  useEffect(() => {
+    if (focusMode) {
+      collapse();
+    } else if (!isMobile) {
+      resetWidth();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusMode]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();

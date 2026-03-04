@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Check, CheckCircle2, Circle, Copy, Crown, FileText, FolderKanban, Mail, Pencil, Plus, Shield, Trash2, User as UserIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 const roleConfig = {
   owner: { labelKey: "roles.owner", icon: Crown, color: "text-amber-500" },
@@ -76,6 +76,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
   const router = useRouter();
   const t = useTranslations("teams");
   const tc = useTranslations("common");
+  const locale = useLocale();
   const { data: session } = authClient.useSession();
   const team = useQuery(api.teams.getById, { id: teamId as Id<"teams"> });
   const members = useQuery(api.teams.getMembers, { teamId: teamId as Id<"teams"> });
@@ -402,7 +403,7 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
                           "text-[10px] font-medium",
                           task.dueDate < Date.now() && !isDone ? "text-red-500" : "text-muted-foreground"
                         )}>
-                          {new Date(task.dueDate).toLocaleDateString("fr-FR", { month: "short", day: "numeric" })}
+                          {new Date(task.dueDate).toLocaleDateString(locale, { month: "short", day: "numeric" })}
                         </span>
                       )}
                     </div>

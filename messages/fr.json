@@ -198,6 +198,7 @@
       "members": "Membres",
       "projects": "Projets",
       "documents": "Documents",
+      "notes": "Notes",
       "pendingInvitations": "Invitations en attente"
     },
     "roles": {
@@ -205,9 +206,16 @@
       "admin": "Administrateur",
       "member": "Membre"
     },
-    "backToTeams": "Retour aux équipes",
-    "tasks": "Tâches",
-    "moreTasks": "tâches de plus",
+    "newNote": "Nouvelle note",
+    "notePlaceholder": "Titre de la note\u2026",
+    "moreNotes": "notes de plus",
+    "noNotes": "Aucune note pour l'instant",
+    "noNotesDesc": "Cr\u00e9ez la premi\u00e8re note de cet espace \u00e9quipe",
+    "noteCreated": "Note cr\u00e9\u00e9e",
+    "noteCreateFailed": "\u00c9chec de la cr\u00e9ation de la note",
+    "backToTeams": "Retour aux \u00e9quipes",
+    "tasks": "T\u00e2ches",
+    "moreTasks": "t\u00e2ches de plus",
     "you": "vous",
     "acceptInvite": "Accepter l'invitation",
     "inviteJoin": "Vous avez été invité à rejoindre",
@@ -266,15 +274,25 @@
       "shortcuts": "Raccourcis"
     },
     "notifications": {
+      "subtitle": "Configurez la façon dont vous recevez les notifications.",
       "dueDateReminders": "Rappels d'échéance",
       "dueDateDesc": "Recevoir une notification avant l'échéance des tâches",
       "alertMeBefore": "M'alerter",
-      "beforeDueDate": "avant l'échéance"
+      "beforeDueDate": "avant l'échéance",
+      "taskAssignments": "Assignations de tâches",
+      "taskAssignmentsDesc": "Quand quelqu'un vous assigne une tâche",
+      "taskComments": "Commentaires de tâches",
+      "taskCommentsDesc": "Quand quelqu'un commente vos tâches",
+      "teamInvitations": "Invitations d'équipe",
+      "teamInvitationsDesc": "Quand vous êtes invité à rejoindre une équipe",
+      "mentions": "Mentions",
+      "mentionsDesc": "Quand quelqu'un vous @mentionne"
     },
     "profile": {
       "title": "Profil",
       "subtitle": "Gérez vos informations personnelles et votre apparence.",
       "displayName": "Nom d'affichage",
+      "namePlaceholder": "Votre nom",
       "email": "E-mail",
       "emailNote": "Géré par votre fournisseur d'authentification.",
       "role": "Rôle",
@@ -314,12 +332,45 @@
     "language": {
       "title": "Langue",
       "description": "Choisissez la langue de l'interface.",
+      "subtitle": "Choisissez la langue de l'interface.",
       "select": "Choisir une langue",
       "languages": {
         "en": "Anglais",
         "fr": "Français"
       },
       "saved": "Langue enregistrée !"
+    },
+    "shortcuts": {
+      "title": "Raccourcis clavier",
+      "subtitle": "Accélérez votre flux de travail avec ces raccourcis clavier.",
+      "hintKey": "Appuyez sur {key} n'importe où pour ouvrir cette référence.",
+      "sections": {
+        "searchNav": "Recherche & Navigation",
+        "editor": "Éditeur",
+        "tasks": "Tâches"
+      },
+      "items": {
+        "openCommandPalette": "Ouvrir la palette de commandes",
+        "closeCancel": "Fermer / Annuler",
+        "navigateResults": "Naviguer dans les résultats",
+        "selectResult": "Sélectionner le résultat",
+        "insertBlock": "Insérer un bloc",
+        "bold": "Gras",
+        "italic": "Italique",
+        "inlineCode": "Code en ligne",
+        "undo": "Annuler",
+        "redo": "Rétablir",
+        "deleteAll": "Supprimer la page entière",
+        "createTask": "Créer une tâche (ajout rapide)",
+        "cancelInlineAdd": "Annuler l'ajout rapide"
+      }
+    },
+    "import": {
+      "title": "Importer & Exporter",
+      "subtitle": "Importez des notes depuis Notion ou d'autres outils.",
+      "fromNotion": "Importer depuis Notion",
+      "fromNotionDesc": "Exportez votre espace Notion en fichiers HTML, puis importez-les ici. Votre structure de pages et votre contenu seront préservés.",
+      "importFiles": "Importer les fichiers"
     }
   },
   "editor": {

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth/client";
@@ -24,16 +24,77 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowLeft, Check, CheckCircle2, Circle, Copy, Crown, FileText, FolderKanban, Mail, Pencil, Plus, Shield, Trash2, User as UserIcon, Users } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, ChevronDown, Circle, Copy, Crown, FileText, FolderKanban, GripVertical, Mail, Pencil, Plus, Shield, Trash2, User as UserIcon, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { useTranslations, useLocale } from "next-intl";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const roleConfig = {
   owner: { labelKey: "roles.owner", icon: Crown, color: "text-amber-500" },
   admin: { labelKey: "roles.admin", icon: Shield, color: "text-blue-500" },
   member: { labelKey: "roles.member", icon: UserIcon, color: "text-slate-500" },
 };
+
+function SortableNoteRow({ doc, onNavigate }: { doc: any; onNavigate: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: doc._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  const relativeDate = (() => {
+    const ms = Date.now() - doc._creationTime;
+    const mins = Math.floor(ms / 60000);
+    const hours = Math.floor(ms / 3600000);
+    const days = Math.floor(ms / 86400000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return new Date(doc._creationTime).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  })();
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group flex items-center gap-2 px-3 py-2.5 hover:bg-accent/40 transition-colors first:rounded-t-xl last:rounded-b-xl cursor-pointer"
+      onClick={() => onNavigate(doc._id)}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors p-0.5 -ml-0.5 touch-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      <span className="shrink-0 text-sm leading-none">{doc.icon ?? "📄"}</span>
+      <span className="flex-1 min-w-0 text-sm font-medium truncate group-hover:text-primary transition-colors">
+        {doc.title || "Untitled"}
+      </span>
+      <span className="shrink-0 text-[10px] text-muted-foreground/50 tabular-nums">{relativeDate}</span>
+    </div>
+  );
+}
 
 function InviteRow({ inv, canManage, onCancel }: { inv: any; canManage: boolean; onCancel: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -87,6 +148,8 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
   const cancelInvitation = useMutation(api.teams.cancelInvitation);
   const teamProjects = useQuery(api.projects.getMyProjects, { teamId: teamId as Id<"teams"> });
   const teamDocs = useQuery(api.documents.getByTeam, { teamId: teamId as Id<"teams"> });
+  const createNote = useMutation(api.documents.createTeamDocument);
+  const reorderDoc = useMutation(api.documents.reorder);
 
   const teamTasks = useQuery(api.tasks.getByTeam, { teamId: teamId as Id<"teams"> });
   const updateTask = useMutation(api.tasks.update);
@@ -94,6 +157,48 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
 
   const TEAM_COLORS = ["#f76c5e","#7c3aed","#2563eb","#0d9488","#059669","#d97706","#e11d48","#475569","#ec4899","#f59e0b"];
   const EMOJI_LIST = ["🚀","⚡","🔥","🌟","💡","🎯","🏆","🛠","💎","🎨","🐉","🦄"];
+
+  const [notesCollapsed, setNotesCollapsed] = useState(false);
+  const [showNewNote, setShowNewNote] = useState(false);
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const newNoteTitleRef = useRef<HTMLInputElement>(null);
+  const [localDocs, setLocalDocs] = useState<any[] | null>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const handleCreateNote = useCallback(async () => {
+    const title = newNoteTitle.trim();
+    if (!title || isCreatingNote) return;
+    setIsCreatingNote(true);
+    try {
+      const docId = await createNote({ title, teamId: teamId as Id<"teams"> });
+      toast.success(t("noteCreated"));
+      setNewNoteTitle("");
+      setShowNewNote(false);
+      router.push(`/documents/${docId}`);
+    } catch {
+      toast.error(t("noteCreateFailed"));
+    } finally {
+      setIsCreatingNote(false);
+    }
+  }, [newNoteTitle, isCreatingNote, createNote, teamId, t, router]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const docs = localDocs ?? teamDocs ?? [];
+    const oldIndex = docs.findIndex((d) => d._id === active.id);
+    const newIndex = docs.findIndex((d) => d._id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(docs, oldIndex, newIndex);
+    setLocalDocs(reordered);
+    reorderDoc({ id: active.id as Id<"documents">, newOrder: newIndex }).catch(() =>
+      setLocalDocs(null)
+    );
+  }, [localDocs, teamDocs, reorderDoc]);
+
+  const displayDocs = localDocs ?? teamDocs ?? [];
 
   const [showIconEdit, setShowIconEdit] = useState(false);
   const [iconEmoji, setIconEmoji] = useState("");
@@ -340,28 +445,102 @@ export default function TeamDetailPage({ params }: { params: Promise<{ teamId: s
           </div>
         )}
 
-        {/* Team Documents */}
-        {(teamDocs ?? []).length > 0 && (
-          <div className="mb-6">
-            <div className="mb-3 flex items-center gap-2">
+        {/* Team Notes */}
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">{t("sections.documents")}</h2>
-              <span className="text-[10px] text-muted-foreground font-medium">{(teamDocs ?? []).length}</span>
+              <h2 className="text-base font-semibold">{t("sections.notes")}</h2>
+              {displayDocs.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{displayDocs.length}</Badge>
+              )}
+              <button
+                onClick={() => setNotesCollapsed((v) => !v)}
+                className="text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              >
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", notesCollapsed && "-rotate-90")} />
+              </button>
             </div>
-            <div className="rounded-xl border divide-y">
-              {(teamDocs ?? []).slice(0, 8).map((doc: any) => (
-                <div
-                  key={doc._id}
-                  onClick={() => router.push(`/documents/${doc._id}`)}
-                  className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
-                >
-                  <span className="shrink-0 text-sm">{doc.icon ?? "📄"}</span>
-                  <span className="flex-1 text-sm truncate group-hover:text-primary transition-colors">{doc.title || "Untitled"}</span>
-                </div>
-              ))}
-            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 h-7 text-xs"
+              onClick={() => {
+                setShowNewNote(true);
+                setNotesCollapsed(false);
+                setTimeout(() => newNoteTitleRef.current?.focus(), 50);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {t("newNote")}
+            </Button>
           </div>
-        )}
+
+          {!notesCollapsed && (
+            <div className="rounded-xl border bg-card overflow-hidden">
+              {/* Inline new-note input */}
+              {showNewNote && (
+                <div className="flex items-center gap-2 border-b px-3 py-2 bg-primary/5">
+                  <span className="text-sm">📄</span>
+                  <input
+                    ref={newNoteTitleRef}
+                    type="text"
+                    value={newNoteTitle}
+                    onChange={(e) => setNewNoteTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreateNote();
+                      if (e.key === "Escape") { setShowNewNote(false); setNewNoteTitle(""); }
+                    }}
+                    placeholder={t("notePlaceholder")}
+                    className="flex-1 bg-transparent text-sm font-medium placeholder:text-muted-foreground/50 focus:outline-none"
+                    disabled={isCreatingNote}
+                  />
+                  <button
+                    onClick={handleCreateNote}
+                    disabled={!newNoteTitle.trim() || isCreatingNote}
+                    className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-40 transition-opacity"
+                  >
+                    ↵
+                  </button>
+                  <button
+                    onClick={() => { setShowNewNote(false); setNewNoteTitle(""); }}
+                    className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors text-xs px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {displayDocs.length === 0 && !showNewNote ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center px-6">
+                  <FileText className="h-8 w-8 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">{t("noNotes")}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-0.5">{t("noNotesDesc")}</p>
+                  <button
+                    onClick={() => { setShowNewNote(true); setTimeout(() => newNoteTitleRef.current?.focus(), 50); }}
+                    className="mt-3 rounded-lg border border-dashed px-4 py-1.5 text-xs text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors"
+                  >
+                    {t("newNote")}
+                  </button>
+                </div>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={displayDocs.map((d) => d._id)} strategy={verticalListSortingStrategy}>
+                    <div className="divide-y">
+                      {displayDocs.map((doc: any) => (
+                        <SortableNoteRow
+                          key={doc._id}
+                          doc={doc}
+                          onNavigate={(id) => router.push(`/documents/${id}`)}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Team Tasks */}
         {(teamTasks ?? []).length > 0 && (

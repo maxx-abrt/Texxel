@@ -200,15 +200,25 @@
       "shortcuts": "Shortcuts"
     },
     "notifications": {
+      "subtitle": "Configure how you receive notifications.",
       "dueDateReminders": "Due-date reminders",
       "dueDateDesc": "Get notified in your inbox before tasks are due",
       "alertMeBefore": "Alert me",
-      "beforeDueDate": "before due date"
+      "beforeDueDate": "before due date",
+      "taskAssignments": "Task assignments",
+      "taskAssignmentsDesc": "When someone assigns a task to you",
+      "taskComments": "Task comments",
+      "taskCommentsDesc": "When someone comments on your tasks",
+      "teamInvitations": "Team invitations",
+      "teamInvitationsDesc": "When you're invited to join a team",
+      "mentions": "Mentions",
+      "mentionsDesc": "When someone @mentions you"
     },
     "profile": {
       "title": "Profile",
       "subtitle": "Manage your personal information and appearance.",
       "displayName": "Display name",
+      "namePlaceholder": "Your name",
       "email": "Email",
       "emailNote": "Managed by your auth provider.",
       "role": "Role",
@@ -248,12 +258,45 @@
     "language": {
       "title": "Language",
       "description": "Choose your preferred language for the interface.",
+      "subtitle": "Choose the language for the interface.",
       "select": "Select language",
       "languages": {
         "en": "English",
         "fr": "French"
       },
       "saved": "Language saved!"
+    },
+    "shortcuts": {
+      "title": "Keyboard Shortcuts",
+      "subtitle": "Speed up your workflow with these keyboard shortcuts.",
+      "hintKey": "Press {key} anywhere to open this reference.",
+      "sections": {
+        "searchNav": "Search & Navigation",
+        "editor": "Editor",
+        "tasks": "Tasks"
+      },
+      "items": {
+        "openCommandPalette": "Open command palette",
+        "closeCancel": "Close / Cancel",
+        "navigateResults": "Navigate results",
+        "selectResult": "Select result",
+        "insertBlock": "Insert block",
+        "bold": "Bold",
+        "italic": "Italic",
+        "inlineCode": "Inline code",
+        "undo": "Undo",
+        "redo": "Redo",
+        "deleteAll": "Delete entire page",
+        "createTask": "Create task (inline add)",
+        "cancelInlineAdd": "Cancel inline add"
+      }
+    },
+    "import": {
+      "title": "Import & Export",
+      "subtitle": "Import notes from Notion or other tools.",
+      "fromNotion": "Import from Notion",
+      "fromNotionDesc": "Export your Notion workspace as HTML files, then import them here. Your page structure and content will be preserved.",
+      "importFiles": "Import Files"
     }
   },
   "teams": {
@@ -298,8 +341,16 @@
       "members": "Members",
       "projects": "Projects",
       "documents": "Documents",
+      "notes": "Notes",
       "pendingInvitations": "Pending Invitations"
     },
+    "newNote": "New note",
+    "notePlaceholder": "Note title…",
+    "moreNotes": "more notes",
+    "noNotes": "No notes yet",
+    "noNotesDesc": "Create the first note for this team workspace",
+    "noteCreated": "Note created",
+    "noteCreateFailed": "Failed to create note",
     "roles": {
       "owner": "Owner",
       "admin": "Admin",

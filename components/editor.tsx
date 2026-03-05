@@ -325,11 +325,33 @@ const Editor = ({
     }
   };
 
+  const allSelectedRef = useRef(false);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "a") {
+      allSelectedRef.current = true;
+      return;
+    }
+    if (allSelectedRef.current && (e.key === "Delete" || e.key === "Backspace")) {
+      e.preventDefault();
+      e.stopPropagation();
+      allSelectedRef.current = false;
+      const empty = [{ type: "paragraph" as const, content: [] }];
+      editor.replaceBlocks(editor.document, empty);
+      setTimeout(() => {
+        try { editor.setTextCursorPosition(editor.document[0], "start"); } catch {}
+      }, 0);
+      return;
+    }
+    allSelectedRef.current = false;
+  }, [editor]);
+
   return (
     <div
       className="relative flex-1 shrink-0"
       onDropCapture={handleCapture}
       onDragOverCapture={handleCapture}
+      onKeyDown={handleKeyDown}
     >
       <BlockNoteView
         editable={editable !== false && !coverImage.isOpen}

@@ -63,29 +63,33 @@ function applyPalette(paletteId: string) {
   localStorage.setItem("texxel-palette", paletteId);
 }
 
-const SHORTCUTS = [
-  { section: "Search & Navigation", items: [
-    { keys: ["⌘", "K"], desc: "Open command palette" },
-    { keys: ["Esc"], desc: "Close / Cancel" },
-    { keys: ["↑↓"], desc: "Navigate results" },
-    { keys: ["↵"], desc: "Select result" },
-  ]},
-  { section: "Editor", items: [
-    { keys: ["/"], desc: "Insert block" },
-    { keys: ["⌘", "B"], desc: "Bold" },
-    { keys: ["⌘", "I"], desc: "Italic" },
-    { keys: ["⌘", "E"], desc: "Inline code" },
-    { keys: ["⌘", "Z"], desc: "Undo" },
-    { keys: ["⌘", "Shift", "Z"], desc: "Redo" },
-  ]},
-  { section: "Tasks", items: [
-    { keys: ["Enter"], desc: "Create task (inline add)" },
-    { keys: ["Esc"], desc: "Cancel inline add" },
-  ]},
-];
+function useShortcuts(ts: (key: string) => string) {
+  return [
+    { section: ts("shortcuts.sections.searchNav"), items: [
+      { keys: ["⌘", "K"], desc: ts("shortcuts.items.openCommandPalette") },
+      { keys: ["Esc"], desc: ts("shortcuts.items.closeCancel") },
+      { keys: ["↑↓"], desc: ts("shortcuts.items.navigateResults") },
+      { keys: ["↵"], desc: ts("shortcuts.items.selectResult") },
+    ]},
+    { section: ts("shortcuts.sections.editor"), items: [
+      { keys: ["/"], desc: ts("shortcuts.items.insertBlock") },
+      { keys: ["⌘", "B"], desc: ts("shortcuts.items.bold") },
+      { keys: ["⌘", "I"], desc: ts("shortcuts.items.italic") },
+      { keys: ["⌘", "E"], desc: ts("shortcuts.items.inlineCode") },
+      { keys: ["⌘", "Z"], desc: ts("shortcuts.items.undo") },
+      { keys: ["⌘", "Shift", "Z"], desc: ts("shortcuts.items.redo") },
+      { keys: ["⌘", "A", "Del"], desc: ts("shortcuts.items.deleteAll") },
+    ]},
+    { section: ts("shortcuts.sections.tasks"), items: [
+      { keys: ["Enter"], desc: ts("shortcuts.items.createTask") },
+      { keys: ["Esc"], desc: ts("shortcuts.items.cancelInlineAdd") },
+    ]},
+  ];
+}
 
 export default function SettingsPage() {
   const ts = useTranslations("settings");
+  const shortcuts = useShortcuts(ts as any);
   const { data: session } = authClient.useSession();
   const user = session?.user;
   const profile = useQuery(api.userProfiles.getMyProfile);
@@ -247,7 +251,7 @@ export default function SettingsPage() {
                         id="name"
                         value={profileName}
                         onChange={(e) => setProfileName(e.target.value)}
-                        placeholder="Your name"
+                        placeholder={ts("profile.namePlaceholder")}
                       />
                     </div>
                     <div className="space-y-2">
@@ -413,8 +417,8 @@ export default function SettingsPage() {
             {activeTab === "notifications" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold mb-1">Notifications</h2>
-                  <p className="text-sm text-muted-foreground">Configure how you receive notifications.</p>
+                  <h2 className="text-lg font-semibold mb-1">{ts("tabs.notifications")}</h2>
+                  <p className="text-sm text-muted-foreground">{ts("notifications.subtitle")}</p>
                 </div>
 
                 {/* Due-date alerts */}
@@ -468,10 +472,10 @@ export default function SettingsPage() {
 
                 <div className="space-y-2">
                   {[
-                    { label: "Task assignments", desc: "When someone assigns a task to you" },
-                    { label: "Task comments", desc: "When someone comments on your tasks" },
-                    { label: "Team invitations", desc: "When you're invited to join a team" },
-                    { label: "Mentions", desc: "When someone @mentions you" },
+                    { label: ts("notifications.taskAssignments"), desc: ts("notifications.taskAssignmentsDesc") },
+                    { label: ts("notifications.taskComments"), desc: ts("notifications.taskCommentsDesc") },
+                    { label: ts("notifications.teamInvitations"), desc: ts("notifications.teamInvitationsDesc") },
+                    { label: ts("notifications.mentions"), desc: ts("notifications.mentionsDesc") },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between rounded-xl border p-4">
                       <div>
@@ -491,10 +495,8 @@ export default function SettingsPage() {
             {activeTab === "language" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold mb-1">Language</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Choose the language for the interface.
-                  </p>
+                  <h2 className="text-lg font-semibold mb-1">{ts("tabs.language")}</h2>
+                  <p className="text-sm text-muted-foreground">{ts("language.subtitle")}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {([
@@ -503,7 +505,7 @@ export default function SettingsPage() {
                   ] as const).map((lang) => (
                     <button
                       key={lang.id}
-                      onClick={() => { setLocale(lang.id); toast.success("Language saved!"); }}
+                      onClick={() => { setLocale(lang.id); toast.success(ts("language.saved")); }}
                       className={cn(
                         "relative flex items-center gap-3 rounded-xl border p-4 transition-all text-left",
                         locale === lang.id
@@ -528,13 +530,13 @@ export default function SettingsPage() {
             {activeTab === "shortcuts" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold mb-1">Keyboard Shortcuts</h2>
+                  <h2 className="text-lg font-semibold mb-1">{ts("shortcuts.title")}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Speed up your workflow with these keyboard shortcuts. Press <kbd className="rounded border bg-muted px-1.5 py-0.5 text-xs font-mono">?</kbd> anywhere to open this reference.
+                    {ts("shortcuts.subtitle")}{" "}<kbd className="rounded border bg-muted px-1.5 py-0.5 text-xs font-mono">?</kbd>
                   </p>
                 </div>
                 <div className="space-y-6">
-                  {SHORTCUTS.map((section) => (
+                  {shortcuts.map((section) => (
                     <div key={section.section}>
                       <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{section.section}</h3>
                       <div className="rounded-xl border divide-y">
@@ -559,12 +561,8 @@ export default function SettingsPage() {
             {activeTab === "import" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold mb-1">
-                    Import & Export
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Import notes from Notion or other tools.
-                  </p>
+                  <h2 className="text-lg font-semibold mb-1">{ts("import.title")}</h2>
+                  <p className="text-sm text-muted-foreground">{ts("import.subtitle")}</p>
                 </div>
 
                 <div className="rounded-xl border p-6">
@@ -573,21 +571,15 @@ export default function SettingsPage() {
                       <Upload className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold mb-1">
-                        Import from Notion
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Export your Notion workspace as HTML files, then import
-                        them here. Your page structure and content will be
-                        preserved.
-                      </p>
+                      <h3 className="font-semibold mb-1">{ts("import.fromNotion")}</h3>
+                      <p className="text-sm text-muted-foreground mb-3">{ts("import.fromNotionDesc")}</p>
                       <Button
                         onClick={() => setShowImport(true)}
                         size="sm"
                         className="gap-1.5"
                       >
                         <Upload className="h-3.5 w-3.5" />
-                        Import Files
+                        {ts("import.importFiles")}
                       </Button>
                     </div>
                   </div>

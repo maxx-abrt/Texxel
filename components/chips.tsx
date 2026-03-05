@@ -864,7 +864,7 @@ function getTaskStatusColor(status: string) {
   return TASK_STATUS_COLORS[status] ?? "#6b7280";
 }
 
-interface RefItem { type: "task" | "project"; id: string; title: string; status: string; color: string }
+interface RefItem { type: "task" | "project"; id: string; title: string; status: string; color: string; dueDate?: string; assignee?: string; priority?: string }
 
 function RefChipPicker({ onSelect }: { onSelect: (item: RefItem) => void }) {
   const tc = useTranslations("chips");
@@ -896,12 +896,30 @@ function RefChipPicker({ onSelect }: { onSelect: (item: RefItem) => void }) {
         {(filtered as any[]).slice(0, 8).map((item) => {
           const label = tab === "task" ? item.title : item.name;
           const itemColor = tab === "task" ? getTaskStatusColor(item.status) : (item.color ?? "#6366f1");
+          const dueDate = tab === "task" && item.dueDate
+            ? new Date(item.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+            : undefined;
+          const isPast = tab === "task" && item.dueDate && item.dueDate < Date.now() && item.status !== "done";
           return (
             <button key={item._id}
-              onMouseDown={(e) => { e.preventDefault(); onSelect({ type: tab, id: item._id, title: label, status: item.status ?? "", color: itemColor }); }}
+              onMouseDown={(e) => { e.preventDefault(); onSelect({ type: tab, id: item._id, title: label, status: item.status ?? "", color: itemColor, dueDate: item.dueDate ? String(item.dueDate) : undefined, assignee: item.assigneeName ?? undefined, priority: item.priority ?? undefined }); }}
               className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted transition-colors">
               <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: itemColor }} />
-              <span className="truncate flex-1">{label}</span>
+              <div className="flex-1 min-w-0">
+                <span className="block truncate text-[13px] font-medium">{label}</span>
+                {(item.assigneeName || dueDate) && (
+                  <span className="flex items-center gap-1.5 mt-0.5">
+                    {item.assigneeName && (
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[12ch]">{item.assigneeName}</span>
+                    )}
+                    {dueDate && (
+                      <span className={cn("text-[10px] font-medium tabular-nums", isPast ? "text-red-500" : "text-muted-foreground")}>
+                        {dueDate}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
               {tab === "task" && item.status && (
                 <span
                   className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold"
@@ -941,7 +959,7 @@ function RefChipRenderer({ inlineContent }: {
     : null;
 
   const handleSelect = (item: RefItem) => {
-    update("refChip", chipId, { refType: item.type, refId: item.id, refTitle: item.title, refStatus: item.status, refColor: item.color });
+    update("refChip", chipId, { refType: item.type, refId: item.id, refTitle: item.title, refStatus: item.status, refColor: item.color, refDueDate: item.dueDate ?? "", refAssignee: item.assignee ?? "", refPriority: item.priority ?? "" });
     setOpen(false);
   };
 
@@ -950,30 +968,66 @@ function RefChipRenderer({ inlineContent }: {
     if (refId) router.push(`/${refType === "task" ? "tasks" : "projects"}/${refId}`);
   };
 
+  const { refDueDate, refAssignee, refPriority } = inlineContent.props as any;
   const dotColor = refColor || "#6b7280";
+  const dueDateNum = refDueDate ? Number(refDueDate) : null;
+  const isPastDue = dueDateNum && dueDateNum < Date.now() && refStatus !== "done";
+  const dueDateLabel = dueDateNum
+    ? new Date(dueDateNum).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    : null;
 
   return (
     <>
       <span
         ref={ref}
         onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
-        className="inline-flex cursor-pointer select-none items-center gap-1.5 rounded-md border border-border/40 bg-muted/20 px-1.5 py-0.5 text-[0.75em] font-medium text-foreground/80 transition-all hover:border-border/70 hover:bg-muted/50"
+        className="inline-flex cursor-pointer select-none items-center gap-1 rounded-md border border-border/40 bg-muted/20 px-1.5 py-0.5 text-[0.75em] font-medium text-foreground/80 transition-all hover:border-border/70 hover:bg-muted/50"
       >
         <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
         {refType === "task"
           ? <ListTodo size={10} className="shrink-0 text-muted-foreground/60" />
           : <FolderKanban size={10} className="shrink-0 text-muted-foreground/60" />}
-        <span className="max-w-[16ch] truncate">{refTitle || (refType === "task" ? tc("ref.task") : tc("ref.project"))}</span>
+        <span className="max-w-[14ch] truncate">{refTitle || (refType === "task" ? tc("ref.task") : tc("ref.project"))}</span>
         {statusLabel && (
           <span
             className="shrink-0 rounded-full px-1.5 py-px text-[0.8em] font-semibold"
             style={{ backgroundColor: dotColor + "20", color: dotColor }}
           >{statusLabel}</span>
         )}
+        {dueDateLabel && (
+          <span className={cn("shrink-0 text-[0.75em] font-medium", isPastDue ? "text-red-500" : "text-muted-foreground/60")}>
+            {dueDateLabel}
+          </span>
+        )}
       </span>
       {open && (
         <ChipPopover anchor={ref.current} onClose={() => setOpen(false)} onApply={() => setOpen(false)}>
           <div className="p-3 space-y-2.5">
+            {refId && (
+              <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: dotColor }} />
+                  <span className="flex-1 text-[12px] font-semibold truncate">{refTitle}</span>
+                  {statusLabel && (
+                    <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold" style={{ backgroundColor: dotColor + "20", color: dotColor }}>{statusLabel}</span>
+                  )}
+                </div>
+                {(refAssignee || dueDateLabel) && (
+                  <div className="flex items-center gap-3 pl-4">
+                    {refAssignee && (
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <UserIcon size={8} className="shrink-0" />{refAssignee}
+                      </span>
+                    )}
+                    {dueDateLabel && (
+                      <span className={cn("text-[10px] font-medium tabular-nums", isPastDue ? "text-red-500" : "text-muted-foreground")}>
+                        {dueDateLabel}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <RefChipPicker onSelect={handleSelect} />
             {refId && (
               <button onMouseDown={navigate}

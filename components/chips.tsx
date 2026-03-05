@@ -6,8 +6,8 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import type { JSX } from "react";
 import {
-  Palette, Calendar, Tag, BarChart2, Zap, MapPin, CheckCircle2, CalendarDays,
-  Bell, ExternalLink, ListTodo, FolderKanban,
+  Palette, Calendar, Tag, BarChart2, MapPin, CheckCircle2, CalendarDays,
+  Bell, ExternalLink, ListTodo, FolderKanban, UserIcon
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery } from "convex/react";

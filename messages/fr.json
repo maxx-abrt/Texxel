@@ -484,6 +484,68 @@
     "pdfPopupBlocked": "Veuillez autoriser les pop-ups pour exporter en PDF",
     "menuExportWord": "Word (DOCX)"
   },
+  "onboarding": {
+    "step": "Étape",
+    "of": "sur",
+    "welcome": {
+      "title": "Bienvenue, {name} !",
+      "desc": "Texxel réunit notes, tâches, projets et collaboration d'équipe dans un seul espace de travail gratuit. Configurons votre compte en une minute.",
+      "cta": "Commencer"
+    },
+    "role": {
+      "title": "Qu'est-ce qui vous décrit le mieux ?",
+      "subtitle": "Nous adapterons votre expérience en conséquence.",
+      "continue": "Continuer",
+      "roles": {
+        "individual": { "label": "Étudiant", "desc": "Notes personnelles, tâches et gestion d'études" },
+        "team_lead": { "label": "Chef d'équipe", "desc": "Diriger un groupe d'étude ou une petite équipe" },
+        "manager": { "label": "Créateur", "desc": "Gérer des projets et des collaborateurs" },
+        "developer": { "label": "Développeur", "desc": "Construire et livrer des logiciels" }
+      }
+    },
+    "useCase": {
+      "title": "Pour quoi utiliserez-vous Texxel ?",
+      "subtitle": "Sélectionnez tout ce qui s'applique.",
+      "continue": "Continuer",
+      "cases": {
+        "tasks": { "label": "Gestion des tâches", "desc": "Suivre les todos et éléments de travail" },
+        "projects": { "label": "Projets", "desc": "Planifier et exécuter des projets" },
+        "notes": { "label": "Notes & Docs", "desc": "Rédiger et collaborer sur des documents" },
+        "team": { "label": "Collaboration d'équipe", "desc": "Travailler avec votre groupe" }
+      }
+    },
+    "team": {
+      "title": "Créez votre espace de travail",
+      "subtitle": "Donnez un nom à votre équipe ou espace de travail. Vous pourrez en créer d'autres plus tard.",
+      "workspaceName": "Nom de l'espace",
+      "workspacePlaceholder": "Mon groupe d'étude",
+      "urlSlug": "Slug URL",
+      "slugPrefix": "texxel.app/teams/",
+      "slugPlaceholder": "mon-groupe",
+      "skip": "Passer pour l'instant",
+      "createFinish": "Créer et terminer",
+      "creating": "Création..."
+    },
+    "done": {
+      "title": "Tout est prêt !",
+      "desc": "Votre espace de travail est prêt. Commencez à créer des notes, des tâches et à collaborer.",
+      "cta": "Ouvrir l'espace"
+    },
+    "errors": {
+      "noServer": "Impossible de se connecter au serveur. Veuillez rafraîchir et réessayer.",
+      "failed": "Impossible de terminer l'intégration. Veuillez réessayer."
+    }
+  },
+  "userItem": {
+    "workspace": "Espace de travail",
+    "manageAccount": "Gérer le compte",
+    "logOut": "Se déconnecter"
+  },
+  "auth": {
+    "signUp": "Créer votre compte",
+    "signIn": "Bienvenue",
+    "terms": "En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité."
+  },
   "calendar": {
     "title": "Calendrier",
     "today": "Aujourd'hui",
@@ -625,6 +687,13 @@
     }
   },
   "landing": {
+    "valueProps": {
+      "heading": "Conçu pour la façon dont les étudiants travaillent vraiment.",
+      "solo": { "title": "Notes & docs personnels", "desc": "Éditeur par blocs, export PDF et Word, puces intelligentes. Votre base de connaissances personnelle." },
+      "group": { "title": "Projets en groupe", "desc": "Invitez des camarades, rédigez ensemble en temps réel et répartissez les tâches sur un tableau kanban partagé." },
+      "manage": { "title": "Gestion de projet", "desc": "Créez des projets, fixez des délais, assignez des rôles et suivez les progrès — simple pour tout le monde." },
+      "free": { "title": "Toujours gratuit", "desc": "Toutes les fonctionnalités, sans limite de plan, sans carte bancaire. Gratuit pour toujours." }
+    },
     "nav": {
       "features": "Fonctionnalités",
       "howItWorks": "Comment ça marche",
@@ -635,77 +704,89 @@
       "logout": "Déconnexion"
     },
     "hero": {
-      "badge": "Maintenant en bêta publique",
-      "headline1": "Le deuxième",
-      "headline2": "cerveau de votre équipe.",
-      "subheading": "Notes, tâches, projets et équipes — un seul espace, zéro dispersion.",
-      "noContextLoss": "Tout ce dont votre équipe a besoin pour penser clairement et livrer à temps.",
+      "badge": "Ouvert · Gratuit pour toujours",
+      "headline1": "Fait pour les étudiants.",
+      "headline2": "Gratuit pour toujours.",
+      "subheading": "Notes, tâches, projets et collaboration en direct — un espace ouvert pour étudiants, équipes et créateurs.",
+      "noContextLoss": "En solo ou avec vos camarades. Sans carte bancaire. Sans limites cachées.",
       "openWorkspace": "Ouvrir l'espace →",
       "startFree": "Commencer gratuitement →",
       "signIn": "Se connecter",
-      "freePlan": "Gratuit pour toujours · Sans carte bancaire"
+      "freePlan": "100% gratuit · Sans carte bancaire · Sans limites cachées"
     },
     "stats": {
-      "builders": "Équipes actives",
+      "builders": "Étudiants & créateurs",
       "toolsInOne": "Outils réunis",
       "storage": "Stockage gratuit",
       "uptime": "Disponibilité"
     },
     "features": {
       "sectionNum": "[01] Fonctionnalités",
-      "heading": "Tout ce dont vous avez besoin.",
-      "headingAccent": "Rien de superflu.",
-      "subheading": "Rapide par défaut. Conçu pour la collaboration. Fait pour remplacer les outils que vous jonglez.",
-      "f1Title": "Éditeur de\ndocuments",
-      "f1Desc": "Édition par blocs avec synchronisation en temps réel. Rédigez ensemble sans conflits. Exportez en PDF ou Word en un clic.",
+      "heading": "Tout ce qu'un étudiant peut vouloir.",
+      "headingAccent": "Entièrement gratuit.",
+      "subheading": "Notes, tâches, projets et collaboration en temps réel — un espace ouvert. Aucun abonnement, aucune surprise.",
+      "f1Title": "Notes riches\n& documents",
+      "f1Desc": "Éditeur par blocs avec synchronisation en temps réel. Rédigez et collaborez en direct sans conflits. Exportez en PDF ou Word en un clic.",
       "f1Tag": "Sync en direct",
       "f2Title": "Tableaux\nKanban",
-      "f2Desc": "Glisser-déposer avec priorités, assignations et dates. Visualisez les progrès de votre équipe.",
-      "f2Tag": "Tableaux",
+      "f2Desc": "Glisser-déposer avec priorités, échéances et assignations. Suivez ce qui doit être fait.",
+      "f2Tag": "Tâches",
       "f3Title": "Espaces\nprojets",
-      "f3Desc": "Regroupez tâches, docs et membres sous des projets. Suivez tout en un seul endroit.",
+      "f3Desc": "Regroupez notes, tâches et coéquipiers sous un projet. Travaux scolaires, projets perso ou en équipe — tout est organisé.",
       "f3Tag": "Projets",
-      "f4Title": "Collaboration\nd'équipe",
-      "f4Desc": "Invitez des membres, assignez des rôles, partagez des documents. Collaboration en temps réel sans friction.",
-      "f4Tag": "Équipes",
+      "f4Title": "Solo ou\nen équipe",
+      "f4Desc": "Utilisez seul ou invitez vos camarades. Assignez des rôles, partagez des docs en temps réel — sans limites de plan.",
+      "f4Tag": "Collaboratif",
       "f5Title": "Boîte de\nréception",
-      "f5Desc": "Mentions, assignations et mises à jour dans un seul fil. Rien ne passe entre les mailles.",
+      "f5Desc": "Mentions, mises à jour et assignations dans un seul fil. Ne manquez plus une échéance ni un message.",
       "f5Tag": "Inbox",
       "f6Title": "Entièrement\npersonnalisable",
-      "f6Desc": "Couleurs, thèmes, icônes d'équipe et badges de profil. Faites-en vraiment le vôtre.",
-      "f6Tag": "Personnaliser",
+      "f6Desc": "Thèmes, couleurs, icônes d'équipe et badges de profil. Faites-en vraiment le vôtre — gratuitement.",
+      "f6Tag": "Gratuit",
       "liveBadge": "En direct"
     },
     "howItWorks": {
       "sectionNum": "[02] Comment ça marche",
       "heading": "Opérationnel",
-      "headingAccent": "en 60 secondes.",
+      "headingAccent": "en 30 secondes.",
       "step1Num": "01",
-      "step1Title": "Créez votre\nespace",
-      "step1Desc": "Inscrivez-vous gratuitement. Votre espace est prêt en secondes — aucune configuration.",
+      "step1Title": "Inscrivez-vous\ngratuitement",
+      "step1Desc": "Sans carte bancaire. Sans configuration. Votre espace est prêt instantanément — ouvert à tous.",
       "step2Num": "02",
-      "step2Title": "Invitez votre\néquipe",
-      "step2Desc": "Ajoutez des membres en un lien. Assignez des rôles et collaborez instantanément.",
+      "step2Title": "Rédigez, planifiez\n& organisez",
+      "step2Desc": "Prenez des notes, créez des tâches, gérez des projets. En solo ou avec votre groupe d'études, entièrement gratuit.",
       "step3Num": "03",
-      "step3Title": "Construisez &\nlivrez plus vite",
-      "step3Desc": "Rédigez des docs, gérez des tâches et projets. Tout en un, en temps réel."
+      "step3Title": "Collaborez\nen temps réel",
+      "step3Desc": "Invitez vos camarades, éditez ensemble en direct et restez synchronisés. Tout fonctionne ensemble — gratuit pour toujours."
     },
     "cta": {
       "sectionNum": "[03] Commencer",
       "heading": "Gratuit pour toujours.",
-      "headingAccent": "Vraiment.",
-      "desc": "Accès complet à toutes les fonctionnalités. Sans carte bancaire. Sans limites cachées.",
-      "desc2": "Passez à la version supérieure seulement quand votre équipe en a besoin.",
+      "headingAccent": "Sans exception.",
+      "desc": "Accès complet à toutes les fonctionnalités. Sans carte bancaire. Sans limites cachées. Sans pression.",
+      "desc2": "Fait pour les étudiants. Ouvert à tous.",
       "button": "Commencer gratuitement →",
       "noSetup": "Aucune configuration requise"
     },
     "footer": {
-      "tagline": "L'espace de travail tout-en-un pour les équipes modernes. Notes, tâches, projets — unifiés.",
+      "tagline": "L'espace de travail gratuit et ouvert pour étudiants et créateurs. Notes, tâches, projets — unifiés.",
       "systemsOk": "Tous les systèmes opérationnels",
       "product": "Produit",
       "company": "Entreprise",
       "copyright": "Texxel · Tous droits réservés",
-      "madeWith": "Fait avec ♥ pour les équipes qui livrent"
+      "madeWith": "Fait avec ♥ pour les étudiants et créateurs",
+      "links": {
+        "documents": "Documents",
+        "tasks": "Tâches",
+        "projects": "Projets",
+        "teams": "Équipes",
+        "inbox": "Boîte de réception",
+        "calendar": "Calendrier",
+        "about": "À propos",
+        "changelog": "Changelog",
+        "privacy": "Confidentialité",
+        "terms": "Conditions"
+      }
     }
   }
 }

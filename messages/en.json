@@ -484,6 +484,68 @@
     "pdfPopupBlocked": "Please allow pop-ups to export PDF",
     "menuExportWord": "Word (DOCX)"
   },
+  "onboarding": {
+    "step": "Step",
+    "of": "of",
+    "welcome": {
+      "title": "Welcome, {name}!",
+      "desc": "Texxel brings together notes, tasks, projects and team collaboration in one free workspace. Let's get you set up in just a minute.",
+      "cta": "Get started"
+    },
+    "role": {
+      "title": "What best describes you?",
+      "subtitle": "We'll tailor your experience accordingly.",
+      "continue": "Continue",
+      "roles": {
+        "individual": { "label": "Student", "desc": "Personal notes, tasks and study management" },
+        "team_lead": { "label": "Team Lead", "desc": "Leading a study group or small team" },
+        "manager": { "label": "Creator", "desc": "Managing projects and collaborators" },
+        "developer": { "label": "Developer", "desc": "Building and shipping software" }
+      }
+    },
+    "useCase": {
+      "title": "What will you use Texxel for?",
+      "subtitle": "Select all that apply.",
+      "continue": "Continue",
+      "cases": {
+        "tasks": { "label": "Task Management", "desc": "Track todos and work items" },
+        "projects": { "label": "Projects", "desc": "Plan and execute projects" },
+        "notes": { "label": "Notes & Docs", "desc": "Write and collaborate on docs" },
+        "team": { "label": "Team Collaboration", "desc": "Work with your group" }
+      }
+    },
+    "team": {
+      "title": "Create your workspace",
+      "subtitle": "Give your team or workspace a name. You can always create more later.",
+      "workspaceName": "Workspace name",
+      "workspacePlaceholder": "My Study Group",
+      "urlSlug": "URL slug",
+      "slugPrefix": "texxel.app/teams/",
+      "slugPlaceholder": "my-study-group",
+      "skip": "Skip for now",
+      "createFinish": "Create & finish",
+      "creating": "Creating..."
+    },
+    "done": {
+      "title": "You're all set!",
+      "desc": "Your workspace is ready. Start creating notes, tasks and collaborating with your team.",
+      "cta": "Open workspace"
+    },
+    "errors": {
+      "noServer": "Could not connect to the server. Please refresh and try again.",
+      "failed": "Could not finish onboarding. Please try again."
+    }
+  },
+  "userItem": {
+    "workspace": "Workspace",
+    "manageAccount": "Manage Account",
+    "logOut": "Log Out"
+  },
+  "auth": {
+    "signUp": "Create your account",
+    "signIn": "Welcome back",
+    "terms": "By continuing, you agree to our Terms of Service and Privacy Policy."
+  },
   "calendar": {
     "title": "Calendar",
     "today": "Today",
@@ -625,6 +687,13 @@
     }
   },
   "landing": {
+    "valueProps": {
+      "heading": "Designed around how students actually work.",
+      "solo": { "title": "Solo notes & docs", "desc": "Rich block editor, live export to PDF and Word, smart inline chips. Your personal knowledge base." },
+      "group": { "title": "Group projects", "desc": "Invite classmates, write together in real time and split tasks on a shared kanban board." },
+      "manage": { "title": "Project management", "desc": "Create projects, set deadlines, assign roles and track progress — simple enough for anyone." },
+      "free": { "title": "Always free", "desc": "Every feature, no plan limit, no credit card. Open and free forever." }
+    },
     "nav": {
       "features": "Features",
       "howItWorks": "How it works",
@@ -635,77 +704,89 @@
       "logout": "Log out"
     },
     "hero": {
-      "badge": "Now in public beta",
-      "headline1": "Your team's",
-      "headline2": "second brain.",
-      "subheading": "Notes, tasks, projects, and teams — one workspace, zero context-switching.",
-      "noContextLoss": "Everything your team needs to think clearly and ship on time.",
+      "badge": "Open · Free forever",
+      "headline1": "Built for students.",
+      "headline2": "Free forever.",
+      "subheading": "Notes, tasks, projects and live collaboration — one open workspace for students, teams, and creators.",
+      "noContextLoss": "Use alone or with classmates. No credit card. No hidden limits.",
       "openWorkspace": "Open workspace →",
       "startFree": "Get started free →",
       "signIn": "Sign in",
-      "freePlan": "Free forever · No credit card required"
+      "freePlan": "100% free · No credit card · No hidden limits"
     },
     "stats": {
-      "builders": "Active teams",
-      "toolsInOne": "Tools unified",
+      "builders": "Students & creators",
+      "toolsInOne": "Tools in one",
       "storage": "Free storage",
-      "uptime": "Uptime SLA"
+      "uptime": "Uptime"
     },
     "features": {
       "sectionNum": "[01] Features",
-      "heading": "Everything you need.",
-      "headingAccent": "Nothing you don't.",
-      "subheading": "Fast by default. Built for collaboration. Designed to replace the tools you're juggling.",
-      "f1Title": "Rich document\neditor",
-      "f1Desc": "Block-based editing with real-time sync. Write together without conflicts. Export to PDF or Word in one click.",
+      "heading": "Everything a student needs.",
+      "headingAccent": "Completely free.",
+      "subheading": "Notes, tasks, projects and real-time collaboration — one open workspace. No subscriptions, no catch.",
+      "f1Title": "Rich notes\n& docs",
+      "f1Desc": "Block-based editor with real-time sync. Write, outline and collaborate live without conflicts. Export to PDF or Word in one click.",
       "f1Tag": "Live sync",
       "f2Title": "Kanban\ntask boards",
-      "f2Desc": "Drag-and-drop boards with priorities, assignments, and due dates. Visualize your team's progress.",
-      "f2Tag": "Boards",
+      "f2Desc": "Drag-and-drop boards with priorities, deadlines and assignments. Track what needs to get done.",
+      "f2Tag": "Tasks",
       "f3Title": "Project\nworkspaces",
-      "f3Desc": "Group tasks, docs, and team members under projects. Track everything in one view.",
+      "f3Desc": "Group notes, tasks and teammates under a project. School work, side projects, team assignments — all organized.",
       "f3Tag": "Projects",
-      "f4Title": "Team\ncollaboration",
-      "f4Desc": "Invite members, assign roles, share documents. Real-time collaboration without the overhead.",
-      "f4Tag": "Teams",
+      "f4Title": "Solo or\nteam use",
+      "f4Desc": "Works alone or with your group. Invite classmates, assign roles and share docs in real time — no plan limits.",
+      "f4Tag": "Collaborative",
       "f5Title": "Smart\ninbox",
-      "f5Desc": "Mentions, assignments, and updates in a single feed. Nothing falls through the cracks.",
+      "f5Desc": "Mentions, task updates and assignments in one feed. Never miss a deadline or a message from your team.",
       "f5Tag": "Inbox",
       "f6Title": "Fully\ncustomizable",
-      "f6Desc": "Accent colors, themes, team icons, and profile badges. Make the workspace truly yours.",
-      "f6Tag": "Custom",
+      "f6Desc": "Themes, accent colors, team icons and profile badges. Make it completely yours — and it's free.",
+      "f6Tag": "Free",
       "liveBadge": "Live"
     },
     "howItWorks": {
       "sectionNum": "[02] How it works",
       "heading": "Up and running",
-      "headingAccent": "in 60 seconds.",
+      "headingAccent": "in 30 seconds.",
       "step1Num": "01",
-      "step1Title": "Create your\nworkspace",
-      "step1Desc": "Sign up free. Your workspace is ready in seconds — no setup, no configuration.",
+      "step1Title": "Sign up\nfor free",
+      "step1Desc": "No credit card. No setup. Your workspace is ready instantly — open to anyone, student or not.",
       "step2Num": "02",
-      "step2Title": "Invite your\nteam",
-      "step2Desc": "Add members with a single link. Assign roles and start collaborating instantly.",
+      "step2Title": "Write, plan\n& organize",
+      "step2Desc": "Take notes, create tasks, manage projects. Use it solo or with your study group, fully free.",
       "step3Num": "03",
-      "step3Title": "Build &\nship faster",
-      "step3Desc": "Write docs, track tasks, manage projects. Everything in one place, in real time."
+      "step3Title": "Collaborate\nin real time",
+      "step3Desc": "Invite teammates, edit together live and stay in sync. Everything works together — free forever."
     },
     "cta": {
       "sectionNum": "[03] Get started",
       "heading": "Free forever.",
-      "headingAccent": "Seriously.",
-      "desc": "Full access to every feature. No credit card. No hidden limits.",
-      "desc2": "Upgrade only when your team outgrows the free plan.",
-      "button": "Start building free →",
+      "headingAccent": "No exceptions.",
+      "desc": "Full access to every feature. No credit card. No hidden limits. No upgrade pressure.",
+      "desc2": "Built for students. Open for everyone.",
+      "button": "Start for free →",
       "noSetup": "No setup required"
     },
     "footer": {
-      "tagline": "The all-in-one workspace for modern teams. Notes, tasks, projects — unified.",
+      "tagline": "The free, open workspace for students and creators. Notes, tasks, projects — unified.",
       "systemsOk": "All systems operational",
       "product": "Product",
       "company": "Company",
       "copyright": "Texxel · All rights reserved",
-      "madeWith": "Built with ♥ for teams that ship"
+      "madeWith": "Built with ♥ for students and creators",
+      "links": {
+        "documents": "Documents",
+        "tasks": "Tasks",
+        "projects": "Projects",
+        "teams": "Teams",
+        "inbox": "Inbox",
+        "calendar": "Calendar",
+        "about": "About",
+        "changelog": "Changelog",
+        "privacy": "Privacy",
+        "terms": "Terms"
+      }
     }
   }
 }

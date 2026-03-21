@@ -11,10 +11,12 @@ import {
 import { authClient } from "@/lib/auth/client";
 import { ChevronsLeftRight, LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export const UserItem = () => {
   const { data: session } = authClient.useSession();
   const router = useRouter();
+  const t = useTranslations("userItem");
   const user = session?.user;
 
   const handleSignOut = async () => {
@@ -35,7 +37,7 @@ export const UserItem = () => {
               <AvatarFallback>{user?.name?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
             </Avatar>
             <span className="line-clamp-1 text-start font-medium">
-              {user?.name ?? "My"}&apos;s A2E Thread
+              {user?.name ?? "Texxel"}
             </span>
           </div>
           <ChevronsLeftRight className="text-muted-foreground ml-2 h-4 w-4 rotate-90" />
@@ -59,9 +61,10 @@ export const UserItem = () => {
               </Avatar>
             </div>
             <div className="space-y-1">
-              <p className="line-clamp-1 text-sm">
-                {user?.name ?? "My"}&apos;s A2E Thread
+              <p className="line-clamp-1 text-sm font-medium">
+                {user?.name ?? "Texxel"}
               </p>
+              <p className="text-[11px] text-muted-foreground">{t("workspace")}</p>
             </div>
           </div>
         </div>
@@ -72,7 +75,7 @@ export const UserItem = () => {
         >
           <button onClick={() => router.push("/account/settings")}>
             <Settings className="text-muted-foreground size-4" />
-            Manage Account
+            {t("manageAccount")}
           </button>
         </DropdownMenuItem>
 
@@ -80,7 +83,7 @@ export const UserItem = () => {
           <button onClick={handleSignOut}>
             <LogOut className="text-muted-foreground size-4" />
             <span className="text-muted-foreground transition-colors group-hover:text-black! hover:text-black">
-              Log Out
+              {t("logOut")}
             </span>
           </button>
         </DropdownMenuItem>

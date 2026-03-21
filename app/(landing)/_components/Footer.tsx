@@ -27,9 +27,9 @@ export const Footer = () => {
         {/* Product */}
         <div className="flex flex-col gap-4">
           <span className="font-mono text-[9px] font-bold uppercase tracking-[2px] text-[#f76c5e]">{tfoot("product")}</span>
-          {["Documents", "Tasks", "Projects", "Teams", "Inbox", "Calendar"].map((l) => (
-            <a key={l} href="#" className="font-mono text-[11px] tracking-[1px] transition-colors text-gray-500 dark:text-[#555] hover:text-gray-900 dark:hover:text-[#f0f0ee]">    
-              {l.toUpperCase()}
+          {(["documents", "tasks", "projects", "teams", "inbox", "calendar"] as const).map((key) => (
+            <a key={key} href={`#features`} className="font-mono text-[11px] tracking-[1px] transition-colors text-gray-500 dark:text-[#555] hover:text-gray-900 dark:hover:text-[#f0f0ee]">
+              {tfoot(`links.${key}` as any).toUpperCase()}
             </a>
           ))}
         </div>
@@ -37,9 +37,9 @@ export const Footer = () => {
         {/* Company */}
         <div className="flex flex-col gap-4">
           <span className="font-mono text-[9px] font-bold uppercase tracking-[2px] text-[#f76c5e]">{tfoot("company")}</span>
-          {["About", "Changelog", "Privacy", "Terms"].map((l) => (
-            <a key={l} href="#" className="font-mono text-[11px] tracking-[1px] transition-colors text-gray-500 dark:text-[#555] hover:text-gray-900 dark:hover:text-[#f0f0ee]">    
-              {l.toUpperCase()}
+          {(["about", "changelog", "privacy", "terms"] as const).map((key) => (
+            <a key={key} href="#" className="font-mono text-[11px] tracking-[1px] transition-colors text-gray-500 dark:text-[#555] hover:text-gray-900 dark:hover:text-[#f0f0ee]">
+              {tfoot(`links.${key}` as any).toUpperCase()}
             </a>
           ))}
         </div>

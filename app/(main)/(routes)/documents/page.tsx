@@ -184,7 +184,7 @@ const DocumentsPage = () => {
                           </span>
                         ) : task.dueDate ? (
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                           </span>
                         ) : null}
                       </div>

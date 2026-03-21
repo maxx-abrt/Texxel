@@ -13,6 +13,7 @@ export function AuthUIWrapper({ children, redirectTo = "/onboarding" }: AuthUIWr
     <NeonAuthUIProvider
       authClient={authClient as any}
       redirectTo={redirectTo}
+      social={{ providers: ["google"] }}
     >
       {children}
     </NeonAuthUIProvider>

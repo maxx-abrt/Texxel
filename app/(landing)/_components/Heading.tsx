@@ -87,18 +87,18 @@ export const Heading = () => {
 
 function WorkspaceMockup({ mounted }: { mounted: boolean }) {
   const tasks = [
-    { label: "Design system tokens", status: "DONE", color: "#4ade80" },
-    { label: "Implement Kanban board", status: "IN PROGRESS", color: "#f76c5e" },
-    { label: "Write API documentation", status: "TODO", color: "#666" },
-    { label: "Set up CI/CD pipeline", status: "TODO", color: "#666" },
-    { label: "Review pull requests", status: "IN REVIEW", color: "#60a5fa" },
+    { label: "Write thesis introduction", status: "DONE", color: "#4ade80" },
+    { label: "Research bibliography", status: "IN PROGRESS", color: "#f76c5e" },
+    { label: "Prepare slide deck", status: "TODO", color: "#666" },
+    { label: "Review team contributions", status: "TODO", color: "#666" },
+    { label: "Submit group project", status: "IN REVIEW", color: "#60a5fa" },
   ];
 
   const docs = [
-    { icon: "📄", label: "Product Roadmap" },
-    { icon: "📋", label: "Team Handbook" },
-    { icon: "🎯", label: "Q1 Goals" },
-    { icon: "📊", label: "Analytics Report" },
+    { icon: "📄", label: "Project Proposal" },
+    { icon: "📋", label: "Research Notes" },
+    { icon: "🎯", label: "Study Plan" },
+    { icon: "📊", label: "Group Assignment" },
   ];
 
   return (

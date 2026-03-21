@@ -1,5 +1,6 @@
 import { AuthView } from "@neondatabase/auth/react";
 import { AuthUIWrapper } from "@/components/providers/auth-ui-provider";
+import { AuthPageHeader, AuthPageTerms } from "./_components/auth-page-header";
 
 export const dynamicParams = false;
 
@@ -37,12 +38,7 @@ export default async function AuthPage({
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f76c5e] text-white text-lg font-black shadow-lg shadow-[#f76c5e]/30">
             Tx
           </div>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Texxel</h1>
-            <p className="text-sm text-white/50 mt-0.5">
-              {isSignUp ? "Create your account" : "Welcome back"}
-            </p>
-          </div>
+          <AuthPageHeader isSignUp={isSignUp} />
         </div>
 
         {/* Auth form card */}
@@ -52,9 +48,7 @@ export default async function AuthPage({
           </AuthUIWrapper>
         </div>
 
-        <p className="mt-6 text-center text-xs text-white/30">
-          By continuing, you agree to our Terms of Service and Privacy Policy.
-        </p>
+        <AuthPageTerms />
       </div>
     </main>
   );

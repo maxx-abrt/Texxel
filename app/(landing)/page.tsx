@@ -8,12 +8,15 @@ import { useTranslations } from "next-intl";
 const STATS_VALUES = ["10K+", "4", "∞", "99.9%"] as const;
 const STATS_KEYS = ["builders", "toolsInOne", "storage", "uptime"] as const;
 const HOW_STEP_KEYS = ["step1", "step2", "step3"] as const;
+const VALUE_PROP_KEYS = ["solo", "group", "manage", "free"] as const;
+const VALUE_PROP_ICONS = ["✏️", "👥", "📋", "🎓"] as const;
 
 export default function LandingPage() {
   const tl = useTranslations("landing");
   const ts = useTranslations("landing.stats");
   const tw = useTranslations("landing.howItWorks");
   const tc = useTranslations("landing.cta");
+  const tv = useTranslations("landing.valueProps");
 
   return (
     <div className="bg-white dark:bg-[#0f0f0f]">
@@ -35,6 +38,31 @@ export default function LandingPage() {
                   {STATS_VALUES[i]}
                 </span>
                 <span className="font-mono text-[9px] uppercase tracking-[2px] text-gray-500 dark:text-[#555]">{ts(key)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Value props strip ── */}
+      <section className="py-16 md:py-20 bg-white dark:bg-[#0f0f0f]">
+        <div className="mx-auto max-w-[1100px] px-5 md:px-10">
+          <p className="mb-10 font-mono text-[11px] md:text-[13px] text-center tracking-[1px] text-gray-400 dark:text-[#555]">
+            {tv("heading")}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-[2px]">
+            {VALUE_PROP_KEYS.map((key, i) => (
+              <div
+                key={key}
+                className="flex flex-col gap-3 p-6 border border-gray-100 dark:border-[#1e1e1e] hover:border-gray-300 dark:hover:border-[#2d2d2d] transition-colors bg-gray-50 dark:bg-[#0d0d0d]"
+              >
+                <span className="text-2xl">{VALUE_PROP_ICONS[i]}</span>
+                <h3 className="font-mono text-[13px] font-bold tracking-[-0.5px] text-gray-900 dark:text-[#f0f0ee]">
+                  {tv(`${key}.title` as any)}
+                </h3>
+                <p className="font-mono text-[10px] leading-[1.7] tracking-[0.3px] text-gray-400 dark:text-[#555]">
+                  {tv(`${key}.desc` as any)}
+                </p>
               </div>
             ))}
           </div>

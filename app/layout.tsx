@@ -15,7 +15,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Texxel",
   description:
-    "The connected workspace where tasks, teams, and ideas come together.",
+    "The free, open workspace for students and creators. Notes, tasks, projects and live collaboration — all in one place.",
   icons: {
     icon: [
       {

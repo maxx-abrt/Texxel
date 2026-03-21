@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   CheckSquare,
   FolderKanban,
@@ -22,22 +23,13 @@ import {
 const STEPS = ["welcome", "role", "use_case", "team", "done"] as const;
 type Step = (typeof STEPS)[number];
 
-const ROLES = [
-  { id: "individual", label: "Individual", desc: "Just me, personal use" },
-  { id: "team_lead", label: "Team Lead", desc: "Leading a small team" },
-  { id: "manager", label: "Manager", desc: "Managing projects & people" },
-  { id: "developer", label: "Developer", desc: "Building & shipping software" },
-];
-
-const USE_CASES = [
-  { id: "tasks", label: "Task Management", icon: CheckSquare, desc: "Track todos & work items" },
-  { id: "projects", label: "Projects", icon: FolderKanban, desc: "Plan & execute projects" },
-  { id: "notes", label: "Notes & Docs", icon: FileText, desc: "Write & collaborate on docs" },
-  { id: "team", label: "Team Collaboration", icon: Users, desc: "Work with your team" },
-];
+const ROLE_IDS = ["individual", "team_lead", "manager", "developer"] as const;
+const USE_CASE_IDS = ["tasks", "projects", "notes", "team"] as const;
+const USE_CASE_ICONS = [CheckSquare, FolderKanban, FileText, Users] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const t = useTranslations("onboarding");
   const { data: session } = authClient.useSession();
   const { isAuthenticated, isLoading: convexLoading } = useConvexAuth();
   const profile = useQuery(
@@ -104,7 +96,7 @@ export default function OnboardingPage() {
     try {
       const ready = await waitForAuth();
       if (!ready) {
-        toast.error("Could not connect to the server. Please refresh and try again.");
+        toast.error(t("errors.noServer"));
         setIsCreating(false);
         return;
       }
@@ -121,7 +113,7 @@ export default function OnboardingPage() {
       router.push("/documents");
     } catch (err) {
       console.error("[onboarding] handleFinish error:", err);
-      toast.error("Could not finish onboarding. Please try again.");
+      toast.error(t("errors.failed"));
     } finally {
       setIsCreating(false);
     }
@@ -132,7 +124,7 @@ export default function OnboardingPage() {
     try {
       const ready = await waitForAuth();
       if (!ready) {
-        toast.error("Could not connect to the server. Please refresh and try again.");
+        toast.error(t("errors.noServer"));
         setIsCreating(false);
         return;
       }
@@ -140,7 +132,7 @@ export default function OnboardingPage() {
       router.push("/documents");
     } catch (err) {
       console.error("[onboarding] handleSkipToFinish error:", err);
-      toast.error("Could not complete onboarding. Please try again.");
+      toast.error(t("errors.failed"));
     } finally {
       setIsCreating(false);
     }
@@ -151,7 +143,7 @@ export default function OnboardingPage() {
     if (idx < STEPS.length - 1) setStep(STEPS[idx + 1]);
   };
 
-  const firstName = session?.user?.name?.split(" ")[0] ?? "there";
+  const firstName = session?.user?.name?.split(" ")[0] ?? "";
 
   if (convexLoading || (isAuthenticated && profile === undefined)) {
     return (
@@ -168,7 +160,7 @@ export default function OnboardingPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground font-medium">
-              Step {stepIdx + 1} of {STEPS.length}
+              {t("step")} {stepIdx + 1} {t("of")} {STEPS.length}
             </span>
             <span className="text-xs text-muted-foreground">{Math.round(progress)}%</span>
           </div>
@@ -188,12 +180,10 @@ export default function OnboardingPage() {
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
                 <Sparkles className="h-8 w-8 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold mb-2">Welcome, {firstName}! 👋</h1>
-              <p className="text-muted-foreground mb-8 leading-relaxed">
-                A2E Thread brings together notes, tasks, projects, and team collaboration in one place. Let&apos;s get you set up in just a minute.
-              </p>
+              <h1 className="text-2xl font-bold mb-2">{t("welcome.title", { name: firstName })} 👋</h1>
+              <p className="text-muted-foreground mb-8 leading-relaxed">{t("welcome.desc")}</p>
               <Button onClick={next} size="lg" className="w-full gap-2">
-                Get started <ArrowRight className="h-4 w-4" />
+                {t("welcome.cta")} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -201,27 +191,27 @@ export default function OnboardingPage() {
           {/* Role */}
           {step === "role" && (
             <div>
-              <h2 className="text-xl font-bold mb-1">What best describes you?</h2>
-              <p className="text-muted-foreground text-sm mb-6">We&apos;ll tailor your experience accordingly.</p>
+              <h2 className="text-xl font-bold mb-1">{t("role.title")}</h2>
+              <p className="text-muted-foreground text-sm mb-6">{t("role.subtitle")}</p>
               <div className="grid grid-cols-2 gap-3 mb-6">
-                {ROLES.map((r) => (
+                {ROLE_IDS.map((id) => (
                   <button
-                    key={r.id}
-                    onClick={() => setRole(r.id)}
+                    key={id}
+                    onClick={() => setRole(id)}
                     className={cn(
                       "rounded-xl border p-4 text-left transition-all hover:border-primary/50",
-                      role === r.id
+                      role === id
                         ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                         : "border-border bg-card",
                     )}
                   >
-                    <p className="font-semibold text-sm">{r.label}</p>
-                    <p className="text-muted-foreground text-xs mt-0.5">{r.desc}</p>
+                    <p className="font-semibold text-sm">{t(`role.roles.${id}.label` as any)}</p>
+                    <p className="text-muted-foreground text-xs mt-0.5">{t(`role.roles.${id}.desc` as any)}</p>
                   </button>
                 ))}
               </div>
               <Button onClick={next} disabled={!role} className="w-full gap-2">
-                Continue <ArrowRight className="h-4 w-4" />
+                {t("role.continue")} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -229,15 +219,16 @@ export default function OnboardingPage() {
           {/* Use cases */}
           {step === "use_case" && (
             <div>
-              <h2 className="text-xl font-bold mb-1">What will you use A2E for?</h2>
-              <p className="text-muted-foreground text-sm mb-6">Select all that apply.</p>
+              <h2 className="text-xl font-bold mb-1">{t("useCase.title")}</h2>
+              <p className="text-muted-foreground text-sm mb-6">{t("useCase.subtitle")}</p>
               <div className="grid grid-cols-2 gap-3 mb-6">
-                {USE_CASES.map((uc) => {
-                  const selected = useCases.includes(uc.id);
+                {USE_CASE_IDS.map((id, i) => {
+                  const selected = useCases.includes(id);
+                  const Icon = USE_CASE_ICONS[i];
                   return (
                     <button
-                      key={uc.id}
-                      onClick={() => toggleUseCase(uc.id)}
+                      key={id}
+                      onClick={() => toggleUseCase(id)}
                       className={cn(
                         "rounded-xl border p-4 text-left transition-all hover:border-primary/50 relative",
                         selected
@@ -250,15 +241,15 @@ export default function OnboardingPage() {
                           <Check className="h-2.5 w-2.5 text-primary-foreground" />
                         </div>
                       )}
-                      <uc.icon className={cn("h-5 w-5 mb-2", selected ? "text-primary" : "text-muted-foreground")} />
-                      <p className="font-semibold text-sm">{uc.label}</p>
-                      <p className="text-muted-foreground text-xs mt-0.5">{uc.desc}</p>
+                      <Icon className={cn("h-5 w-5 mb-2", selected ? "text-primary" : "text-muted-foreground")} />
+                      <p className="font-semibold text-sm">{t(`useCase.cases.${id}.label` as any)}</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">{t(`useCase.cases.${id}.desc` as any)}</p>
                     </button>
                   );
                 })}
               </div>
               <Button onClick={next} disabled={useCases.length === 0} className="w-full gap-2">
-                Continue <ArrowRight className="h-4 w-4" />
+                {t("useCase.continue")} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -266,43 +257,41 @@ export default function OnboardingPage() {
           {/* Team */}
           {step === "team" && (
             <div>
-              <h2 className="text-xl font-bold mb-1">Create your workspace</h2>
-              <p className="text-muted-foreground text-sm mb-6">
-                Give your team or workspace a name. You can always create more later.
-              </p>
+              <h2 className="text-xl font-bold mb-1">{t("team.title")}</h2>
+              <p className="text-muted-foreground text-sm mb-6">{t("team.subtitle")}</p>
               <div className="space-y-4 mb-6">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Workspace name</label>
+                  <label className="text-sm font-medium">{t("team.workspaceName")}</label>
                   <Input
-                    placeholder="Acme Corp"
+                    placeholder={t("team.workspacePlaceholder")}
                     value={teamName}
                     onChange={(e) => handleTeamName(e.target.value)}
                     autoFocus
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium">URL slug</label>
+                  <label className="text-sm font-medium">{t("team.urlSlug")}</label>
                   <div className="flex items-center rounded-md border overflow-hidden">
-                    <span className="bg-muted px-3 py-2 text-sm text-muted-foreground border-r">a2e.app/teams/</span>
+                    <span className="bg-muted px-3 py-2 text-sm text-muted-foreground border-r">{t("team.slugPrefix")}</span>
                     <Input
                       value={teamSlug}
                       onChange={(e) => setTeamSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
                       className="border-0 rounded-none focus-visible:ring-0"
-                      placeholder="acme-corp"
+                      placeholder={t("team.slugPlaceholder")}
                     />
                   </div>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleSkipToFinish} disabled={isCreating || convexLoading} className="flex-1">
-                  Skip for now
+                  {t("team.skip")}
                 </Button>
                 <Button
                   onClick={handleFinish}
                   disabled={!teamName.trim() || !teamSlug.trim() || isCreating || convexLoading}
                   className="flex-1 gap-2"
                 >
-                  {isCreating ? "Creating..." : "Create & finish"}
+                  {isCreating ? t("team.creating") : t("team.createFinish")}
                 </Button>
               </div>
             </div>
@@ -314,12 +303,10 @@ export default function OnboardingPage() {
               <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 dark:bg-emerald-900/30">
                 <Check className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">You&apos;re all set!</h2>
-              <p className="text-muted-foreground mb-8">
-                Your workspace is ready. Start creating notes, tasks, and collaborating with your team.
-              </p>
+              <h2 className="text-2xl font-bold mb-2">{t("done.title")}</h2>
+              <p className="text-muted-foreground mb-8">{t("done.desc")}</p>
               <Button onClick={() => router.push("/documents")} size="lg" className="w-full gap-2">
-                Open workspace <ArrowRight className="h-4 w-4" />
+                {t("done.cta")} <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           )}

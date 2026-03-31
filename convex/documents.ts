@@ -277,11 +277,11 @@ export const getById = query({
     const document = await ctx.db.get(args.documentId);
 
     if (!document) {
-      throw new Error("Document not found");
+      return null;
     }
 
     if (document.isArchived) {
-      throw new Error("Document is archived");
+      return null;
     }
 
     if (document.isPublished) {
@@ -289,7 +289,7 @@ export const getById = query({
     }
 
     if (!identity) {
-      throw new Error("Not authenticated");
+      return null;
     }
 
     const userId = identity.subject;
@@ -309,7 +309,7 @@ export const getById = query({
       if (member) return document;
     }
 
-    throw new Error("Not authorized");
+    return null;
   },
 });
 
@@ -751,6 +751,91 @@ export const removePresence = mutation({
       )
       .first();
     if (existing) await ctx.db.delete(existing._id);
+  },
+});
+
+export const bulkArchive = mutation({
+  args: { ids: v.array(v.id("documents")) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.userId === userId) {
+        await ctx.db.patch(id, { isArchived: true });
+      }
+    }
+    return true;
+  },
+});
+
+export const bulkDuplicate = mutation({
+  args: { ids: v.array(v.id("documents")) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const newIds: string[] = [];
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.userId === userId) {
+        const newId = await ctx.db.insert("documents", {
+          title: `${doc.title} (copy)`,
+          userId,
+          isArchived: false,
+          isPublished: false,
+          content: doc.content,
+          icon: doc.icon,
+          coverImage: doc.coverImage,
+          parentDocument: doc.parentDocument,
+          workspaceId: doc.workspaceId,
+          teamId: doc.teamId,
+          projectId: doc.projectId,
+        });
+        newIds.push(newId);
+      }
+    }
+    return newIds;
+  },
+});
+
+export const bulkMove = mutation({
+  args: {
+    ids: v.array(v.id("documents")),
+    parentDocument: v.optional(v.id("documents")),
+    workspaceId: v.optional(v.id("workspaces")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.userId === userId) {
+        const patch: any = {};
+        if (args.parentDocument !== undefined) patch.parentDocument = args.parentDocument;
+        if (args.workspaceId !== undefined) patch.workspaceId = args.workspaceId;
+        await ctx.db.patch(id, patch);
+      }
+    }
+    return true;
+  },
+});
+
+export const bulkRemove = mutation({
+  args: { ids: v.array(v.id("documents")) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    for (const id of args.ids) {
+      const doc = await ctx.db.get(id);
+      if (doc && doc.userId === userId && doc.isArchived) {
+        await ctx.db.delete(id);
+      }
+    }
+    return true;
   },
 });
 

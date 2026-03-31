@@ -2,6 +2,31 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  workspaces: defineTable({
+    name: v.string(),
+    icon: v.optional(v.string()),
+    color: v.optional(v.string()),
+    ownerId: v.string(),
+    isPersonal: v.boolean(),
+    extensions: v.optional(v.string()),
+    uiConfig: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"]),
+
+  workspaceMembers: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.string(),
+    userEmail: v.string(),
+    userName: v.string(),
+    userImage: v.optional(v.string()),
+    role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member")),
+    joinedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_user", ["userId"])
+    .index("by_workspace_user", ["workspaceId", "userId"]),
+
   documents: defineTable({
     title: v.string(),
     userId: v.string(),
@@ -12,6 +37,7 @@ export default defineSchema({
     icon: v.optional(v.string()),
     isPublished: v.boolean(),
     order: v.optional(v.number()),
+    workspaceId: v.optional(v.id("workspaces")),
     teamId: v.optional(v.id("teams")),
     projectId: v.optional(v.id("projects")),
     collaborationMode: v.optional(v.union(v.literal("view_only"), v.literal("open"), v.literal("restricted"))),

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth/client";
@@ -23,10 +23,13 @@ import {
   Calendar,
   CheckCircle2,
   Circle,
+  ChevronRight,
   ExternalLink,
   Flag,
   FolderKanban,
+  ListTree,
   MessageCircle,
+  Plus,
   Send,
   Trash2,
   UserCircle,
@@ -61,14 +64,18 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const task = useQuery(api.tasks.getById, { id: taskId as Id<"tasks"> });
   const comments = useQuery(api.tasks.getComments, { taskId: taskId as Id<"tasks"> });
   const updateTask = useMutation(api.tasks.update);
+  const createTask = useMutation(api.tasks.create);
   const removeTask = useMutation(api.tasks.remove);
   const addComment = useMutation(api.tasks.addComment);
+  const subtasks = useQuery(api.tasks.getSubtasks, { parentTaskId: taskId as Id<"tasks"> });
 
   const [commentText, setCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [openSelect, setOpenSelect] = useState<string | null>(null);
+  const [subtaskTitle, setSubtaskTitle] = useState("");
+  const subtaskRef = useRef(false);
 
   const selectProps = (key: string) => ({
     open: openSelect === key,
@@ -211,6 +218,127 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                 rows={3}
                 className="resize-none text-sm border-0 px-0 shadow-none focus-visible:ring-0 placeholder:text-muted-foreground/40"
               />
+            </div>
+
+            {/* Subtasks */}
+            <div className="border-t pt-6 mb-6">
+              <div className="mb-3 flex items-center gap-2">
+                <ListTree className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">
+                  {tt("subtasks")}
+                  {(subtasks?.length ?? 0) > 0 && (
+                    <span className="text-muted-foreground font-normal ml-1">
+                      ({subtasks?.filter((s) => s.status === "done").length}/{subtasks?.length})
+                    </span>
+                  )}
+                </h2>
+              </div>
+
+              {(subtasks ?? []).length > 0 && (
+                <div className="space-y-1 mb-3">
+                  {(subtasks ?? []).map((sub) => {
+                    const subDone = sub.status === "done";
+                    return (
+                      <div
+                        key={sub._id}
+                        className="group flex items-center gap-2.5 rounded-lg border bg-card px-3 py-2 transition-all hover:border-primary/20 hover:shadow-sm cursor-pointer"
+                        onClick={() => router.push(`/tasks/${sub._id}`)}
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateTask({ id: sub._id, status: subDone ? "todo" : "done" });
+                          }}
+                          className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors"
+                        >
+                          {subDone ? (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                          ) : (
+                            <Circle className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                        <span className={cn(
+                          "flex-1 text-sm truncate",
+                          subDone && "line-through text-muted-foreground",
+                        )}>
+                          {sub.title}
+                        </span>
+                        <ChevronRight className="h-3 w-3 text-muted-foreground/30 group-hover:text-primary/50 transition-colors" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Inline subtask add */}
+              <div className="flex items-center gap-2 px-1">
+                <Plus className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                <input
+                  value={subtaskTitle}
+                  onChange={(e) => setSubtaskTitle(e.target.value)}
+                  onKeyDown={async (e) => {
+                    if (e.key === "Enter" && subtaskTitle.trim() && !subtaskRef.current) {
+                      e.preventDefault();
+                      subtaskRef.current = true;
+                      const title = subtaskTitle.trim();
+                      setSubtaskTitle("");
+                      try {
+                        await createTask({
+                          title,
+                          parentTaskId: task._id,
+                          projectId: task.projectId ?? undefined,
+                          teamId: task.teamId ?? undefined,
+                          priority: "none",
+                        });
+                        toast.success(tt("created"));
+                      } catch { toast.error(tt("createFailed")); }
+                      finally { subtaskRef.current = false; }
+                    }
+                    if (e.key === "Escape") setSubtaskTitle("");
+                  }}
+                  placeholder={tt("subtaskPlaceholder")}
+                  className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/30"
+                />
+                {subtaskTitle.trim() && (
+                  <button
+                    onClick={async () => {
+                      if (!subtaskTitle.trim() || subtaskRef.current) return;
+                      subtaskRef.current = true;
+                      const title = subtaskTitle.trim();
+                      setSubtaskTitle("");
+                      try {
+                        await createTask({
+                          title,
+                          parentTaskId: task._id,
+                          projectId: task.projectId ?? undefined,
+                          teamId: task.teamId ?? undefined,
+                          priority: "none",
+                        });
+                        toast.success(tt("created"));
+                      } catch { toast.error(tt("createFailed")); }
+                      finally { subtaskRef.current = false; }
+                    }}
+                    className="text-[10px] text-primary hover:underline font-medium"
+                  >
+                    {tt("add")}
+                  </button>
+                )}
+              </div>
+
+              {/* Progress bar for subtasks */}
+              {(subtasks?.length ?? 0) > 0 && (
+                <div className="mt-3 flex items-center gap-2">
+                  <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                      style={{ width: `${Math.round(((subtasks?.filter((s) => s.status === "done").length ?? 0) / (subtasks?.length ?? 1)) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {Math.round(((subtasks?.filter((s) => s.status === "done").length ?? 0) / (subtasks?.length ?? 1)) * 100)}%
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Comments */}

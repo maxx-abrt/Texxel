@@ -17,17 +17,21 @@ import {
   CalendarDays,
   CheckSquare,
   ChevronsLeft,
+  Copy,
   FileText,
   FolderKanban,
   Home,
   Inbox,
+  ListChecks,
   MenuIcon,
   Plus,
   PlusCircle,
   Search,
   Settings,
   Trash,
+  Trash2,
   Users,
+  X,
 } from "lucide-react";
 import {
   Popover,
@@ -41,6 +45,7 @@ import { ScrollableList } from "@/components/scrollable-list";
 import { openCommandPalette } from "@/components/command-palette";
 import { useTranslations } from "next-intl";
 import { useDocumentUI } from "@/hooks/useDocumentUI";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
 
 const Navigation = () => {
   const search = useSearch();
@@ -52,6 +57,10 @@ const Navigation = () => {
   const create = useMutation(api.documents.create);
   const unreadCount = useQuery(api.notifications.getUnreadCount) ?? 0;
   const { focusMode } = useDocumentUI();
+  const bulkSelect = useBulkSelect();
+  const bulkArchive = useMutation(api.documents.bulkArchive);
+  const bulkDuplicate = useMutation(api.documents.bulkDuplicate);
+  const tb = useTranslations("bulk");
 
   const isResizingRef = useRef(false);
   const sidebarRef = useRef<ComponentRef<"aside">>(null);
@@ -242,18 +251,76 @@ const Navigation = () => {
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
               {t("notes")}
             </p>
-            <button
-              onClick={handleCreate}
-              className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={bulkSelect.toggleSelecting}
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded-md transition-colors",
+                  bulkSelect.isSelecting
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground/60 hover:bg-accent hover:text-foreground",
+                )}
+                title={tb("selectAll")}
+              >
+                <ListChecks className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleCreate}
+                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
           <div className="min-h-0 flex-1">
             <ScrollableList>
               <DocumentList />
             </ScrollableList>
           </div>
+          {/* Bulk action bar */}
+          {bulkSelect.isSelecting && bulkSelect.selectedIds.size > 0 && (
+            <div className="shrink-0 border-t border-sidebar-border px-2 py-2">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="text-[10px] font-semibold text-primary">
+                  {bulkSelect.selectedIds.size} {tb("selected").replace("{count}", "").trim()}
+                </span>
+                <button
+                  onClick={bulkSelect.exitSelecting}
+                  className="ml-auto flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="flex gap-1">
+                <button
+                  onClick={async () => {
+                    const ids = Array.from(bulkSelect.selectedIds) as any;
+                    try {
+                      await bulkArchive({ ids });
+                      toast.success(tb("archived"));
+                      bulkSelect.exitSelecting();
+                    } catch { toast.error(tb("failed")); }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" /> {tb("archive")}
+                </button>
+                <button
+                  onClick={async () => {
+                    const ids = Array.from(bulkSelect.selectedIds) as any;
+                    try {
+                      await bulkDuplicate({ ids });
+                      toast.success(tb("duplicated"));
+                      bulkSelect.exitSelecting();
+                    } catch { toast.error(tb("failed")); }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                >
+                  <Copy className="h-3 w-3" /> {tb("duplicate")}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="shrink-0 border-t border-sidebar-border py-2">
             <Item onClick={handleCreate} icon={PlusCircle} label={t("newNote")} />
             <Popover>

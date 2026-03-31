@@ -15,6 +15,7 @@ import type * as projects from "../projects.js";
 import type * as tasks from "../tasks.js";
 import type * as teams from "../teams.js";
 import type * as userProfiles from "../userProfiles.js";
+import type * as workspaces from "../workspaces.js";
 
 import type {
   ApiFromModules,
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   tasks: typeof tasks;
   teams: typeof teams;
   userProfiles: typeof userProfiles;
+  workspaces: typeof workspaces;
 }>;
 
 /**

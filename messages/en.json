@@ -111,7 +111,19 @@
     "add": "Add",
     "createdLabel": "Created",
     "backToTasks": "Back to tasks",
-    "assigned": "Assigned"
+    "assigned": "Assigned",
+    "dropHere": "Drop here",
+    "views": {
+      "list": "List",
+      "board": "Board",
+      "gantt": "Gantt"
+    },
+    "subtasks": "Subtasks",
+    "addSubtask": "Add subtask",
+    "subtaskPlaceholder": "Subtask title…",
+    "noSubtasks": "No subtasks",
+    "subtaskOf": "Subtask of",
+    "parentTask": "Parent task"
   },
   "projects": {
     "title": "Projects",
@@ -149,6 +161,27 @@
     "deleted": "Project deleted",
     "deleteFailed": "Failed to delete project",
     "backToProjects": "Projects",
+    "gantt": {
+      "title": "Gantt Chart",
+      "noTasks": "No tasks with due dates",
+      "noTasksDesc": "Add due dates to your tasks to see them on the Gantt chart.",
+      "today": "Today",
+      "week": "Week",
+      "month": "Month",
+      "quarter": "Quarter"
+    },
+    "retroPlanning": {
+      "title": "Retro-planning",
+      "description": "Plan backward from the deadline",
+      "deadline": "Deadline",
+      "milestones": "Milestones",
+      "addMilestone": "Add milestone",
+      "milestoneName": "Milestone name",
+      "daysBefore": "Days before deadline",
+      "generate": "Generate retro-planning",
+      "generated": "Retro-planning generated!",
+      "noDeadline": "Set a project deadline to use retro-planning"
+    },
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "editColor": "Color",
@@ -197,7 +230,8 @@
       "notifications": "Notifications",
       "language": "Language",
       "import": "Import",
-      "shortcuts": "Shortcuts"
+      "shortcuts": "Shortcuts",
+      "extensions": "Extensions"
     },
     "notifications": {
       "subtitle": "Configure how you receive notifications.",
@@ -546,6 +580,78 @@
     "signIn": "Welcome back",
     "terms": "By continuing, you agree to our Terms of Service and Privacy Policy."
   },
+  "extensions": {
+    "title": "Extensions",
+    "subtitle": "Customize your workspace with modules and integrations.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "configure": "Configure",
+    "search": "Search extensions…",
+    "categories": {
+      "all": "All",
+      "productivity": "Productivity",
+      "visualization": "Visualization",
+      "collaboration": "Collaboration",
+      "ai": "AI & Automation"
+    },
+    "items": {
+      "kanban": { "name": "Kanban Board", "desc": "Visual task board with drag-and-drop columns" },
+      "gantt": { "name": "Gantt Chart", "desc": "Timeline view for project planning" },
+      "retroPlanning": { "name": "Retro-planning", "desc": "Backward scheduling from deadlines" },
+      "aiAssistant": { "name": "AI Assistant", "desc": "Context-aware AI for notes and tasks" },
+      "calendar": { "name": "Calendar View", "desc": "See tasks and deadlines on a calendar" },
+      "timeTracking": { "name": "Time Tracking", "desc": "Track time spent on tasks" },
+      "customFields": { "name": "Custom Fields", "desc": "Add custom properties to tasks" },
+      "automations": { "name": "Automations", "desc": "Automate repetitive workflows" }
+    }
+  },
+  "ai": {
+    "title": "AI Assistant",
+    "placeholder": "Ask anything about your workspace…",
+    "thinking": "Thinking…",
+    "suggestions": "Suggestions",
+    "summarize": "Summarize this note",
+    "improveWriting": "Improve writing",
+    "generateTasks": "Generate tasks from note",
+    "suggestPriority": "Suggest priority",
+    "contextLabel": "Context",
+    "noApiKey": "Set up your AI API key in Settings to use this feature."
+  },
+  "workspace": {
+    "title": "Workspaces",
+    "personal": "Personal",
+    "switchTo": "Switch to",
+    "create": "Create workspace",
+    "current": "Current",
+    "settings": "Workspace settings",
+    "name": "Workspace name",
+    "namePlaceholder": "My workspace",
+    "created": "Workspace created!",
+    "createFailed": "Failed to create workspace",
+    "maxReached": "Maximum 5 workspaces reached",
+    "deleted": "Workspace deleted",
+    "members": "Members",
+    "noWorkspaces": "No other workspaces"
+  },
+  "bulk": {
+    "selected": "{count} selected",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "delete": "Delete",
+    "duplicate": "Duplicate",
+    "move": "Move to…",
+    "archive": "Archive",
+    "archived": "Notes archived!",
+    "duplicated": "Notes duplicated!",
+    "moved": "Notes moved!",
+    "deleted": "Notes deleted!",
+    "failed": "Operation failed",
+    "cancel": "Cancel",
+    "moveToWorkspace": "Move to workspace",
+    "moveToRoot": "Move to root"
+  },
   "calendar": {
     "title": "Calendar",
     "today": "Today",
@@ -603,6 +709,23 @@
     "createNote": "Create note",
     "noProjects": "No projects yet",
     "noTeams": "No teams yet"
+  },
+  "retroPlanning": {
+    "title": "Retro-planning",
+    "description": "Plan backward from your deadline. Define milestones and let the system calculate dates.",
+    "deadline": "Deadline",
+    "milestones": "Milestones",
+    "addMilestone": "Add milestone",
+    "milestoneName": "Milestone name",
+    "daysBefore": "Days before deadline",
+    "durationDays": "Duration (days)",
+    "generate": "Generate tasks",
+    "generated": "Tasks generated from retro-planning!",
+    "generateFailed": "Failed to generate tasks",
+    "noDeadline": "Set a project deadline first",
+    "remove": "Remove",
+    "startDate": "Start date",
+    "endDate": "End date"
   },
   "chips": {
     "cancel": "Cancel",

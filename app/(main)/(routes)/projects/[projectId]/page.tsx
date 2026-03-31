@@ -21,13 +21,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Calendar, GripVertical, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, GanttChart as GanttIcon, GripVertical, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
+import { GanttChart } from "@/components/gantt-chart";
+import { RetroPlanningPanel } from "@/components/retro-planning";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   DndContext,
   DragEndEvent,
@@ -164,7 +172,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const removeProject = useMutation(api.projects.remove);
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState<"todo" | "in_progress" | "in_review" | "done" | "cancelled">("todo");
-  const [viewMode, setViewMode] = useState<"board" | "list">("board");
+  const [viewMode, setViewMode] = useState<"board" | "list" | "gantt">("board");
   const [activeTask, setActiveTask] = useState<any>(null);
   const [isOver, setIsOver] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
@@ -175,6 +183,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const [editStatus, setEditStatus] = useState("active");
   const [editTeamId, setEditTeamId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showRetroPlanning, setShowRetroPlanning] = useState(false);
 
   const openEdit = () => {
     if (!project) return;
@@ -358,11 +367,23 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
               >
                 <List className="h-3.5 w-3.5" />
               </button>
+              <button
+                onClick={() => setViewMode("gantt")}
+                className={cn("rounded-md p-1.5 transition-all", viewMode === "gantt" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+              >
+                <GanttIcon className="h-3.5 w-3.5" />
+              </button>
             </div>
             <Button variant="outline" size="sm" onClick={openEdit} className="gap-1.5 h-8">
               <Pencil className="h-3.5 w-3.5" />
               {tc("edit")}
             </Button>
+            {project.dueDate && (
+              <Button variant="outline" size="sm" onClick={() => setShowRetroPlanning(true)} className="gap-1.5 h-8 hidden sm:flex">
+                <Clock className="h-3.5 w-3.5" />
+                {tp("retroPlanning.title")}
+              </Button>
+            )}
             <Button onClick={() => setShowNewTask(true)} size="sm" className="gap-1.5 h-8">
               <Plus className="h-3.5 w-3.5" />
               {tp("addTask")}
@@ -371,8 +392,33 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
         </div>
       </div>
 
+      {/* Retro-planning sheet */}
+      <Sheet open={showRetroPlanning} onOpenChange={setShowRetroPlanning}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{tp("retroPlanning.title")}</SheetTitle>
+          </SheetHeader>
+          <div className="pt-2">
+            <RetroPlanningPanel
+              projectId={projectId as any}
+              projectDueDate={project.dueDate}
+              teamId={project.teamId as any}
+              onClose={() => setShowRetroPlanning(false)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Content */}
-      {viewMode === "board" ? (
+      {viewMode === "gantt" ? (
+        <div className="flex-1 overflow-hidden">
+          <GanttChart
+            tasks={(tasks ?? []) as any}
+            projectDueDate={project.dueDate}
+            projectColor={project.color ?? "#6366f1"}
+          />
+        </div>
+      ) : viewMode === "board" ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}

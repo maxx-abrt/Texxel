@@ -21,11 +21,21 @@ import {
   Sun,
   Check,
   Keyboard,
+  Puzzle,
+  LayoutGrid,
+  GanttChart,
+  CalendarDays,
+  Clock,
+  Sparkles,
+  Zap,
+  Settings2,
+  Columns3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ImportModal } from "@/components/modals/ImportModal";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useSearchParams } from "next/navigation";
+import { useExtensions } from "@/hooks/useExtensions";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -33,6 +43,7 @@ const TABS = [
   { id: "appearance", icon: Palette },
   { id: "notifications", icon: Bell },
   { id: "language", icon: Globe },
+  { id: "extensions", icon: Puzzle },
   { id: "import", icon: Upload },
   { id: "shortcuts", icon: Keyboard },
 ] as const;
@@ -85,6 +96,189 @@ function useShortcuts(ts: (key: string) => string) {
       { keys: ["Esc"], desc: ts("shortcuts.items.cancelInlineAdd") },
     ]},
   ];
+}
+
+const EXT_ICONS: Record<string, React.ElementType> = {
+  kanban: LayoutGrid,
+  gantt: GanttChart,
+  retroPlanning: CalendarDays,
+  aiAssistant: Sparkles,
+  calendar: CalendarDays,
+  timeTracking: Clock,
+  customFields: Columns3,
+  automations: Zap,
+};
+
+function ExtensionsPanel() {
+  const te = useTranslations("extensions");
+  const { getExtensions, getUIConfig, toggleExtension, updateUIConfig } = useExtensions();
+  const extensions = getExtensions();
+  const uiConfig = getUIConfig();
+  const [filterCat, setFilterCat] = useState<string>("all");
+
+  const categories = ["all", "productivity", "visualization", "collaboration", "ai"] as const;
+  const filtered = filterCat === "all" ? extensions : extensions.filter((e) => e.category === filterCat);
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold mb-1">{te("title")}</h2>
+        <p className="text-sm text-muted-foreground">{te("subtitle")}</p>
+      </div>
+
+      {/* Category filter */}
+      <div className="flex flex-wrap gap-1.5">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setFilterCat(cat)}
+            className={cn(
+              "rounded-full px-3 py-1 text-xs font-medium border transition-all",
+              filterCat === cat
+                ? "bg-primary text-primary-foreground border-primary"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-primary/30",
+            )}
+          >
+            {te(`categories.${cat}` as any)}
+          </button>
+        ))}
+      </div>
+
+      {/* Extensions grid */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {filtered.map((ext) => {
+          const Icon = EXT_ICONS[ext.id] ?? Puzzle;
+          return (
+            <div
+              key={ext.id}
+              className={cn(
+                "rounded-xl border p-4 transition-all",
+                ext.enabled ? "border-primary/30 bg-primary/5" : "hover:border-primary/20",
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+                  ext.enabled ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+                )}>
+                  <Icon className="h-4.5 w-4.5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold">{te(`items.${ext.id}.name` as any)}</h3>
+                    <button
+                      onClick={() => toggleExtension(ext.id)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
+                        ext.enabled ? "bg-primary" : "bg-muted",
+                      )}
+                    >
+                      <span className={cn(
+                        "inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform mt-0.5",
+                        ext.enabled ? "translate-x-4 ml-0.5" : "translate-x-0.5",
+                      )} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{te(`items.${ext.id}.desc` as any)}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* UI Configuration */}
+      <div className="border-t pt-6 space-y-5">
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">UI Configuration</h3>
+
+        {/* Font size */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Font size</p>
+            <p className="text-xs text-muted-foreground">Adjust the base font size</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["sm", "base", "lg"] as const).map((size) => (
+              <button
+                key={size}
+                onClick={() => updateUIConfig({ fontSize: size })}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-all",
+                  uiConfig.fontSize === size ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {size === "sm" ? "S" : size === "base" ? "M" : "L"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Default task view */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Default task view</p>
+            <p className="text-xs text-muted-foreground">List or Board when opening tasks</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["list", "board"] as const).map((view) => (
+              <button
+                key={view}
+                onClick={() => updateUIConfig({ defaultTaskView: view })}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-all capitalize",
+                  uiConfig.defaultTaskView === view ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {view}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Default project view */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Default project view</p>
+            <p className="text-xs text-muted-foreground">Board, List or Gantt</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["board", "list", "gantt"] as const).map((view) => (
+              <button
+                key={view}
+                onClick={() => updateUIConfig({ defaultProjectView: view })}
+                className={cn(
+                  "rounded-md px-3 py-1 text-xs font-medium transition-all capitalize",
+                  uiConfig.defaultProjectView === view ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {view}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Compact mode */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">Compact mode</p>
+            <p className="text-xs text-muted-foreground">Reduce spacing and element sizes</p>
+          </div>
+          <button
+            onClick={() => updateUIConfig({ compactMode: !uiConfig.compactMode })}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
+              uiConfig.compactMode ? "bg-primary" : "bg-muted",
+            )}
+          >
+            <span className={cn(
+              "inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform mt-0.5",
+              uiConfig.compactMode ? "translate-x-4 ml-0.5" : "translate-x-0.5",
+            )} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
@@ -525,6 +719,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+
+            {/* Extensions */}
+            {activeTab === "extensions" && <ExtensionsPanel />}
 
             {/* Shortcuts */}
             {activeTab === "shortcuts" && (

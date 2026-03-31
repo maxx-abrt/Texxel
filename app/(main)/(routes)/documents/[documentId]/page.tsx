@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, use, useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ interface DocumentIdPageProps {
 
 const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const { documentId } = use(params);
+  const router = useRouter();
   const t = useTranslations("editor");
   const [editor, setEditor] = useState<any | null>(null);
   const [commentsSidebarEl, setCommentsSidebarEl] = useState<HTMLElement | null>(null);
@@ -212,9 +214,10 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   }
 
   if (document === null) {
+    router.replace("/documents");
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-4">
-        <p className="text-base font-semibold text-muted-foreground">{t("notFound")}</p>
+      <div className="flex h-full items-center justify-center">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }

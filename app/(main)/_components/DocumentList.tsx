@@ -32,7 +32,8 @@ import { Doc, Id } from "@/convex/_generated/dataModel";
 
 import { Item } from "./Item";
 
-import { FileIcon, CornerDownRight } from "lucide-react";
+import { FileIcon, CornerDownRight, Square, SquareCheckBig } from "lucide-react";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
 
 interface SortableItemProps {
   document: Doc<"documents">;
@@ -65,6 +66,8 @@ const SortableItem = ({
     transition,
     isDragging,
   } = useSortable({ id: document._id });
+  const { isSelecting, toggle, isSelected } = useBulkSelect();
+  const selected = isSelected(document._id);
 
   const style = {
     transform: CSS.Transform.toString(
@@ -74,15 +77,23 @@ const SortableItem = ({
     opacity: isDragging ? 0.4 : 1,
   };
 
+  const handleClick = () => {
+    if (isSelecting) {
+      toggle(document._id);
+    } else {
+      onRedirect(document._id);
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...(isSelecting ? {} : { ...attributes, ...listeners })}
       className={cn(
         "relative rounded-md transition-all",
         isNestTarget && "ring-2 ring-primary/50 ring-offset-1 bg-primary/5",
+        isSelecting && selected && "bg-primary/8 ring-1 ring-primary/20",
       )}
     >
       {isNestTarget && (
@@ -91,19 +102,35 @@ const SortableItem = ({
           Move inside
         </div>
       )}
-      <Item
-        id={document._id}
-        onClick={() => onRedirect(document._id)}
-        label={document.title}
-        icon={FileIcon}
-        documentIcon={document.icon}
-        active={activeId === document._id}
-        level={level}
-        onExpand={() => onExpand(document._id)}
-        expanded={expanded}
-        isNested={level > 0}
-      />
-      {expanded && (
+      <div className="flex items-center">
+        {isSelecting && (
+          <button
+            onClick={(e) => { e.stopPropagation(); toggle(document._id); }}
+            className="shrink-0 ml-1 flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+          >
+            {selected ? (
+              <SquareCheckBig className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <Square className="h-3.5 w-3.5" />
+            )}
+          </button>
+        )}
+        <div className="flex-1 min-w-0">
+          <Item
+            id={document._id}
+            onClick={handleClick}
+            label={document.title}
+            icon={FileIcon}
+            documentIcon={document.icon}
+            active={activeId === document._id}
+            level={isSelecting ? 0 : level}
+            onExpand={() => onExpand(document._id)}
+            expanded={expanded}
+            isNested={level > 0}
+          />
+        </div>
+      </div>
+      {expanded && !isSelecting && (
         <DocumentList parentDocumentId={document._id} level={level + 1} />
       )}
     </div>

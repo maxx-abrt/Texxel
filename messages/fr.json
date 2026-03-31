@@ -111,7 +111,19 @@
     "createdLabel": "Créé le",
     "backToTasks": "Retour aux tâches",
     "assigned": "Assigné",
-    "team": "Team"
+    "team": "Équipe",
+    "dropHere": "Déposer ici",
+    "views": {
+      "list": "Liste",
+      "board": "Tableau",
+      "gantt": "Gantt"
+    },
+    "subtasks": "Sous-tâches",
+    "addSubtask": "Ajouter une sous-tâche",
+    "subtaskPlaceholder": "Titre de la sous-tâche…",
+    "noSubtasks": "Aucune sous-tâche",
+    "subtaskOf": "Sous-tâche de",
+    "parentTask": "Tâche parente"
   },
   "projects": {
     "title": "Projets",
@@ -149,6 +161,27 @@
     "deleted": "Projet supprimé",
     "deleteFailed": "Échec de la suppression",
     "backToProjects": "Projets",
+    "gantt": {
+      "title": "Diagramme de Gantt",
+      "noTasks": "Aucune tâche avec des dates",
+      "noTasksDesc": "Ajoutez des dates d'échéance à vos tâches pour les voir sur le diagramme de Gantt.",
+      "today": "Aujourd'hui",
+      "week": "Semaine",
+      "month": "Mois",
+      "quarter": "Trimestre"
+    },
+    "retroPlanning": {
+      "title": "Rétro-planning",
+      "description": "Planifier en remontant depuis la date limite",
+      "deadline": "Date limite",
+      "milestones": "Jalons",
+      "addMilestone": "Ajouter un jalon",
+      "milestoneName": "Nom du jalon",
+      "daysBefore": "Jours avant la date limite",
+      "generate": "Générer le rétro-planning",
+      "generated": "Rétro-planning généré !",
+      "noDeadline": "Définissez une date limite de projet pour utiliser le rétro-planning"
+    },
     "saveChanges": "Enregistrer",
     "saving": "Enregistrement...",
     "editColor": "Couleur",
@@ -271,7 +304,8 @@
       "notifications": "Notifications",
       "language": "Langue",
       "import": "Importer",
-      "shortcuts": "Raccourcis"
+      "shortcuts": "Raccourcis",
+      "extensions": "Extensions"
     },
     "notifications": {
       "subtitle": "Configurez la façon dont vous recevez les notifications.",
@@ -545,6 +579,95 @@
     "signUp": "Créer votre compte",
     "signIn": "Bienvenue",
     "terms": "En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité."
+  },
+  "extensions": {
+    "title": "Extensions",
+    "subtitle": "Personnalisez votre espace de travail avec des modules et intégrations.",
+    "enabled": "Activé",
+    "disabled": "Désactivé",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "configure": "Configurer",
+    "search": "Rechercher des extensions…",
+    "categories": {
+      "all": "Tout",
+      "productivity": "Productivité",
+      "visualization": "Visualisation",
+      "collaboration": "Collaboration",
+      "ai": "IA & Automatisation"
+    },
+    "items": {
+      "kanban": { "name": "Tableau Kanban", "desc": "Tableau visuel de tâches avec colonnes glisser-déposer" },
+      "gantt": { "name": "Diagramme de Gantt", "desc": "Vue chronologique pour la planification de projet" },
+      "retroPlanning": { "name": "Rétro-planning", "desc": "Planification inversée depuis les dates limites" },
+      "aiAssistant": { "name": "Assistant IA", "desc": "IA contextuelle pour les notes et tâches" },
+      "calendar": { "name": "Vue calendrier", "desc": "Voir les tâches et échéances sur un calendrier" },
+      "timeTracking": { "name": "Suivi du temps", "desc": "Suivre le temps passé sur les tâches" },
+      "customFields": { "name": "Champs personnalisés", "desc": "Ajouter des propriétés personnalisées aux tâches" },
+      "automations": { "name": "Automatisations", "desc": "Automatiser les flux de travail répétitifs" }
+    }
+  },
+  "ai": {
+    "title": "Assistant IA",
+    "placeholder": "Posez une question sur votre espace de travail…",
+    "thinking": "Réflexion…",
+    "suggestions": "Suggestions",
+    "summarize": "Résumer cette note",
+    "improveWriting": "Améliorer l'écriture",
+    "generateTasks": "Générer des tâches depuis la note",
+    "suggestPriority": "Suggérer la priorité",
+    "contextLabel": "Contexte",
+    "noApiKey": "Configurez votre clé API IA dans les Paramètres pour utiliser cette fonctionnalité."
+  },
+  "workspace": {
+    "title": "Espaces de travail",
+    "personal": "Personnel",
+    "switchTo": "Basculer vers",
+    "create": "Créer un espace de travail",
+    "current": "Actuel",
+    "settings": "Paramètres de l'espace",
+    "name": "Nom de l'espace",
+    "namePlaceholder": "Mon espace",
+    "created": "Espace créé !",
+    "createFailed": "Échec de la création",
+    "maxReached": "Maximum 5 espaces atteint",
+    "deleted": "Espace supprimé",
+    "members": "Membres",
+    "noWorkspaces": "Aucun autre espace"
+  },
+  "bulk": {
+    "selected": "{count} sélectionné(s)",
+    "selectAll": "Tout sélectionner",
+    "deselectAll": "Tout désélectionner",
+    "delete": "Supprimer",
+    "duplicate": "Dupliquer",
+    "move": "Déplacer vers…",
+    "archive": "Archiver",
+    "archived": "Notes archivées !",
+    "duplicated": "Notes dupliquées !",
+    "moved": "Notes déplacées !",
+    "deleted": "Notes supprimées !",
+    "failed": "L'opération a échoué",
+    "cancel": "Annuler",
+    "moveToWorkspace": "Déplacer vers l'espace",
+    "moveToRoot": "Déplacer à la racine"
+  },
+  "retroPlanning": {
+    "title": "Rétro-planning",
+    "description": "Planifiez en remontant depuis votre date limite. Définissez des jalons et laissez le système calculer les dates.",
+    "deadline": "Date limite",
+    "milestones": "Jalons",
+    "addMilestone": "Ajouter un jalon",
+    "milestoneName": "Nom du jalon",
+    "daysBefore": "Jours avant la date limite",
+    "durationDays": "Durée (jours)",
+    "generate": "Générer les tâches",
+    "generated": "Tâches générées depuis le rétro-planning !",
+    "generateFailed": "Échec de la génération des tâches",
+    "noDeadline": "Définissez d'abord une date limite de projet",
+    "remove": "Supprimer",
+    "startDate": "Date de début",
+    "endDate": "Date de fin"
   },
   "calendar": {
     "title": "Calendrier",

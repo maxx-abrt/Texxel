@@ -327,6 +327,19 @@ export const getTaskStatsByProject = query({
   },
 });
 
+export const getSubtasks = query({
+  args: { parentTaskId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const subtasks = await ctx.db
+      .query("tasks")
+      .filter((q) => q.eq(q.field("parentTaskId"), args.parentTaskId))
+      .collect();
+    return enrichWithAssignee(ctx, subtasks);
+  },
+});
+
 export const reorder = mutation({
   args: {
     id: v.id("tasks"),

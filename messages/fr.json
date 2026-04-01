@@ -637,6 +637,37 @@
       "showWordCountDesc": "Afficher le compteur de mots dans l'éditeur"
     }
   },
+  "automations": {
+    "title": "Automatisations",
+    "subtitle": "Automatisez les flux de travail répétitifs avec des règles.",
+    "new": "Nouvelle automatisation",
+    "name": "Nom de la règle",
+    "namePlaceholder": "ex. Prioriser automatiquement les tâches urgentes",
+    "when": "Quand",
+    "then": "Alors",
+    "created": "Automatisation créée !",
+    "createFailed": "Échec de la création",
+    "deleted": "Automatisation supprimée",
+    "toggled": "Automatisation mise à jour",
+    "empty": "Aucune automatisation",
+    "emptyDesc": "Créez des règles pour automatiser votre flux de travail.",
+    "triggers": {
+      "task_created": "Une tâche est créée",
+      "task_status_changed": "Le statut d'une tâche change",
+      "task_due_soon": "Une tâche arrive à échéance",
+      "task_assigned": "Une tâche est assignée"
+    },
+    "actions": {
+      "set_status": "Définir le statut sur",
+      "set_priority": "Définir la priorité sur",
+      "assign_to": "Assigner à",
+      "send_notification": "Envoyer une notification",
+      "add_label": "Ajouter un label"
+    },
+    "scope": "Portée",
+    "allTasks": "Toutes mes tâches",
+    "inProject": "Dans le projet"
+  },
   "ai": {
     "title": "Assistant IA",
     "placeholder": "Posez une question sur votre espace de travail…",

@@ -637,6 +637,37 @@
       "showWordCountDesc": "Show word count bar in editor"
     }
   },
+  "automations": {
+    "title": "Automations",
+    "subtitle": "Automate repetitive workflows with rules.",
+    "new": "New Automation",
+    "name": "Rule name",
+    "namePlaceholder": "e.g. Auto-prioritize urgent tasks",
+    "when": "When",
+    "then": "Then",
+    "created": "Automation created!",
+    "createFailed": "Failed to create",
+    "deleted": "Automation deleted",
+    "toggled": "Automation updated",
+    "empty": "No automations yet",
+    "emptyDesc": "Create rules to automate your workflow.",
+    "triggers": {
+      "task_created": "A task is created",
+      "task_status_changed": "Task status changes",
+      "task_due_soon": "Task is due soon",
+      "task_assigned": "Task is assigned"
+    },
+    "actions": {
+      "set_status": "Set status to",
+      "set_priority": "Set priority to",
+      "assign_to": "Assign to",
+      "send_notification": "Send notification",
+      "add_label": "Add label"
+    },
+    "scope": "Scope",
+    "allTasks": "All my tasks",
+    "inProject": "In project"
+  },
   "ai": {
     "title": "AI Assistant",
     "placeholder": "Ask anything about your workspace…",

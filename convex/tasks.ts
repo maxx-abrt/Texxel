@@ -7,6 +7,62 @@ const requireAuth = async (ctx: any) => {
   return identity.subject;
 };
 
+const runMatchingAutomations = async (
+  ctx: any,
+  userId: string,
+  taskId: any,
+  trigger: "task_created" | "task_status_changed" | "task_due_soon" | "task_assigned",
+  triggerValue?: string,
+) => {
+  const task = await ctx.db.get(taskId);
+  if (!task) return;
+
+  const autos = await ctx.db
+    .query("automations")
+    .withIndex("by_owner", (q: any) => q.eq("ownerId", userId))
+    .collect();
+
+  const matching = autos.filter(
+    (a: any) =>
+      a.enabled &&
+      a.trigger === trigger &&
+      (!a.projectId || a.projectId === task.projectId) &&
+      (!a.triggerValue || a.triggerValue === triggerValue),
+  );
+
+  for (const auto of matching) {
+    switch (auto.action) {
+      case "set_status":
+        if (auto.actionValue) await ctx.db.patch(taskId, { status: auto.actionValue, updatedAt: Date.now() });
+        break;
+      case "set_priority":
+        if (auto.actionValue) await ctx.db.patch(taskId, { priority: auto.actionValue, updatedAt: Date.now() });
+        break;
+      case "add_label":
+        if (auto.actionValue) {
+          const labels = task.labels ?? [];
+          if (!labels.includes(auto.actionValue)) await ctx.db.patch(taskId, { labels: [...labels, auto.actionValue], updatedAt: Date.now() });
+        }
+        break;
+      case "send_notification":
+        await ctx.db.insert("notifications", {
+          userId: task.createdBy,
+          type: "reminder" as const,
+          title: "reminder",
+          body: auto.actionValue ?? auto.name,
+          read: false,
+          link: `/tasks/${taskId}`,
+          relatedId: taskId as string,
+          createdAt: Date.now(),
+        });
+        break;
+      case "assign_to":
+        if (auto.actionValue) await ctx.db.patch(taskId, { assigneeId: auto.actionValue, updatedAt: Date.now() });
+        break;
+    }
+  }
+};
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -85,6 +141,9 @@ export const create = mutation({
       }
     }
 
+    // Run automations for task_created trigger
+    await runMatchingAutomations(ctx, userId, taskId, "task_created");
+
     return taskId;
   },
 });
@@ -132,6 +191,16 @@ export const update = mutation({
     }
 
     await ctx.db.patch(id, updates);
+
+    // Run automations for status change
+    if (args.status && args.status !== task.status) {
+      await runMatchingAutomations(ctx, userId, id, "task_status_changed", args.status);
+    }
+    // Run automations for assignment
+    if (args.assigneeId && args.assigneeId !== task.assigneeId) {
+      await runMatchingAutomations(ctx, userId, id, "task_assigned", args.assigneeId);
+    }
+
     return id;
   },
 });

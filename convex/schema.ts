@@ -225,6 +225,23 @@ export default defineSchema({
     .index("by_document", ["documentId"])
     .index("by_document_user", ["documentId", "userId"]),
 
+  automations: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    trigger: v.union(v.literal("task_created"), v.literal("task_status_changed"), v.literal("task_due_soon"), v.literal("task_assigned")),
+    action: v.union(v.literal("set_status"), v.literal("set_priority"), v.literal("assign_to"), v.literal("send_notification"), v.literal("add_label")),
+    triggerValue: v.optional(v.string()),
+    actionValue: v.optional(v.string()),
+    projectId: v.optional(v.id("projects")),
+    teamId: v.optional(v.id("teams")),
+    ownerId: v.string(),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_project", ["projectId"])
+    .index("by_team", ["teamId"]),
+
   notifications: defineTable({
     userId: v.string(),
     type: v.union(

@@ -42,8 +42,8 @@ const DEFAULT_EXTENSIONS: ExtensionConfig[] = [
   { id: "retroPlanning", category: "visualization", enabled: true },
   { id: "aiAssistant", category: "ai", enabled: false },
   { id: "calendar", category: "productivity", enabled: true },
-  { id: "timeTracking", category: "productivity", enabled: false },
-  { id: "customFields", category: "productivity", enabled: false },
+  { id: "timeTracking", category: "productivity", enabled: true },
+  { id: "customFields", category: "productivity", enabled: true },
   { id: "automations", category: "ai", enabled: false },
 ];
 

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as automations from "../automations.js";
 import type * as comments from "../comments.js";
 import type * as documents from "../documents.js";
 import type * as notifications from "../notifications.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  automations: typeof automations;
   comments: typeof comments;
   documents: typeof documents;
   notifications: typeof notifications;

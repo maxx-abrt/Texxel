@@ -2,10 +2,12 @@
 
 import { authClient } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import {
   CheckSquare,
@@ -99,31 +101,40 @@ const DocumentsPage = () => {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-4">
-          {[
-            { label: td("stats.openTasks"), value: activeTasks.length, icon: CheckSquare, gradient: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-500", href: "/tasks" },
-            { label: td("stats.overdue"), value: overdueTaskCount, icon: AlertCircle, gradient: overdueTaskCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", iconColor: overdueTaskCount > 0 ? "text-red-500" : "text-emerald-500", href: "/tasks" },
-            { label: td("stats.projects"), value: (myProjects ?? []).length, icon: FolderKanban, gradient: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-500", href: "/projects" },
-            { label: td("stats.teams"), value: (myTeams ?? []).length, icon: Users, gradient: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-500", href: "/teams" },
-          ].map((stat) => (
-            <button
-              key={stat.label}
-              onClick={() => router.push(stat.href)}
-              className={cn(
-                "group relative overflow-hidden rounded-xl border p-4 text-left transition-all hover:shadow-md hover:border-primary/20",
-                "bg-gradient-to-br",
-                stat.gradient,
-              )}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
-                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-              <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{stat.label}</p>
-            </button>
-          ))}
-        </div>
+        {myTasks === undefined ? (
+          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-4">
+            {[1,2,3,4].map((i) => (
+              <Skeleton key={i} className="h-24 rounded-xl" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-4">
+            {[
+              { label: td("stats.openTasks"), value: activeTasks.length, icon: CheckSquare, gradient: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-500", href: "/tasks" },
+              { label: td("stats.overdue"), value: overdueTaskCount, icon: AlertCircle, gradient: overdueTaskCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", iconColor: overdueTaskCount > 0 ? "text-red-500" : "text-emerald-500", href: "/tasks" },
+              { label: td("stats.projects"), value: (myProjects ?? []).length, icon: FolderKanban, gradient: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-500", href: "/projects" },
+              { label: td("stats.teams"), value: (myTeams ?? []).length, icon: Users, gradient: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-500", href: "/teams" },
+            ].map((stat) => (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                prefetch
+                className={cn(
+                  "group relative overflow-hidden rounded-xl border p-4 text-left transition-all hover:shadow-md hover:border-primary/20",
+                  "bg-gradient-to-br",
+                  stat.gradient,
+                )}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
+                  <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{stat.label}</p>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Quick actions row */}
         <div className="flex flex-wrap gap-2 mb-10">
@@ -155,7 +166,17 @@ const DocumentsPage = () => {
                   {td("viewAll")} <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
-              {activeTasks.length === 0 ? (
+              {myTasks === undefined ? (
+                <div className="rounded-xl border divide-y">
+                  {[1,2,3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                      <Skeleton className="h-3.5 w-3.5 rounded-full shrink-0" />
+                      <Skeleton className="h-4 flex-1" />
+                      <Skeleton className="h-3 w-12" />
+                    </div>
+                  ))}
+                </div>
+              ) : activeTasks.length === 0 ? (
                 <div className="rounded-xl border border-dashed p-8 text-center">
                   <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground font-medium">{td("allCaughtUp")}</p>
@@ -167,10 +188,11 @@ const DocumentsPage = () => {
               ) : (
                 <div className="rounded-xl border divide-y">
                   {activeTasks.slice(0, 6).map((task) => (
-                    <div
+                    <Link
                       key={task._id}
-                      onClick={() => router.push(`/tasks/${task._id}`)}
-                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
+                      href={`/tasks/${task._id}`}
+                      prefetch
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
                     >
                       <Circle className="h-[14px] w-[14px] shrink-0 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                       <span className={cn("flex-1 text-sm truncate", task.dueDate && task.dueDate < Date.now() && "text-red-500/90")}>{task.title}</span>
@@ -188,15 +210,16 @@ const DocumentsPage = () => {
                           </span>
                         ) : null}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                   {activeTasks.length > 6 && (
-                    <button
-                      onClick={() => router.push("/tasks")}
-                      className="w-full text-center text-xs text-muted-foreground hover:text-primary py-2.5 transition-colors rounded-b-xl hover:bg-accent/50"
+                    <Link
+                      href="/tasks"
+                      prefetch
+                      className="block w-full text-center text-xs text-muted-foreground hover:text-primary py-2.5 transition-colors rounded-b-xl hover:bg-accent/50"
                     >
                       +{activeTasks.length - 6} {td("more")}
-                    </button>
+                    </Link>
                   )}
                 </div>
               )}
@@ -249,7 +272,16 @@ const DocumentsPage = () => {
                   <Plus className="h-3 w-3" /> {tc("add")}
                 </button>
               </div>
-              {(recentDocs ?? []).length === 0 ? (
+              {recentDocs === undefined ? (
+                <div className="rounded-xl border divide-y">
+                  {[1,2,3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                      <Skeleton className="h-4 w-4 rounded shrink-0" />
+                      <Skeleton className="h-4 flex-1" />
+                    </div>
+                  ))}
+                </div>
+              ) : (recentDocs ?? []).length === 0 ? (
                 <div className="rounded-xl border border-dashed p-8 text-center">
                   <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground font-medium">{td("noNotes")}</p>
@@ -260,10 +292,11 @@ const DocumentsPage = () => {
               ) : (
                 <div className="rounded-xl border divide-y">
                   {(recentDocs ?? []).slice(0, 6).map((doc) => (
-                    <div
+                    <Link
                       key={doc._id}
-                      onClick={() => router.push(`/documents/${doc._id}`)}
-                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
+                      href={`/documents/${doc._id}`}
+                      prefetch
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
                     >
                       <span className="shrink-0 text-sm leading-none">
                         {doc.icon ?? "📄"}
@@ -271,7 +304,7 @@ const DocumentsPage = () => {
                       <span className="flex-1 text-sm truncate group-hover:text-primary transition-colors">
                         {doc.title || tc("untitled")}
                       </span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

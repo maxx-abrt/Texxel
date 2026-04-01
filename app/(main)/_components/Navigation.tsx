@@ -33,6 +33,7 @@ import {
   Trash2,
   Users,
   X,
+  Zap,
 } from "lucide-react";
 import {
   Popover,
@@ -252,14 +253,24 @@ const Navigation = () => {
           />
         </div>
 
-        {/* AI Assistant — only if extension enabled */}
-        {extEnabled("aiAssistant") && (
+        {/* Extension nav items */}
+        {(extEnabled("aiAssistant") || extEnabled("automations")) && (
           <div className="shrink-0 px-3 py-1 border-b border-sidebar-border">
-            <Item
-              label="AI Assistant"
-              icon={Sparkles}
-              onClick={() => router.push("/documents")}
-            />
+            {extEnabled("aiAssistant") && (
+              <Item
+                label="AI Assistant"
+                icon={Sparkles}
+                onClick={() => router.push("/documents")}
+              />
+            )}
+            {extEnabled("automations") && (
+              <Item
+                label={t("workspace") === "Workspace" ? "Automations" : "Automatisations"}
+                icon={Zap}
+                onClick={() => router.push("/automations")}
+                active={pathname === "/automations"}
+              />
+            )}
           </div>
         )}
 

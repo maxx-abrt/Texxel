@@ -149,6 +149,24 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
     }
   };
 
+  const handleAddSubtask = async () => {
+    if (!subtaskTitle.trim() || subtaskRef.current) return;
+    subtaskRef.current = true;
+    const title = subtaskTitle.trim();
+    setSubtaskTitle("");
+    try {
+      await createTask({
+        title,
+        parentTaskId: task._id,
+        projectId: task.projectId ?? undefined,
+        teamId: task.teamId ?? undefined,
+        priority: "none",
+      });
+      toast.success(tt("created"));
+    } catch { toast.error(tt("createFailed")); }
+    finally { subtaskRef.current = false; }
+  };
+
   const sCfg = STATUS_COLORS[task.status] ?? STATUS_COLORS.todo;
   const pCfg = PRIORITY_COLORS[task.priority] ?? PRIORITY_COLORS.none;
   const STATUS_KEYS = Object.keys(STATUS_COLORS);
@@ -276,50 +294,15 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                 <input
                   value={subtaskTitle}
                   onChange={(e) => setSubtaskTitle(e.target.value)}
-                  onKeyDown={async (e) => {
-                    if (e.key === "Enter" && subtaskTitle.trim() && !subtaskRef.current) {
-                      e.preventDefault();
-                      subtaskRef.current = true;
-                      const title = subtaskTitle.trim();
-                      setSubtaskTitle("");
-                      try {
-                        await createTask({
-                          title,
-                          parentTaskId: task._id,
-                          projectId: task.projectId ?? undefined,
-                          teamId: task.teamId ?? undefined,
-                          priority: "none",
-                        });
-                        toast.success(tt("created"));
-                      } catch { toast.error(tt("createFailed")); }
-                      finally { subtaskRef.current = false; }
-                    }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); handleAddSubtask(); }
                     if (e.key === "Escape") setSubtaskTitle("");
                   }}
                   placeholder={tt("subtaskPlaceholder")}
                   className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/30"
                 />
                 {subtaskTitle.trim() && (
-                  <button
-                    onClick={async () => {
-                      if (!subtaskTitle.trim() || subtaskRef.current) return;
-                      subtaskRef.current = true;
-                      const title = subtaskTitle.trim();
-                      setSubtaskTitle("");
-                      try {
-                        await createTask({
-                          title,
-                          parentTaskId: task._id,
-                          projectId: task.projectId ?? undefined,
-                          teamId: task.teamId ?? undefined,
-                          priority: "none",
-                        });
-                        toast.success(tt("created"));
-                      } catch { toast.error(tt("createFailed")); }
-                      finally { subtaskRef.current = false; }
-                    }}
-                    className="text-[10px] text-primary hover:underline font-medium"
-                  >
+                  <button onClick={handleAddSubtask} className="text-[10px] text-primary hover:underline font-medium">
                     {tt("add")}
                   </button>
                 )}
@@ -353,42 +336,72 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
                 </h2>
               </div>
 
-              <div className="space-y-3 mb-4">
-                {(comments ?? []).length === 0 && (
-                  <p className="text-xs text-muted-foreground/60 py-4">{tt("noComments")}</p>
-                )}
-                {(comments ?? []).map((c) => (
-                  <div key={c._id} className="flex gap-3">
-                    {c.userImage ? (
-                      <img src={c.userImage} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
-                    ) : (
-                      <div className="h-7 w-7 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary">
-                        {c.userName?.[0]?.toUpperCase() ?? "?"}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-semibold">{c.userName}</span>
-                        <span className="text-[10px] text-muted-foreground/60">
-                          {new Date(c.createdAt).toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                      <p className="text-sm text-foreground/90">{c.content}</p>
-                    </div>
+              {(comments ?? []).length === 0 ? (
+                <div className="flex flex-col items-center py-8 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 mb-3">
+                    <MessageCircle className="h-5 w-5 text-muted-foreground/40" />
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs text-muted-foreground/60">{tt("noComments")}</p>
+                </div>
+              ) : (
+                <div className="space-y-0.5 mb-4">
+                  {(comments ?? []).map((c) => (
+                    <div key={c._id} className="flex gap-3 rounded-lg px-2 py-2.5 -mx-2 transition-colors hover:bg-accent/30">
+                      {c.userImage ? (
+                        <img src={c.userImage} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover mt-0.5" />
+                      ) : (
+                        <div className="h-7 w-7 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary mt-0.5">
+                          {c.userName?.[0]?.toUpperCase() ?? "?"}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <span className="text-xs font-semibold">{c.userName}</span>
+                          <span className="text-[10px] text-muted-foreground/50">
+                            {new Date(c.createdAt).toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap">{c.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-              <form onSubmit={handleComment} className="flex gap-2">
-                <Input
-                  placeholder={tt("writeComment")}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  className="text-sm h-9"
-                />
-                <Button type="submit" size="sm" disabled={isSubmittingComment || !commentText.trim()} className="h-9 px-3">
-                  <Send className="h-3.5 w-3.5" />
-                </Button>
+              <form onSubmit={handleComment} className="flex items-start gap-2 mt-2">
+                <div className="shrink-0 mt-1">
+                  {session?.user?.image ? (
+                    <img src={session.user.image} alt="" className="h-7 w-7 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-semibold text-primary">
+                      {session?.user?.name?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder={tt("writeComment")}
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        if (commentText.trim() && !isSubmittingComment) {
+                          handleComment(e as any);
+                        }
+                      }
+                    }}
+                    className="text-sm h-9 pr-10"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={isSubmittingComment || !commentText.trim()}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                  >
+                    <Send className="h-3 w-3" />
+                  </Button>
+                </div>
               </form>
             </div>
           </div>

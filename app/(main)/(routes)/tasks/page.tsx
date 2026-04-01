@@ -24,6 +24,7 @@ import {
   SortableContext, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useExtensions } from "@/hooks/useExtensions";
 
 const STATUS_GROUP_KEYS = [
   { key: "todo", color: "text-slate-500", dot: "bg-slate-400" },
@@ -166,7 +167,10 @@ export default function TasksPage() {
   const [filter, setFilter] = useState<SmartFilter>("all");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("default");
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const { isEnabled, getUIConfig } = useExtensions();
+  const uiCfg = getUIConfig();
+  const kanbanEnabled = isEnabled("kanban");
+  const [viewMode, setViewMode] = useState<ViewMode>(kanbanEnabled ? uiCfg.defaultTaskView : "list");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [activeTask, setActiveTask] = useState<any>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
@@ -292,21 +296,23 @@ export default function TasksPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* View toggle */}
-              <div className="hidden sm:flex gap-0.5 rounded-lg border p-0.5">
-                <button
-                  onClick={() => setViewMode("list")}
-                  className={cn("rounded-md p-1.5 transition-all", viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                >
-                  <List className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => setViewMode("board")}
-                  className={cn("rounded-md p-1.5 transition-all", viewMode === "board" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              {/* View toggle — only show board if kanban extension enabled */}
+              {kanbanEnabled && (
+                <div className="hidden sm:flex gap-0.5 rounded-lg border p-0.5">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={cn("rounded-md p-1.5 transition-all", viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    <List className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("board")}
+                    className={cn("rounded-md p-1.5 transition-all", viewMode === "board" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               <Button onClick={() => { setNewTaskStatus("todo"); setShowNewTask(true); }} size="sm" className="gap-1.5 h-8">
                 <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{t("newTask")}</span>
               </Button>

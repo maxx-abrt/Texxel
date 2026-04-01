@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, use, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MessageCircle, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -17,7 +17,14 @@ import { useMutation, useQuery } from "convex/react";
 import { TableOfContents } from "@/components/table-of-contents";
 import { VersionHistoryPanel } from "@/components/version-history-panel";
 import { useDocumentUI } from "@/hooks/useDocumentUI";
+import { useExtensions } from "@/hooks/useExtensions";
 import type { TeamMember, CollabUser } from "@/components/editor";
+
+const EDITOR_WIDTH_CLASS: Record<string, string> = {
+  default: "md:max-w-3xl lg:max-w-4xl",
+  wide: "md:max-w-4xl lg:max-w-5xl",
+  full: "max-w-full px-6",
+};
 
 function computeWordStats(editor: any): { words: number; chars: number; readingTime: number } {
   try {
@@ -54,6 +61,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const [commentsSidebarEl, setCommentsSidebarEl] = useState<HTMLElement | null>(null);
 
   const { showComments, toggleComments, showVersionHistory, closeVersionHistory, setExportHandlers, focusMode } = useDocumentUI();
+  const uiCfg = useExtensions().getUIConfig();
   const [wordCount, setWordCount] = useState({ words: 0, chars: 0, readingTime: 0 });
   const [wordCountExpanded, setWordCountExpanded] = useState(false);
 
@@ -228,7 +236,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
       <div className="flex-1 overflow-y-auto pb-40 min-w-0 relative">
         <Cover url={document.coverImage} />
         <div className={`relative mx-auto transition-all duration-300 ${
-          focusMode ? "max-w-2xl px-8" : "md:max-w-3xl lg:max-w-4xl"
+          focusMode ? "max-w-2xl px-8" : (EDITOR_WIDTH_CLASS[uiCfg.editorWidth] ?? EDITOR_WIDTH_CLASS.default)
         }`}>
           <Toolbar initialData={document} />
           <Editor
@@ -246,8 +254,8 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
           />
           {!focusMode && <TableOfContents editor={editor} />}
         </div>
-        {/* Word count footer — hidden on mobile, collapsible on desktop */}
-        <div className="hidden md:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
+        {/* Word count footer — hidden on mobile, respects showWordCount setting */}
+        {uiCfg.showWordCount !== false && <div className="hidden md:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
           <button
             onClick={() => setWordCountExpanded((v) => !v)}
             className="flex items-center gap-2 rounded-full border border-border/50 bg-background/85 px-3.5 py-1.5 shadow-sm backdrop-blur-sm text-[11px] text-muted-foreground/60 tabular-nums transition-all hover:text-muted-foreground hover:border-border cursor-pointer select-none"
@@ -267,24 +275,23 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
               }`}
             />
           </button>
-        </div>
+        </div>}
       </div>
 
       {/* Comments sidebar — portal target (hidden in focus mode) */}
       {showComments && !focusMode && (
-        <div className="flex h-full w-72 shrink-0 flex-col border-l bg-background/98">
-          <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-3">
+        <div className="hidden sm:flex h-full w-72 lg:w-80 shrink-0 flex-col border-l bg-background">
+          <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">{t("commentsTitle")}</span>
+              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground/60" />
+              <span className="text-xs font-semibold tracking-wide text-muted-foreground/80">{t("commentsTitle")}</span>
             </div>
             <button
               onClick={toggleComments}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
-              aria-label="Close comments"
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
+              aria-label="Close"
             >
-              <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-              </svg>
+              <X className="h-3.5 w-3.5" />
             </button>
           </div>
           <div

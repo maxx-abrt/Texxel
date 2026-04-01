@@ -36,6 +36,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useExtensions } from "@/hooks/useExtensions";
 import {
   DndContext,
   DragEndEvent,
@@ -172,7 +173,11 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const removeProject = useMutation(api.projects.remove);
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState<"todo" | "in_progress" | "in_review" | "done" | "cancelled">("todo");
-  const [viewMode, setViewMode] = useState<"board" | "list" | "gantt">("board");
+  const { isEnabled, getUIConfig } = useExtensions();
+  const uiCfg = getUIConfig();
+  const ganttEnabled = isEnabled("gantt");
+  const retroEnabled = isEnabled("retroPlanning");
+  const [viewMode, setViewMode] = useState<"board" | "list" | "gantt">(uiCfg.defaultProjectView);
   const [activeTask, setActiveTask] = useState<any>(null);
   const [isOver, setIsOver] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
@@ -367,18 +372,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
               >
                 <List className="h-3.5 w-3.5" />
               </button>
-              <button
-                onClick={() => setViewMode("gantt")}
-                className={cn("rounded-md p-1.5 transition-all", viewMode === "gantt" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
-              >
-                <GanttIcon className="h-3.5 w-3.5" />
-              </button>
+              {ganttEnabled && (
+                <button
+                  onClick={() => setViewMode("gantt")}
+                  className={cn("rounded-md p-1.5 transition-all", viewMode === "gantt" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                >
+                  <GanttIcon className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
             <Button variant="outline" size="sm" onClick={openEdit} className="gap-1.5 h-8">
               <Pencil className="h-3.5 w-3.5" />
               {tc("edit")}
             </Button>
-            {project.dueDate && (
+            {retroEnabled && project.dueDate && (
               <Button variant="outline" size="sm" onClick={() => setShowRetroPlanning(true)} className="gap-1.5 h-8 hidden sm:flex">
                 <Clock className="h-3.5 w-3.5" />
                 {tp("retroPlanning.title")}

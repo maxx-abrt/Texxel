@@ -187,15 +187,47 @@ function ExtensionsPanel() {
         })}
       </div>
 
-      {/* UI Configuration */}
+      {/* ── Appearance & Layout ─────────────────────────────────────── */}
       <div className="border-t pt-6 space-y-5">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">UI Configuration</h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground/60">{te("uiConfig.title")}</h3>
+
+        {/* Font family */}
+        <div className="space-y-2.5">
+          <div>
+            <p className="text-sm font-medium">{te("uiConfig.fontFamily")}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.fontFamilyDesc")}</p>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {(["system", "inter", "mono", "serif"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => updateUIConfig({ fontFamily: f })}
+                className={cn(
+                  "rounded-xl border p-3 text-center transition-all",
+                  uiConfig.fontFamily === f
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "hover:border-primary/30",
+                )}
+              >
+                <span className={cn(
+                  "block text-lg leading-none mb-1.5",
+                  f === "mono" && "font-mono",
+                  f === "serif" && "font-serif",
+                  f === "inter" && "font-[Inter,sans-serif]",
+                )}>Aa</span>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  {te(`uiConfig.fonts.${f}` as any)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Font size */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Font size</p>
-            <p className="text-xs text-muted-foreground">Adjust the base font size</p>
+            <p className="text-sm font-medium">{te("uiConfig.fontSize")}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.fontSizeDesc")}</p>
           </div>
           <div className="flex gap-0.5 rounded-lg border p-0.5">
             {(["sm", "base", "lg"] as const).map((size) => (
@@ -213,11 +245,60 @@ function ExtensionsPanel() {
           </div>
         </div>
 
-        {/* Default task view */}
+        {/* Editor width */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Default task view</p>
-            <p className="text-xs text-muted-foreground">List or Board when opening tasks</p>
+            <p className="text-sm font-medium">{te("uiConfig.editorWidth")}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.editorWidthDesc")}</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["default", "wide", "full"] as const).map((w) => (
+              <button
+                key={w}
+                onClick={() => updateUIConfig({ editorWidth: w })}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-all",
+                  uiConfig.editorWidth === w ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {te(`uiConfig.editorWidths.${w}` as any)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Sidebar width presets */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">{te("uiConfig.sidebarWidth")}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.sidebarWidthDesc")}</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {([
+              { value: 220, label: "S" },
+              { value: 252, label: "M" },
+              { value: 300, label: "L" },
+              { value: 360, label: "XL" },
+            ] as const).map((preset) => (
+              <button
+                key={preset.value}
+                onClick={() => updateUIConfig({ sidebarWidth: preset.value })}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-all",
+                  uiConfig.sidebarWidth === preset.value ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Default views */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">{te("uiConfig.defaultTaskView")}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.defaultTaskViewDesc")}</p>
           </div>
           <div className="flex gap-0.5 rounded-lg border p-0.5">
             {(["list", "board"] as const).map((view) => (
@@ -235,11 +316,10 @@ function ExtensionsPanel() {
           </div>
         </div>
 
-        {/* Default project view */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Default project view</p>
-            <p className="text-xs text-muted-foreground">Board, List or Gantt</p>
+            <p className="text-sm font-medium">{te("uiConfig.defaultProjectView")}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.defaultProjectViewDesc")}</p>
           </div>
           <div className="flex gap-0.5 rounded-lg border p-0.5">
             {(["board", "list", "gantt"] as const).map((view) => (
@@ -257,24 +337,47 @@ function ExtensionsPanel() {
           </div>
         </div>
 
-        {/* Compact mode */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium">Compact mode</p>
-            <p className="text-xs text-muted-foreground">Reduce spacing and element sizes</p>
+        {/* Toggles */}
+        <div className="space-y-3 border-t pt-4">
+          {/* Compact mode */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{te("uiConfig.compactMode")}</p>
+              <p className="text-xs text-muted-foreground">{te("uiConfig.compactModeDesc")}</p>
+            </div>
+            <button
+              onClick={() => updateUIConfig({ compactMode: !uiConfig.compactMode })}
+              className={cn(
+                "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
+                uiConfig.compactMode ? "bg-primary" : "bg-muted",
+              )}
+            >
+              <span className={cn(
+                "inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform mt-0.5",
+                uiConfig.compactMode ? "translate-x-4 ml-0.5" : "translate-x-0.5",
+              )} />
+            </button>
           </div>
-          <button
-            onClick={() => updateUIConfig({ compactMode: !uiConfig.compactMode })}
-            className={cn(
-              "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
-              uiConfig.compactMode ? "bg-primary" : "bg-muted",
-            )}
-          >
-            <span className={cn(
-              "inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform mt-0.5",
-              uiConfig.compactMode ? "translate-x-4 ml-0.5" : "translate-x-0.5",
-            )} />
-          </button>
+
+          {/* Word count */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{te("uiConfig.showWordCount")}</p>
+              <p className="text-xs text-muted-foreground">{te("uiConfig.showWordCountDesc")}</p>
+            </div>
+            <button
+              onClick={() => updateUIConfig({ showWordCount: !uiConfig.showWordCount })}
+              className={cn(
+                "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
+                uiConfig.showWordCount ? "bg-primary" : "bg-muted",
+              )}
+            >
+              <span className={cn(
+                "inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform mt-0.5",
+                uiConfig.showWordCount ? "translate-x-4 ml-0.5" : "translate-x-0.5",
+              )} />
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -605,6 +605,36 @@
       "timeTracking": { "name": "Time Tracking", "desc": "Track time spent on tasks" },
       "customFields": { "name": "Custom Fields", "desc": "Add custom properties to tasks" },
       "automations": { "name": "Automations", "desc": "Automate repetitive workflows" }
+    },
+    "uiConfig": {
+      "title": "Appearance & Layout",
+      "fontSize": "Font size",
+      "fontSizeDesc": "Small, Medium or Large",
+      "fontFamily": "Font family",
+      "fontFamilyDesc": "Choose the typeface for the interface",
+      "fonts": {
+        "system": "System",
+        "inter": "Inter",
+        "mono": "Mono",
+        "serif": "Serif"
+      },
+      "editorWidth": "Editor width",
+      "editorWidthDesc": "Content width in the note editor",
+      "editorWidths": {
+        "default": "Default",
+        "wide": "Wide",
+        "full": "Full"
+      },
+      "sidebarWidth": "Sidebar width",
+      "sidebarWidthDesc": "Drag or pick a preset width",
+      "defaultTaskView": "Default task view",
+      "defaultTaskViewDesc": "List or Board when opening tasks",
+      "defaultProjectView": "Default project view",
+      "defaultProjectViewDesc": "Board, List or Gantt",
+      "compactMode": "Compact mode",
+      "compactModeDesc": "Reduce spacing and element sizes",
+      "showWordCount": "Word count",
+      "showWordCountDesc": "Show word count bar in editor"
     }
   },
   "ai": {

@@ -28,6 +28,7 @@ import {
   PlusCircle,
   Search,
   Settings,
+  Sparkles,
   Trash,
   Trash2,
   Users,
@@ -46,6 +47,7 @@ import { openCommandPalette } from "@/components/command-palette";
 import { useTranslations } from "next-intl";
 import { useDocumentUI } from "@/hooks/useDocumentUI";
 import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { useExtensions } from "@/hooks/useExtensions";
 
 const Navigation = () => {
   const search = useSearch();
@@ -61,6 +63,9 @@ const Navigation = () => {
   const bulkArchive = useMutation(api.documents.bulkArchive);
   const bulkDuplicate = useMutation(api.documents.bulkDuplicate);
   const tb = useTranslations("bulk");
+  const { isEnabled: extEnabled, getUIConfig } = useExtensions();
+  const sidebarW = getUIConfig().sidebarWidth ?? 252;
+  const sidebarPx = `${sidebarW}px`;
 
   const isResizingRef = useRef(false);
   const sidebarRef = useRef<ComponentRef<"aside">>(null);
@@ -116,9 +121,9 @@ const Navigation = () => {
     if (sidebarRef.current && navbarRef.current) {
       setIsCollapsed(false);
       setIsResetting(true);
-      sidebarRef.current.style.width = isMobile ? "100%" : "252px";
-      navbarRef.current.style.setProperty("width", isMobile ? "0" : "calc(100% - 252px)");
-      navbarRef.current.style.setProperty("left", isMobile ? "100%" : "252px");
+      sidebarRef.current.style.width = isMobile ? "100%" : sidebarPx;
+      navbarRef.current.style.setProperty("width", isMobile ? "0" : `calc(100% - ${sidebarPx})`);
+      navbarRef.current.style.setProperty("left", isMobile ? "100%" : sidebarPx);
       setTimeout(() => setIsResetting(false), 300);
     }
   };
@@ -151,11 +156,11 @@ const Navigation = () => {
     <>
       <aside
         ref={sidebarRef}
+        style={{ width: isMobile ? 0 : sidebarW }}
         className={cn(
-          "group/sidebar bg-sidebar relative z-300 flex h-full w-[252px] flex-col overflow-hidden",
+          "group/sidebar bg-sidebar relative z-300 flex h-full flex-col overflow-hidden",
           "border-r border-sidebar-border",
           isResetting && "transition-all duration-300 ease-in-out",
-          isMobile && "w-0",
         )}
       >
         {/* Collapse button */}
@@ -225,12 +230,14 @@ const Navigation = () => {
             onClick={() => router.push("/tasks")}
             active={pathname.startsWith("/tasks")}
           />
-          <Item
-            label={t("calendar")}
-            icon={CalendarDays}
-            onClick={() => router.push("/calendar")}
-            active={pathname.startsWith("/calendar")}
-          />
+          {extEnabled("calendar") && (
+            <Item
+              label={t("calendar")}
+              icon={CalendarDays}
+              onClick={() => router.push("/calendar")}
+              active={pathname.startsWith("/calendar")}
+            />
+          )}
           <Item
             label={t("projects")}
             icon={FolderKanban}
@@ -244,6 +251,17 @@ const Navigation = () => {
             active={pathname.startsWith("/teams")}
           />
         </div>
+
+        {/* AI Assistant — only if extension enabled */}
+        {extEnabled("aiAssistant") && (
+          <div className="shrink-0 px-3 py-1 border-b border-sidebar-border">
+            <Item
+              label="AI Assistant"
+              icon={Sparkles}
+              onClick={() => router.push("/documents")}
+            />
+          </div>
+        )}
 
         {/* Notes section */}
         <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
@@ -348,10 +366,10 @@ const Navigation = () => {
 
       <div
         ref={navbarRef}
+        style={isMobile ? { left: 0, width: "100%" } : { left: sidebarW, width: `calc(100% - ${sidebarPx})` }}
         className={cn(
-          "absolute top-0 left-[252px] z-40 w-[calc(100%-252px)]",
+          "absolute top-0 z-40",
           isResetting && "transition-all duration-300 ease-in-out",
-          isMobile && "left-0 w-full",
         )}
       >
         {!!params.documentId ? (

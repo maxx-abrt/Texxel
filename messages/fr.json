@@ -605,6 +605,36 @@
       "timeTracking": { "name": "Suivi du temps", "desc": "Suivre le temps passé sur les tâches" },
       "customFields": { "name": "Champs personnalisés", "desc": "Ajouter des propriétés personnalisées aux tâches" },
       "automations": { "name": "Automatisations", "desc": "Automatiser les flux de travail répétitifs" }
+    },
+    "uiConfig": {
+      "title": "Apparence & Mise en page",
+      "fontSize": "Taille de police",
+      "fontSizeDesc": "Petit, Moyen ou Grand",
+      "fontFamily": "Police de caractères",
+      "fontFamilyDesc": "Choisir la typographie de l'interface",
+      "fonts": {
+        "system": "Système",
+        "inter": "Inter",
+        "mono": "Mono",
+        "serif": "Serif"
+      },
+      "editorWidth": "Largeur de l'éditeur",
+      "editorWidthDesc": "Largeur du contenu dans l'éditeur de notes",
+      "editorWidths": {
+        "default": "Défaut",
+        "wide": "Large",
+        "full": "Plein"
+      },
+      "sidebarWidth": "Largeur du panneau",
+      "sidebarWidthDesc": "Glisser ou choisir une largeur prédéfinie",
+      "defaultTaskView": "Vue des tâches par défaut",
+      "defaultTaskViewDesc": "Liste ou Tableau à l'ouverture des tâches",
+      "defaultProjectView": "Vue des projets par défaut",
+      "defaultProjectViewDesc": "Tableau, Liste ou Gantt",
+      "compactMode": "Mode compact",
+      "compactModeDesc": "Réduire l'espacement et la taille des éléments",
+      "showWordCount": "Compteur de mots",
+      "showWordCountDesc": "Afficher le compteur de mots dans l'éditeur"
     }
   },
   "ai": {

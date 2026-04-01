@@ -12,11 +12,12 @@ export interface ExtensionConfig {
 export interface UIConfig {
   sidebarWidth: number;
   fontSize: "sm" | "base" | "lg";
-  fontFamily: "system" | "inter" | "mono";
+  fontFamily: "system" | "inter" | "mono" | "serif";
   compactMode: boolean;
   showWordCount: boolean;
   defaultTaskView: "list" | "board";
   defaultProjectView: "board" | "list" | "gantt";
+  editorWidth: "default" | "wide" | "full";
 }
 
 interface WorkspaceExtensions {
@@ -54,6 +55,7 @@ const DEFAULT_UI: UIConfig = {
   showWordCount: true,
   defaultTaskView: "list",
   defaultProjectView: "board",
+  editorWidth: "default",
 };
 
 const DEFAULT_WS_DATA: WorkspaceExtensions = {

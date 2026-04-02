@@ -37,6 +37,7 @@ import {
   type AiAction,
   type AppContext,
 } from "@/lib/ai";
+import { useExtensions } from "@/hooks/useExtensions";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -242,6 +243,7 @@ export function AiAssistantPanel({
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const aiAccess = useExtensions().getAiAccess();
 
   // Convex queries
   const myTasks = useQuery(api.tasks.getMyTasks, {});
@@ -287,10 +289,26 @@ export function AiAssistantPanel({
       ? ["suggestPriority", "generateTasks", "brainstorm"]
       : ["analyzeWorkspace", "generateTasks", "createNote", "planDay"];
 
-  // ── Build full app context ─────────────────────────────────────────────────
-  const buildCtx = useCallback((): AppContext => ({
-    locale,
-    tasks: (myTasks ?? []).map((tk) => ({
+  // ── Build full app context (filtered by AI access scope) ────────────────────
+  const buildCtx = useCallback((): AppContext => {
+    const isRestricted = aiAccess.scope === "restricted";
+    const allowedDocs = new Set(aiAccess.allowedDocumentIds);
+    const allowedProjects = new Set(aiAccess.allowedProjectIds);
+
+    // Filter documents: in restricted mode only show allowed ones (+ always show current)
+    const allDocs = (recentDocs ?? []).map((d) => ({ id: d._id, title: d.title, icon: d.icon ?? undefined }));
+    const filteredDocs = isRestricted
+      ? allDocs.filter((d) => allowedDocs.has(d.id) || d.id === documentContext?.id)
+      : allDocs;
+
+    // Filter projects
+    const allProjects = (myProjects ?? []).filter(Boolean).map((p) => ({ id: p!._id, name: p!.name }));
+    const filteredProjects = isRestricted
+      ? allProjects.filter((p) => allowedProjects.has(p.id))
+      : allProjects;
+
+    // Filter tasks: in restricted mode only show tasks from allowed projects (or unassigned)
+    const allTasks = (myTasks ?? []).map((tk) => ({
       id: tk._id,
       title: tk.title,
       status: tk.status,
@@ -299,25 +317,34 @@ export function AiAssistantPanel({
       description: tk.description ?? undefined,
       parentTaskId: tk.parentTaskId ?? undefined,
       assigneeName: tk.assigneeName ?? undefined,
-    })),
-    documents: (recentDocs ?? []).map((d) => ({ id: d._id, title: d.title, icon: d.icon ?? undefined })),
-    projects: (myProjects ?? []).filter(Boolean).map((p) => ({ id: p!._id, name: p!.name })),
-    teams: (myTeams ?? []).filter(Boolean).map((tm) => ({ id: tm!._id, name: tm!.name })),
-    currentDocument: documentContext
-      ? { id: documentContext.id, title: documentContext.title, content: documentContext.content }
-      : undefined,
-    currentTask: taskContext
-      ? {
-          id: taskContext.id,
-          title: taskContext.title,
-          status: taskContext.status ?? "todo",
-          priority: taskContext.priority ?? "none",
-          description: taskContext.description,
-          assigneeName: taskContext.assigneeName,
-          projectName: taskContext.projectName,
-        }
-      : undefined,
-  }), [locale, myTasks, recentDocs, myProjects, myTeams, documentContext, taskContext]);
+      projectId: tk.projectId ?? undefined,
+    }));
+    const filteredTasks = isRestricted
+      ? allTasks.filter((tk) => !tk.projectId || allowedProjects.has(tk.projectId) || tk.id === taskContext?.id)
+      : allTasks;
+
+    return {
+      locale,
+      tasks: filteredTasks,
+      documents: filteredDocs,
+      projects: filteredProjects,
+      teams: (myTeams ?? []).filter(Boolean).map((tm) => ({ id: tm!._id, name: tm!.name })),
+      currentDocument: documentContext
+        ? { id: documentContext.id, title: documentContext.title, content: documentContext.content }
+        : undefined,
+      currentTask: taskContext
+        ? {
+            id: taskContext.id,
+            title: taskContext.title,
+            status: taskContext.status ?? "todo",
+            priority: taskContext.priority ?? "none",
+            description: taskContext.description,
+            assigneeName: taskContext.assigneeName,
+            projectName: taskContext.projectName,
+          }
+        : undefined,
+    };
+  }, [locale, myTasks, recentDocs, myProjects, myTeams, documentContext, taskContext, aiAccess]);
 
   // ── Execute a single action (on user approval) ─────────────────────────────
   const executeAction = async (action: AiAction): Promise<string> => {
@@ -440,7 +467,7 @@ export function AiAssistantPanel({
     try {
       const systemPrompt = buildSystemPrompt(buildCtx());
       const apiMessages: AiMessage[] = [
-        { role: "system", content: systemPrompt },
+        { role: "developer", content: systemPrompt },
         ...messages.slice(-12).map((m) => ({
           role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
           content: m.text,
@@ -507,7 +534,8 @@ export function AiAssistantPanel({
           {onClose && (
             <button
               onClick={onClose}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              title={t("close")}
             >
               <X className="h-4 w-4" />
             </button>

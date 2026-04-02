@@ -305,7 +305,23 @@
       "language": "Langue",
       "import": "Importer",
       "shortcuts": "Raccourcis",
-      "extensions": "Extensions"
+      "extensions": "Extensions",
+      "aiSettings": "A2E AI"
+    },
+    "aiSettings": {
+      "subtitle": "Contrôlez ce que A2E AI peut voir et accéder dans votre espace de travail.",
+      "enableFirst": "Activez d'abord l'extension Assistant IA dans l'onglet Extensions.",
+      "fullAccess": "Accès complet",
+      "fullAccessDesc": "A2E AI peut voir toutes vos notes, tâches et projets.",
+      "restricted": "Accès restreint",
+      "restrictedDesc": "A2E AI ne peut voir que les notes et projets que vous sélectionnez ci-dessous.",
+      "allowedNotes": "Notes autorisées",
+      "allowedProjects": "Projets autorisés",
+      "selectAll": "Tout sélectionner",
+      "clearAll": "Tout effacer",
+      "noNotes": "Aucune note trouvée dans votre espace de travail.",
+      "noProjects": "Aucun projet trouvé dans votre espace de travail.",
+      "restrictedHint": "L'IA verra toujours la note ou la tâche que vous consultez actuellement, même si elle n'est pas dans la liste autorisée."
     },
     "notifications": {
       "subtitle": "Configurez la façon dont vous recevez les notifications.",
@@ -695,6 +711,7 @@
     "reject": "Ignorer",
     "applied": "Appliqué",
     "rejected": "Ignoré",
+    "close": "Fermer",
     "poweredBy": "Propulsé par Gemma",
     "actionCreatedTask": "Tâche créée ✅",
     "actionEditedTask": "Tâche mise à jour ✅",

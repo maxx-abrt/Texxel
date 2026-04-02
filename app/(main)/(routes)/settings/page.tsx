@@ -26,7 +26,13 @@ import {
   GanttChart,
   CalendarDays,
   Clock,
+  Eye,
+  EyeOff,
+  FileText,
+  FolderKanban,
+  Lock,
   Sparkles,
+  Unlock,
   Zap,
   Settings2,
   Columns3,
@@ -44,6 +50,7 @@ const TABS = [
   { id: "notifications", icon: Bell },
   { id: "language", icon: Globe },
   { id: "extensions", icon: Puzzle },
+  { id: "aiSettings", icon: Sparkles },
   { id: "import", icon: Upload },
   { id: "shortcuts", icon: Keyboard },
 ] as const;
@@ -380,6 +387,196 @@ function ExtensionsPanel() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AiSettingsPanel() {
+  const ta = useTranslations("ai");
+  const ts = useTranslations("settings");
+  const { getAiAccess, updateAiAccess, isEnabled: extEnabled } = useExtensions();
+  const aiAccess = getAiAccess();
+  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
+  const myProjects = useQuery(api.projects.getMyProjects, {});
+
+  const isRestricted = aiAccess.scope === "restricted";
+  const allowedDocs = new Set(aiAccess.allowedDocumentIds);
+  const allowedProjects = new Set(aiAccess.allowedProjectIds);
+
+  const toggleDoc = (id: string) => {
+    const next = new Set(allowedDocs);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    updateAiAccess({ allowedDocumentIds: Array.from(next) });
+  };
+
+  const toggleProject = (id: string) => {
+    const next = new Set(allowedProjects);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    updateAiAccess({ allowedProjectIds: Array.from(next) });
+  };
+
+  const selectAllDocs = () => updateAiAccess({ allowedDocumentIds: (recentDocs ?? []).map((d) => d._id) });
+  const clearAllDocs = () => updateAiAccess({ allowedDocumentIds: [] });
+  const selectAllProjects = () => updateAiAccess({ allowedProjectIds: (myProjects ?? []).filter(Boolean).map((p) => p!._id) });
+  const clearAllProjects = () => updateAiAccess({ allowedProjectIds: [] });
+
+  if (!extEnabled("aiAssistant")) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold mb-1">{ta("title")}</h2>
+          <p className="text-sm text-muted-foreground">{ts("tabs.aiSettings")}</p>
+        </div>
+        <div className="rounded-xl border p-6 text-center">
+          <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">{ts("aiSettings.enableFirst")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-semibold mb-1">{ta("title")}</h2>
+        <p className="text-sm text-muted-foreground">{ts("aiSettings.subtitle")}</p>
+      </div>
+
+      {/* Scope toggle */}
+      <div className="rounded-xl border p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {isRestricted ? (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
+                <Lock className="h-4 w-4 text-amber-500" />
+              </div>
+            ) : (
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
+                <Unlock className="h-4 w-4 text-emerald-500" />
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-semibold">
+                {isRestricted ? ts("aiSettings.restricted") : ts("aiSettings.fullAccess")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isRestricted ? ts("aiSettings.restrictedDesc") : ts("aiSettings.fullAccessDesc")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => updateAiAccess({ scope: isRestricted ? "all" : "restricted" })}
+            className={cn(
+              "relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors",
+              isRestricted ? "bg-amber-500" : "bg-emerald-500",
+            )}
+          >
+            <span className={cn(
+              "inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform mt-0.5",
+              isRestricted ? "translate-x-0.5" : "translate-x-4 ml-0.5",
+            )} />
+          </button>
+        </div>
+      </div>
+
+      {/* Restricted mode: pick notes & projects */}
+      {isRestricted && (
+        <>
+          {/* Notes */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{ts("aiSettings.allowedNotes")}</h3>
+                <span className="text-xs text-muted-foreground">({allowedDocs.size}/{(recentDocs ?? []).length})</span>
+              </div>
+              <div className="flex gap-1">
+                <button onClick={selectAllDocs} className="text-[10px] text-primary hover:underline font-medium">{ts("aiSettings.selectAll")}</button>
+                <span className="text-muted-foreground/30 text-[10px]">·</span>
+                <button onClick={clearAllDocs} className="text-[10px] text-muted-foreground hover:underline font-medium">{ts("aiSettings.clearAll")}</button>
+              </div>
+            </div>
+            <div className="rounded-xl border divide-y max-h-52 overflow-y-auto">
+              {(recentDocs ?? []).length === 0 && (
+                <p className="px-4 py-3 text-xs text-muted-foreground">{ts("aiSettings.noNotes")}</p>
+              )}
+              {(recentDocs ?? []).map((doc) => {
+                const checked = allowedDocs.has(doc._id);
+                return (
+                  <button
+                    key={doc._id}
+                    onClick={() => toggleDoc(doc._id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/30",
+                      checked && "bg-primary/5",
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                      checked ? "bg-primary border-primary" : "border-muted-foreground/30",
+                    )}>
+                      {checked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                    </div>
+                    <span className="text-sm truncate">{doc.icon ? `${doc.icon} ` : ""}{doc.title}</span>
+                    {checked ? <Eye className="h-3 w-3 ml-auto text-primary shrink-0" /> : <EyeOff className="h-3 w-3 ml-auto text-muted-foreground/30 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Projects */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{ts("aiSettings.allowedProjects")}</h3>
+                <span className="text-xs text-muted-foreground">({allowedProjects.size}/{(myProjects ?? []).length})</span>
+              </div>
+              <div className="flex gap-1">
+                <button onClick={selectAllProjects} className="text-[10px] text-primary hover:underline font-medium">{ts("aiSettings.selectAll")}</button>
+                <span className="text-muted-foreground/30 text-[10px]">·</span>
+                <button onClick={clearAllProjects} className="text-[10px] text-muted-foreground hover:underline font-medium">{ts("aiSettings.clearAll")}</button>
+              </div>
+            </div>
+            <div className="rounded-xl border divide-y max-h-52 overflow-y-auto">
+              {(myProjects ?? []).length === 0 && (
+                <p className="px-4 py-3 text-xs text-muted-foreground">{ts("aiSettings.noProjects")}</p>
+              )}
+              {(myProjects ?? []).filter(Boolean).map((proj) => {
+                const checked = allowedProjects.has(proj!._id);
+                return (
+                  <button
+                    key={proj!._id}
+                    onClick={() => toggleProject(proj!._id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-accent/30",
+                      checked && "bg-primary/5",
+                    )}
+                  >
+                    <div className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                      checked ? "bg-primary border-primary" : "border-muted-foreground/30",
+                    )}>
+                      {checked && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                    </div>
+                    <div
+                      className="h-3 w-3 rounded shrink-0"
+                      style={{ backgroundColor: (proj as any)?.color ?? "#6366f1" }}
+                    />
+                    <span className="text-sm truncate">{proj!.name}</span>
+                    {checked ? <Eye className="h-3 w-3 ml-auto text-primary shrink-0" /> : <EyeOff className="h-3 w-3 ml-auto text-muted-foreground/30 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground/60 leading-relaxed">
+            {ts("aiSettings.restrictedHint")}
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -825,6 +1022,9 @@ export default function SettingsPage() {
 
             {/* Extensions */}
             {activeTab === "extensions" && <ExtensionsPanel />}
+
+            {/* AI Settings */}
+            {activeTab === "aiSettings" && <AiSettingsPanel />}
 
             {/* Shortcuts */}
             {activeTab === "shortcuts" && (

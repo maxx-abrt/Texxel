@@ -20,9 +20,16 @@ export interface UIConfig {
   editorWidth: "default" | "wide" | "full";
 }
 
+export interface AiAccessConfig {
+  scope: "all" | "restricted";
+  allowedDocumentIds: string[];
+  allowedProjectIds: string[];
+}
+
 interface WorkspaceExtensions {
   extensions: ExtensionConfig[];
   uiConfig: UIConfig;
+  aiAccess: AiAccessConfig;
 }
 
 interface ExtensionsState {
@@ -34,6 +41,8 @@ interface ExtensionsState {
   updateUIConfig: (patch: Partial<UIConfig>) => void;
   getExtensions: () => ExtensionConfig[];
   getUIConfig: () => UIConfig;
+  getAiAccess: () => AiAccessConfig;
+  updateAiAccess: (patch: Partial<AiAccessConfig>) => void;
 }
 
 const DEFAULT_EXTENSIONS: ExtensionConfig[] = [
@@ -58,9 +67,16 @@ const DEFAULT_UI: UIConfig = {
   editorWidth: "default",
 };
 
+const DEFAULT_AI_ACCESS: AiAccessConfig = {
+  scope: "all",
+  allowedDocumentIds: [],
+  allowedProjectIds: [],
+};
+
 const DEFAULT_WS_DATA: WorkspaceExtensions = {
   extensions: DEFAULT_EXTENSIONS,
   uiConfig: DEFAULT_UI,
+  aiAccess: DEFAULT_AI_ACCESS,
 };
 
 const getWsData = (state: ExtensionsState): WorkspaceExtensions => {
@@ -116,6 +132,21 @@ export const useExtensions = create<ExtensionsState>()(
 
       getExtensions: () => getWsData(get()).extensions,
       getUIConfig: () => getWsData(get()).uiConfig,
+      getAiAccess: () => getWsData(get()).aiAccess ?? DEFAULT_AI_ACCESS,
+      updateAiAccess: (patch: Partial<AiAccessConfig>) =>
+        set((state) => {
+          const key = state.workspaceId ?? "_default";
+          const current = state.workspaceData[key] ?? DEFAULT_WS_DATA;
+          return {
+            workspaceData: {
+              ...state.workspaceData,
+              [key]: {
+                ...current,
+                aiAccess: { ...(current.aiAccess ?? DEFAULT_AI_ACCESS), ...patch },
+              },
+            },
+          };
+        }),
     }),
     {
       name: "texxel-extensions",

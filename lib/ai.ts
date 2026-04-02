@@ -1,7 +1,7 @@
 // ─── A2E AI Service — calls /api/ai and parses structured actions ────────────
 
 export interface AiMessage {
-  role: "system" | "user" | "assistant";
+  role: "developer" | "user" | "assistant";
   content: string;
 }
 
@@ -98,6 +98,7 @@ export interface TaskCtx {
   parentTaskId?: string;
   assigneeName?: string;
   projectName?: string;
+  projectId?: string;
   subtaskCount?: number;
   commentCount?: number;
 }

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, use, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, MessageCircle, X } from "lucide-react";
+import { ChevronDown, MessageCircle, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { TableOfContents } from "@/components/table-of-contents";
 import { VersionHistoryPanel } from "@/components/version-history-panel";
+import { AiAssistantPanel } from "@/components/ai-assistant";
 import { useDocumentUI } from "@/hooks/useDocumentUI";
 import { useExtensions } from "@/hooks/useExtensions";
 import type { TeamMember, CollabUser } from "@/components/editor";
@@ -61,7 +62,9 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const [commentsSidebarEl, setCommentsSidebarEl] = useState<HTMLElement | null>(null);
 
   const { showComments, toggleComments, showVersionHistory, closeVersionHistory, setExportHandlers, focusMode } = useDocumentUI();
-  const uiCfg = useExtensions().getUIConfig();
+  const { getUIConfig, isEnabled: extEnabled } = useExtensions();
+  const uiCfg = getUIConfig();
+  const [showAi, setShowAi] = useState(false);
   const [wordCount, setWordCount] = useState({ words: 0, chars: 0, readingTime: 0 });
   const [wordCountExpanded, setWordCountExpanded] = useState(false);
 
@@ -308,6 +311,40 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
           onClose={closeVersionHistory}
           onRestore={() => window.location.reload()}
         />
+      )}
+
+      {/* AI Assistant sidebar */}
+      {extEnabled("aiAssistant") && showAi && !focusMode && (
+        <div className="hidden sm:flex h-full w-80 shrink-0 flex-col border-l bg-background">
+          <AiAssistantPanel
+            onClose={() => setShowAi(false)}
+            documentContext={{
+              id: documentId,
+              title: document.title,
+              content: document.content,
+            }}
+            onDocumentContentReplace={(newContent) => {
+              update({ id: documentId, content: newContent });
+              if (editor) {
+                try {
+                  const blocks = JSON.parse(newContent);
+                  editor.replaceBlocks(editor.document, blocks);
+                } catch {}
+              }
+            }}
+          />
+        </div>
+      )}
+
+      {/* AI Assistant floating toggle */}
+      {extEnabled("aiAssistant") && !showAi && !focusMode && (
+        <button
+          onClick={() => setShowAi(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:hidden md:flex"
+          title="A2E AI"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
       )}
     </div>
   );

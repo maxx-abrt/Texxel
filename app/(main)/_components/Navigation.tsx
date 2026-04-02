@@ -258,7 +258,7 @@ const Navigation = () => {
           <div className="shrink-0 px-3 py-1 border-b border-sidebar-border">
             {extEnabled("aiAssistant") && (
               <Item
-                label="AI Assistant"
+                label="A2E AI"
                 icon={Sparkles}
                 onClick={() => router.push("/documents")}
               />

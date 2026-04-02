@@ -31,12 +31,15 @@ import {
   MessageCircle,
   Plus,
   Send,
+  Sparkles,
   Trash2,
   UserCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
+import { AiAssistantPanel } from "@/components/ai-assistant";
 import { useTranslations, useLocale } from "next-intl";
+import { useExtensions } from "@/hooks/useExtensions";
 
 const STATUS_COLORS: Record<string, { color: string; dot: string }> = {
   todo: { color: "text-slate-500", dot: "bg-slate-400" },
@@ -76,6 +79,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const [openSelect, setOpenSelect] = useState<string | null>(null);
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const subtaskRef = useRef(false);
+  const [showAi, setShowAi] = useState(false);
+  const { isEnabled: extEnabled } = useExtensions();
 
   const selectProps = (key: string) => ({
     open: openSelect === key,
@@ -174,7 +179,8 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const isOverdue = task.dueDate && task.dueDate < Date.now() && task.status !== "done";
 
   return (
-    <div className="h-full overflow-y-auto">
+    <div className="flex h-full min-h-0">
+      <div className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl px-6 py-8 md:px-10">
         {/* Back */}
         <button
@@ -530,6 +536,36 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
           </div>
         </div>
       </div>
+      </div>
+
+      {/* AI Assistant sidebar */}
+      {extEnabled("aiAssistant") && showAi && (
+        <div className="hidden sm:flex h-full w-80 shrink-0 flex-col border-l bg-background">
+          <AiAssistantPanel
+            onClose={() => setShowAi(false)}
+            taskContext={{
+              id: task._id,
+              title: task.title,
+              description: task.description,
+              status: task.status,
+              priority: task.priority,
+              assigneeName: task.assigneeName ?? undefined,
+              projectName: project?.name ?? undefined,
+            }}
+          />
+        </div>
+      )}
+
+      {/* AI Assistant floating toggle */}
+      {extEnabled("aiAssistant") && !showAi && (
+        <button
+          onClick={() => setShowAi(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          title="A2E AI"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 }

@@ -1,130 +1,541 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useTranslations } from "next-intl";
+import { Id } from "@/convex/_generated/dataModel";
+import { useTranslations, useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
-  Bot,
+  Check,
   CheckSquare,
+  ChevronDown,
+  ChevronUp,
+  ClipboardList,
+  Eye,
   FileText,
   Lightbulb,
+  ListTodo,
   Loader2,
+  Pencil,
+  Plus,
+  RotateCcw,
   Send,
   Sparkles,
+  Wand2,
   X,
+  XCircle,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import {
+  sendAiMessage,
+  buildSystemPrompt,
+  extractPlainText,
+  type AiMessage,
+  type AiAction,
+  type AppContext,
+} from "@/lib/ai";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface AiAssistantPanelProps {
   onClose?: () => void;
-  documentContext?: { title: string; content?: string };
-  taskContext?: { title: string; description?: string; status?: string };
+  documentContext?: { id: string; title: string; content?: string };
+  taskContext?: { id: string; title: string; description?: string; status?: string; priority?: string; assigneeName?: string; projectName?: string };
+  onDocumentContentReplace?: (newContent: string) => void;
 }
+
+type ActionStatus = "pending" | "applied" | "rejected";
+
+interface PendingAction {
+  action: AiAction;
+  status: ActionStatus;
+}
+
+interface ChatMessage {
+  role: "user" | "ai";
+  text: string;
+  pendingActions?: PendingAction[];
+}
+
+// ─── Icons map ───────────────────────────────────────────────────────────────
 
 const SUGGESTION_ICONS: Record<string, React.ElementType> = {
   summarize: FileText,
-  improveWriting: Sparkles,
-  generateTasks: CheckSquare,
+  improveWriting: Wand2,
+  generateTasks: ListTodo,
   suggestPriority: Lightbulb,
+  correctErrors: Pencil,
+  createNote: Plus,
+  analyzeWorkspace: Eye,
+  planDay: ClipboardList,
+  brainstorm: Zap,
 };
 
-export function AiAssistantPanel({ onClose, documentContext, taskContext }: AiAssistantPanelProps) {
+const ACTION_TYPE_ICONS: Record<string, React.ElementType> = {
+  create_task: CheckSquare,
+  edit_task: Pencil,
+  create_subtask: ListTodo,
+  create_document: FileText,
+  replace_content: Pencil,
+  edit_document_blocks: Wand2,
+};
+
+// ─── A2E AI cute avatar ──────────────────────────────────────────────────────
+
+function A2EAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
+  const s = size === "lg" ? "h-10 w-10" : size === "md" ? "h-7 w-7" : "h-6 w-6";
+  const icon = size === "lg" ? "h-5 w-5" : size === "md" ? "h-4 w-4" : "h-3 w-3";
+  return (
+    <div className={cn(
+      s,
+      "shrink-0 rounded-xl bg-gradient-to-br from-violet-500/20 via-primary/15 to-blue-500/20 flex items-center justify-center ring-1 ring-primary/10",
+    )}>
+      <Sparkles className={cn(icon, "text-primary")} />
+    </div>
+  );
+}
+
+// ─── Diff preview for document content changes ──────────────────────────────
+
+function DiffPreview({
+  oldContent,
+  newBlocks,
+  newPlainText,
+}: {
+  oldContent?: string;
+  newBlocks?: any[];
+  newPlainText?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const oldText = oldContent ? extractPlainText(oldContent).slice(0, 600) : "";
+  const newText = newBlocks
+    ? extractPlainText(JSON.stringify(newBlocks)).slice(0, 600)
+    : (newPlainText ?? "").slice(0, 600);
+
+  if (!oldText && !newText) return null;
+
+  return (
+    <div className="mt-1.5 rounded-lg border border-border/50 overflow-hidden text-[11px]">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between px-2.5 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
+      >
+        <span className="font-medium text-muted-foreground">Preview changes</span>
+        {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+      </button>
+      {expanded && (
+        <div className="grid grid-cols-2 divide-x divide-border/50 max-h-40 overflow-y-auto">
+          <div className="p-2 bg-red-500/5">
+            <p className="font-semibold text-red-500/70 mb-1 text-[9px] uppercase tracking-wider">Before</p>
+            <p className="whitespace-pre-wrap text-muted-foreground/80 leading-relaxed">{oldText || "—"}</p>
+          </div>
+          <div className="p-2 bg-emerald-500/5">
+            <p className="font-semibold text-emerald-500/70 mb-1 text-[9px] uppercase tracking-wider">After</p>
+            <p className="whitespace-pre-wrap text-foreground/80 leading-relaxed">{newText || "—"}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Action card (pending approval) ─────────────────────────────────────────
+
+function ActionCard({
+  pa,
+  onApply,
+  onReject,
+  documentContent,
+}: {
+  pa: PendingAction;
+  onApply: () => void;
+  onReject: () => void;
+  documentContent?: string;
+}) {
   const t = useTranslations("ai");
+  const Icon = ACTION_TYPE_ICONS[pa.action.type] ?? Sparkles;
+  const isDone = pa.status !== "pending";
+
+  const showDiff =
+    (pa.action.type === "edit_document_blocks" || pa.action.type === "replace_content") &&
+    documentContent;
+
+  return (
+    <div className={cn(
+      "rounded-lg border transition-all",
+      pa.status === "applied" ? "border-emerald-500/30 bg-emerald-500/5" :
+      pa.status === "rejected" ? "border-red-400/30 bg-red-400/5 opacity-60" :
+      "border-primary/20 bg-primary/5",
+    )}>
+      <div className="flex items-start gap-2 px-3 py-2">
+        <Icon className={cn("h-3.5 w-3.5 mt-0.5 shrink-0",
+          pa.status === "applied" ? "text-emerald-500" :
+          pa.status === "rejected" ? "text-red-400" :
+          "text-primary"
+        )} />
+        <div className="flex-1 min-w-0">
+          <p className={cn("text-xs font-medium leading-snug",
+            pa.status === "rejected" && "line-through text-muted-foreground",
+          )}>
+            {pa.action.label}
+          </p>
+          {pa.status === "applied" && (
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+              <Check className="h-2.5 w-2.5" /> {t("applied")}
+            </p>
+          )}
+          {pa.status === "rejected" && (
+            <p className="text-[10px] text-red-400 mt-0.5 flex items-center gap-1">
+              <XCircle className="h-2.5 w-2.5" /> {t("rejected")}
+            </p>
+          )}
+        </div>
+        {!isDone && (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={onReject}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-red-500/10 hover:text-red-500 transition-colors"
+              title={t("reject")}
+            >
+              <X className="h-3 w-3" />
+            </button>
+            <button
+              onClick={onApply}
+              className="flex h-6 items-center gap-1 rounded-md bg-primary px-2 text-primary-foreground text-[10px] font-semibold hover:bg-primary/90 transition-colors"
+            >
+              <Check className="h-3 w-3" />
+              {t("apply")}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {showDiff && pa.status === "pending" && (
+        <div className="px-3 pb-2">
+          <DiffPreview
+            oldContent={documentContent}
+            newBlocks={pa.action.data.blocks}
+            newPlainText={pa.action.data.newContent}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ─────────────────────────────────────────────────────────
+
+export function AiAssistantPanel({
+  onClose,
+  documentContext,
+  taskContext,
+  onDocumentContentReplace,
+}: AiAssistantPanelProps) {
+  const t = useTranslations("ai");
+  const locale = useLocale();
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<{ role: "user" | "ai"; text: string }[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // Convex queries
   const myTasks = useQuery(api.tasks.getMyTasks, {});
-  const activeTasks = (myTasks ?? []).filter((t) => t.status !== "done" && t.status !== "cancelled");
+  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
+  const myProjects = useQuery(api.projects.getMyProjects, {});
+  const myTeams = useQuery(api.teams.getMyTeams);
 
+  // Convex mutations
+  const createTask = useMutation(api.tasks.create);
+  const updateTask = useMutation(api.tasks.update);
+  const createDoc = useMutation(api.documents.createWithContent);
+  const updateDoc = useMutation(api.documents.update);
+
+  const activeTasks = (myTasks ?? []).filter(
+    (tk) => tk.status !== "done" && tk.status !== "cancelled",
+  );
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isLoading]);
+
+  // Focus input on mount
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 100);
+  }, []);
+
+  // ── Context summary for header ─────────────────────────────────────────────
   const contextSummary = (() => {
     const parts: string[] = [];
-    if (documentContext) parts.push(`Note: "${documentContext.title}"`);
-    if (taskContext) parts.push(`Task: "${taskContext.title}" (${taskContext.status})`);
-    if (activeTasks.length > 0) parts.push(`${activeTasks.length} active tasks`);
+    if (documentContext) parts.push(`${locale === "fr" ? "Note" : "Note"}: "${documentContext.title}"`);
+    if (taskContext) parts.push(`${locale === "fr" ? "Tâche" : "Task"}: "${taskContext.title}" (${taskContext.status})`);
+    if (activeTasks.length > 0) parts.push(`${activeTasks.length} ${locale === "fr" ? "tâches actives" : "active tasks"}`);
     return parts.join(" · ") || null;
   })();
 
+  // ── Dynamic suggestions ────────────────────────────────────────────────────
   const suggestions = documentContext
-    ? ["summarize", "improveWriting", "generateTasks"]
+    ? ["summarize", "improveWriting", "generateTasks", "correctErrors"]
     : taskContext
-      ? ["suggestPriority", "generateTasks"]
-      : ["summarize", "generateTasks"];
+      ? ["suggestPriority", "generateTasks", "brainstorm"]
+      : ["analyzeWorkspace", "generateTasks", "createNote", "planDay"];
 
+  // ── Build full app context ─────────────────────────────────────────────────
+  const buildCtx = useCallback((): AppContext => ({
+    locale,
+    tasks: (myTasks ?? []).map((tk) => ({
+      id: tk._id,
+      title: tk.title,
+      status: tk.status,
+      priority: tk.priority,
+      dueDate: tk.dueDate ?? undefined,
+      description: tk.description ?? undefined,
+      parentTaskId: tk.parentTaskId ?? undefined,
+      assigneeName: tk.assigneeName ?? undefined,
+    })),
+    documents: (recentDocs ?? []).map((d) => ({ id: d._id, title: d.title, icon: d.icon ?? undefined })),
+    projects: (myProjects ?? []).filter(Boolean).map((p) => ({ id: p!._id, name: p!.name })),
+    teams: (myTeams ?? []).filter(Boolean).map((tm) => ({ id: tm!._id, name: tm!.name })),
+    currentDocument: documentContext
+      ? { id: documentContext.id, title: documentContext.title, content: documentContext.content }
+      : undefined,
+    currentTask: taskContext
+      ? {
+          id: taskContext.id,
+          title: taskContext.title,
+          status: taskContext.status ?? "todo",
+          priority: taskContext.priority ?? "none",
+          description: taskContext.description,
+          assigneeName: taskContext.assigneeName,
+          projectName: taskContext.projectName,
+        }
+      : undefined,
+  }), [locale, myTasks, recentDocs, myProjects, myTeams, documentContext, taskContext]);
+
+  // ── Execute a single action (on user approval) ─────────────────────────────
+  const executeAction = async (action: AiAction): Promise<string> => {
+    try {
+      switch (action.type) {
+        case "create_task": {
+          const d = action.data;
+          const dueDate = d.dueDate && d.dueDate !== "null" ? new Date(d.dueDate).getTime() : undefined;
+          await createTask({
+            title: d.title ?? "Untitled task",
+            description: d.description ?? undefined,
+            priority: d.priority ?? "none",
+            status: d.status ?? "todo",
+            dueDate,
+          });
+          return t("actionCreatedTask");
+        }
+        case "edit_task": {
+          const d = action.data;
+          if (!d.id) return t("actionFailed");
+          const patch: any = {};
+          if (d.title) patch.title = d.title;
+          if (d.status) patch.status = d.status;
+          if (d.priority) patch.priority = d.priority;
+          if (d.description !== undefined) patch.description = d.description;
+          if (d.dueDate && d.dueDate !== "null") patch.dueDate = new Date(d.dueDate).getTime();
+          await updateTask({ id: d.id as Id<"tasks">, ...patch });
+          return t("actionEditedTask");
+        }
+        case "create_subtask": {
+          const d = action.data;
+          if (!d.parentTaskId) return t("actionFailed");
+          await createTask({
+            title: d.title ?? "Subtask",
+            parentTaskId: d.parentTaskId as Id<"tasks">,
+            priority: "none",
+          });
+          return t("actionCreatedSubtask");
+        }
+        case "create_document": {
+          const d = action.data;
+          let content: string | undefined;
+          if (d.blocks && Array.isArray(d.blocks)) {
+            content = JSON.stringify(d.blocks);
+          } else if (d.content) {
+            content = JSON.stringify([{ type: "paragraph", content: [{ type: "text", text: d.content }] }]);
+          }
+          await createDoc({ title: d.title ?? "Untitled", content });
+          return t("actionCreatedNote");
+        }
+        case "edit_document_blocks": {
+          const d = action.data;
+          if (!d.documentId || !d.blocks) return t("actionFailed");
+          const content = JSON.stringify(d.blocks);
+          if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
+            onDocumentContentReplace(content);
+          } else {
+            await updateDoc({ id: d.documentId as Id<"documents">, content });
+          }
+          return t("actionReplacedContent");
+        }
+        case "replace_content": {
+          const d = action.data;
+          if (!d.documentId || !d.newContent) return t("actionFailed");
+          const content = JSON.stringify([
+            { type: "paragraph", content: [{ type: "text", text: d.newContent }] },
+          ]);
+          if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
+            onDocumentContentReplace(content);
+          } else {
+            await updateDoc({ id: d.documentId as Id<"documents">, content });
+          }
+          return t("actionReplacedContent");
+        }
+        default:
+          return t("actionFailed");
+      }
+    } catch (err: any) {
+      console.error("[A2E AI Action]", err);
+      return `${t("actionFailed")}: ${err.message?.slice(0, 80) ?? ""}`;
+    }
+  };
+
+  // ── Handle apply/reject from action cards ──────────────────────────────────
+  const handleApplyAction = async (msgIdx: number, actionIdx: number) => {
+    const msg = messages[msgIdx];
+    if (!msg.pendingActions?.[actionIdx]) return;
+    const pa = msg.pendingActions[actionIdx];
+    if (pa.status !== "pending") return;
+
+    const result = await executeAction(pa.action);
+    toast.success(result);
+
+    setMessages((prev) => prev.map((m, i) => {
+      if (i !== msgIdx || !m.pendingActions) return m;
+      const updated = [...m.pendingActions];
+      updated[actionIdx] = { ...updated[actionIdx], status: "applied" };
+      return { ...m, pendingActions: updated };
+    }));
+  };
+
+  const handleRejectAction = (msgIdx: number, actionIdx: number) => {
+    setMessages((prev) => prev.map((m, i) => {
+      if (i !== msgIdx || !m.pendingActions) return m;
+      const updated = [...m.pendingActions];
+      updated[actionIdx] = { ...updated[actionIdx], status: "rejected" };
+      return { ...m, pendingActions: updated };
+    }));
+  };
+
+  // ── Send message ───────────────────────────────────────────────────────────
   const handleSend = async (text?: string) => {
     const msg = (text ?? input).trim();
-    if (!msg) return;
+    if (!msg || isLoading) return;
     setInput("");
+
     setMessages((prev) => [...prev, { role: "user", text: msg }]);
     setIsLoading(true);
 
-    // Simulate AI response — in production this would call an AI API
-    setTimeout(() => {
-      let response = "";
-      if (msg.toLowerCase().includes("summar")) {
-        response = documentContext
-          ? `Here's a summary of "${documentContext.title}":\n\nThis document covers the main points and key ideas. To get a full AI-powered summary, connect your OpenAI or Anthropic API key in Settings.`
-          : "To summarize content, open a note first and then ask me to summarize it.";
-      } else if (msg.toLowerCase().includes("task") || msg.toLowerCase().includes("priority")) {
-        const overdue = activeTasks.filter((t) => t.dueDate && t.dueDate < Date.now());
-        response = overdue.length > 0
-          ? `You have ${overdue.length} overdue task${overdue.length > 1 ? "s" : ""}. I'd recommend focusing on: "${overdue[0].title}" first.`
-          : `You have ${activeTasks.length} active tasks. Everything looks on track!`;
-      } else if (msg.toLowerCase().includes("improv") || msg.toLowerCase().includes("writ")) {
-        response = "To improve writing, I'd need an AI API key configured. Go to Settings → Extensions → AI Assistant to set it up.";
-      } else {
-        response = `I understand you're asking about "${msg}". To unlock full AI capabilities, configure your API key in Settings → Extensions. For now, I can help with:\n\n• Summarizing notes\n• Suggesting task priorities\n• Generating task lists from notes\n• Writing improvement suggestions`;
-      }
-      setMessages((prev) => [...prev, { role: "ai", text: response }]);
+    try {
+      const systemPrompt = buildSystemPrompt(buildCtx());
+      const apiMessages: AiMessage[] = [
+        { role: "system", content: systemPrompt },
+        ...messages.slice(-12).map((m) => ({
+          role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
+          content: m.text,
+        })),
+        { role: "user", content: msg },
+      ];
+
+      const response = await sendAiMessage(apiMessages);
+
+      const pendingActions: PendingAction[] = response.actions.map((a) => ({
+        action: a,
+        status: "pending" as ActionStatus,
+      }));
+
+      const aiMsg: ChatMessage = {
+        role: "ai",
+        text: response.text || (pendingActions.length > 0 ? "" : t("noResponse")),
+        pendingActions: pendingActions.length > 0 ? pendingActions : undefined,
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch (err: any) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: `${t("errorPrefix")}: ${err.message ?? t("unknownError")}` },
+      ]);
+    } finally {
       setIsLoading(false);
-    }, 800 + Math.random() * 600);
+    }
   };
 
   const handleSuggestion = (key: string) => {
-    const text = t(key as any);
-    handleSend(text);
+    handleSend(t(key as any));
   };
 
+  const handleReset = () => {
+    setMessages([]);
+    setInput("");
+    inputRef.current?.focus();
+  };
+
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-            <Bot className="h-4 w-4 text-primary" />
+      <div className="flex items-center justify-between border-b px-4 py-3 shrink-0 bg-gradient-to-r from-violet-500/5 via-transparent to-blue-500/5">
+        <div className="flex items-center gap-2.5">
+          <A2EAvatar size="md" />
+          <div>
+            <h3 className="text-sm font-bold tracking-tight">{t("title")}</h3>
+            <p className="text-[10px] text-muted-foreground/60">{t("subtitle")}</p>
           </div>
-          <h3 className="text-sm font-semibold">{t("title")}</h3>
         </div>
-        {onClose && (
-          <button
-            onClick={onClose}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {messages.length > 0 && (
+            <button
+              onClick={handleReset}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              title={t("reset")}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Context banner */}
       {contextSummary && (
-        <div className="border-b bg-muted/30 px-4 py-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-0.5">
+        <div className="border-b bg-muted/20 px-4 py-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-0.5">
             {t("contextLabel")}
           </p>
-          <p className="text-xs text-muted-foreground truncate">{contextSummary}</p>
+          <p className="text-[11px] text-muted-foreground truncate">{contextSummary}</p>
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <Sparkles className="h-10 w-10 text-muted-foreground/15 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground/70">{t("title")}</p>
-            <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px]">
-              {t("placeholder")}
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="relative mb-4">
+              <A2EAvatar size="lg" />
+              <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+            </div>
+            <p className="text-sm font-semibold text-foreground/80">{t("greeting")}</p>
+            <p className="text-xs text-muted-foreground/60 mt-1 max-w-[240px] leading-relaxed">
+              {t("greetingDesc")}
             </p>
           </div>
         )}
@@ -133,35 +544,52 @@ export function AiAssistantPanel({ onClose, documentContext, taskContext }: AiAs
           <div
             key={i}
             className={cn(
-              "flex gap-2.5",
+              "flex gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-200",
               msg.role === "user" && "flex-row-reverse",
             )}
           >
-            {msg.role === "ai" && (
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
-                <Bot className="h-3 w-3 text-primary" />
-              </div>
-            )}
-            <div
-              className={cn(
-                "rounded-xl px-3 py-2 text-sm max-w-[85%] whitespace-pre-wrap",
-                msg.role === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-foreground",
+            {msg.role === "ai" && <A2EAvatar />}
+            <div className="max-w-[88%] space-y-2 min-w-0">
+              {msg.text && (
+                <div
+                  className={cn(
+                    "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap",
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-muted/60 text-foreground rounded-bl-md",
+                  )}
+                >
+                  {msg.text}
+                </div>
               )}
-            >
-              {msg.text}
+
+              {/* Action cards (pending approval) */}
+              {msg.pendingActions && msg.pendingActions.length > 0 && (
+                <div className="space-y-1.5">
+                  {msg.pendingActions.map((pa, j) => (
+                    <ActionCard
+                      key={j}
+                      pa={pa}
+                      onApply={() => handleApplyAction(i, j)}
+                      onReject={() => handleRejectAction(i, j)}
+                      documentContent={documentContext?.content}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
 
         {isLoading && (
-          <div className="flex gap-2.5">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 mt-0.5">
-              <Bot className="h-3 w-3 text-primary" />
-            </div>
-            <div className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-3 w-3 animate-spin" />
+          <div className="flex gap-2.5 animate-in fade-in duration-200">
+            <A2EAvatar />
+            <div className="rounded-2xl rounded-bl-md bg-muted/60 px-3.5 py-2.5 text-[13px] text-muted-foreground flex items-center gap-2">
+              <div className="flex gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce [animation-delay:300ms]" />
+              </div>
               {t("thinking")}
             </div>
           </div>
@@ -171,7 +599,7 @@ export function AiAssistantPanel({ onClose, documentContext, taskContext }: AiAs
       {/* Suggestions */}
       {messages.length === 0 && (
         <div className="border-t px-4 py-3 shrink-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/40 mb-2">
             {t("suggestions")}
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -181,7 +609,7 @@ export function AiAssistantPanel({ onClose, documentContext, taskContext }: AiAs
                 <button
                   key={key}
                   onClick={() => handleSuggestion(key)}
-                  className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+                  className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
                 >
                   <Icon className="h-3 w-3" />
                   {t(key as any)}
@@ -193,9 +621,10 @@ export function AiAssistantPanel({ onClose, documentContext, taskContext }: AiAs
       )}
 
       {/* Input */}
-      <div className="border-t px-4 py-3 shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="border-t px-4 py-3 shrink-0 bg-gradient-to-r from-violet-500/3 via-transparent to-blue-500/3">
+        <div className="flex items-center gap-2 rounded-xl border bg-background px-3 py-1.5 transition-colors focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/5">
           <input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -205,18 +634,21 @@ export function AiAssistantPanel({ onClose, documentContext, taskContext }: AiAs
               }
             }}
             placeholder={t("placeholder")}
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/40"
+            className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/35"
             disabled={isLoading}
           />
           <Button
             size="sm"
             onClick={() => handleSend()}
             disabled={isLoading || !input.trim()}
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 p-0 rounded-lg"
           >
-            <Send className="h-3.5 w-3.5" />
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </Button>
         </div>
+        <p className="text-[9px] text-muted-foreground/30 text-center mt-1.5">
+          A2E AI · {t("poweredBy")}
+        </p>
       </div>
     </div>
   );

@@ -22,7 +22,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
+import { AiAssistantPanel } from "@/components/ai-assistant";
 import { useTranslations } from "next-intl";
+import { useExtensions } from "@/hooks/useExtensions";
 
 function useTimeAgo() {
   const tc = useTranslations("common");
@@ -62,6 +64,8 @@ const DocumentsPage = () => {
   const notifications = useQuery(api.notifications.getMyNotifications);
   const unreadCount = useQuery(api.notifications.getUnreadCount) ?? 0;
   const [showNewTask, setShowNewTask] = useState(false);
+  const [showAi, setShowAi] = useState(false);
+  const { isEnabled: extEnabled } = useExtensions();
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
@@ -385,6 +389,24 @@ const DocumentsPage = () => {
       </div>
 
       <NewTaskDialog open={showNewTask} onClose={() => setShowNewTask(false)} />
+
+      {/* AI Assistant floating panel */}
+      {extEnabled("aiAssistant") && showAi && (
+        <div className="fixed bottom-6 right-6 z-50 w-96 h-[520px] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <AiAssistantPanel onClose={() => setShowAi(false)} />
+        </div>
+      )}
+
+      {/* AI Assistant floating toggle */}
+      {extEnabled("aiAssistant") && !showAi && (
+        <button
+          onClick={() => setShowAi(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          title="A2E AI"
+        >
+          <Sparkles className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 };

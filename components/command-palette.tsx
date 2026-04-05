@@ -7,9 +7,11 @@ import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+  BookOpen,
   CalendarDays,
   CheckSquare,
   Circle,
+  Clock,
   FileText,
   FolderKanban,
   Hash,
@@ -105,6 +107,9 @@ export function CommandPalette() {
       { id: "projects-nav", label: "Projects", icon: FolderKanban, action: () => router.push("/projects"), section: "Navigate", keywords: "projets" },
       { id: "teams-nav", label: "Teams", icon: Users, action: () => router.push("/teams"), section: "Navigate", keywords: "équipes" },
       { id: "settings", label: "Settings", icon: Settings, action: () => router.push("/settings"), section: "Navigate", keywords: "paramètres" },
+      { id: "templates", label: "Templates", icon: BookOpen, action: () => router.push("/templates"), section: "Navigate", keywords: "modèles marketplace gallery" },
+      { id: "databases", label: "Databases", icon: Hash, action: () => router.push("/databases"), section: "Navigate", keywords: "bases données tables custom" },
+      { id: "focus-timer", label: "Focus Timer", icon: Clock, action: () => { setOpen(false); window.dispatchEvent(new CustomEvent("toggle-pomodoro")); }, section: "Navigate", keywords: "pomodoro minuteur timer concentration" },
     ],
     [router],
   );

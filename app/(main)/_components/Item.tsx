@@ -112,8 +112,8 @@ export const Item = ({
       role="button"
       style={{ paddingLeft: level ? `${level * 12 + 12}px` : "12px" }}
       className={cn(
-        "group text-muted-foreground hover:bg-primary/5 flex min-h-6.75 w-full items-center py-1 pr-3 text-sm font-medium",
-        active && "bg-primary/5 text-primary",
+        "group text-muted-foreground hover:bg-accent/60 flex min-h-[32px] w-full items-center rounded-md py-1.5 pr-3 text-[13px] font-medium transition-colors duration-150",
+        active && "bg-accent text-foreground",
       )}
     >
       {!!id && (

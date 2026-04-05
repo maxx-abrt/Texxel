@@ -40,9 +40,9 @@ export function TaskCard({ task, onToggleDone, compact }: TaskCardProps) {
   return (
     <div
       className={cn(
-        "group flex items-center gap-2.5 rounded-lg border bg-card transition-all hover:border-primary/20 hover:shadow-sm cursor-pointer",
-        compact ? "px-3 py-2" : "px-3 py-2.5",
-        isDone && "opacity-50",
+        "group flex items-center gap-2.5 rounded-lg border border-border/40 transition-all duration-200 hover:border-border hover:bg-accent/30 cursor-pointer",
+        compact ? "px-3 py-2" : "px-3.5 py-2.5",
+        isDone && "opacity-40",
       )}
       onClick={() => router.push(`/tasks/${task._id}`)}
     >
@@ -51,22 +51,21 @@ export function TaskCard({ task, onToggleDone, compact }: TaskCardProps) {
           e.stopPropagation();
           onToggleDone(task._id, task.status);
         }}
-        className="shrink-0 text-muted-foreground/50 hover:text-primary transition-colors"
+        className="shrink-0 text-muted-foreground/30 hover:text-foreground transition-colors duration-200"
       >
         {isDone ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-500/70" />
         ) : (
           <Circle className="h-4 w-4" />
         )}
       </button>
 
-      {/* Priority indicator */}
       {task.priority !== "none" && (
         <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", pCfg.dot)} />
       )}
 
       <span className={cn(
-        "flex-1 text-sm truncate",
+        "flex-1 text-[13px] truncate",
         isDone && "line-through text-muted-foreground",
       )}>
         {task.title}

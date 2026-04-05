@@ -14,10 +14,13 @@ import { UserItem } from "./UserItem";
 import { toast } from "sonner";
 import {
   Bell,
+  BookOpen,
   CalendarDays,
   CheckSquare,
   ChevronsLeft,
+  Clock,
   Copy,
+  Database,
   FileText,
   FolderKanban,
   Home,
@@ -182,14 +185,14 @@ const Navigation = () => {
         </div>
 
         {/* Quick actions */}
-        <div className="shrink-0 px-3 pt-1 pb-2">
+        <div className="shrink-0 px-3 pt-2 pb-2">
           <button
             onClick={openCommandPalette}
-            className="group flex w-full items-center rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="group flex w-full items-center rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground/70 transition-all duration-150 hover:bg-accent/60 hover:text-foreground"
           >
-            <Search className="mr-2 h-[18px] w-[18px] shrink-0" />
+            <Search className="mr-2.5 h-4 w-4 shrink-0" />
             <span className="flex-1 text-left truncate">{t("search")}</span>
-            <kbd className="ml-auto hidden rounded border border-border/60 bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/70 sm:inline-flex">
+            <kbd className="ml-auto hidden rounded-md border border-border/40 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/50 sm:inline-flex">
               ⌘K
             </kbd>
           </button>
@@ -221,8 +224,8 @@ const Navigation = () => {
         </div>
 
         {/* Workspace section */}
-        <div className="shrink-0 px-3 pb-2 border-b border-sidebar-border">
-          <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+        <div className="shrink-0 px-3 pb-2 border-b border-sidebar-border/60">
+          <p className="px-3 pb-1 pt-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/35">
             {t("workspace")}
           </p>
           <Item
@@ -251,10 +254,24 @@ const Navigation = () => {
             onClick={() => router.push("/teams")}
             active={pathname.startsWith("/teams")}
           />
+          <Item
+            label={t("templates")}
+            icon={BookOpen}
+            onClick={() => router.push("/templates")}
+            active={pathname.startsWith("/templates")}
+          />
+          {extEnabled("databases") && (
+            <Item
+              label={t("databases")}
+              icon={Database}
+              onClick={() => router.push("/databases")}
+              active={pathname.startsWith("/databases")}
+            />
+          )}
         </div>
 
         {/* Extension nav items */}
-        {(extEnabled("aiAssistant") || extEnabled("automations")) && (
+        {(extEnabled("aiAssistant") || extEnabled("automations") || extEnabled("focusTimer")) && (
           <div className="shrink-0 px-3 py-1 border-b border-sidebar-border">
             {extEnabled("aiAssistant") && (
               <Item
@@ -271,23 +288,33 @@ const Navigation = () => {
                 active={pathname === "/automations"}
               />
             )}
+            {extEnabled("focusTimer") && (
+              <Item
+                label={t("workspace") === "Workspace" ? "Focus Timer" : "Minuteur Focus"}
+                icon={Clock}
+                onClick={() => {
+                  const event = new CustomEvent("toggle-pomodoro");
+                  window.dispatchEvent(event);
+                }}
+              />
+            )}
           </div>
         )}
 
         {/* Notes section */}
         <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
-          <div className="flex items-center justify-between px-3 pb-1 pt-2">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+          <div className="flex items-center justify-between px-3 pb-1 pt-3">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/35">
               {t("notes")}
             </p>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={bulkSelect.toggleSelecting}
                 className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-md transition-colors",
+                  "flex h-5 w-5 items-center justify-center rounded-md transition-colors duration-200",
                   bulkSelect.isSelecting
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground/60 hover:bg-accent hover:text-foreground",
+                    ? "text-foreground bg-foreground/10"
+                    : "text-muted-foreground/40 hover:bg-accent/60 hover:text-foreground/70",
                 )}
                 title={tb("selectAll")}
               >
@@ -295,7 +322,7 @@ const Navigation = () => {
               </button>
               <button
                 onClick={handleCreate}
-                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/40 transition-colors duration-200 hover:bg-accent/60 hover:text-foreground/70"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>

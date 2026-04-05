@@ -4,12 +4,13 @@ import { Spinner } from "@/components/spinner";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navigation from "./_components/Navigation";
 import { SearchCommand } from "@/components/search-command";
 import { CommandPalette } from "@/components/command-palette";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { useExtensions } from "@/hooks/useExtensions";
+import { PomodoroTimer } from "@/components/pomodoro-timer";
 import { cn } from "@/lib/utils";
 
 const FONT_SIZE_CLASS: Record<string, string> = {
@@ -37,8 +38,16 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   const getOrCreatePersonal = useMutation(api.workspaces.getOrCreatePersonal);
   const { activeWorkspaceId, setActiveWorkspaceId } = useWorkspace();
-  const { setWorkspaceId, getUIConfig } = useExtensions();
+  const { setWorkspaceId, getUIConfig, isEnabled: extEnabled } = useExtensions();
   const uiConfig = getUIConfig();
+  const [showPomodoro, setShowPomodoro] = useState(false);
+
+  // Listen for toggle-pomodoro custom event from nav
+  useEffect(() => {
+    const handler = () => setShowPomodoro((v) => !v);
+    window.addEventListener("toggle-pomodoro", handler);
+    return () => window.removeEventListener("toggle-pomodoro", handler);
+  }, []);
 
   // Auto-create personal workspace on first authenticated load
   useEffect(() => {
@@ -101,6 +110,13 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
         <SearchCommand />
         <CommandPalette />
         {children}
+
+        {/* Pomodoro floating panel */}
+        {extEnabled("focusTimer") && showPomodoro && (
+          <div className="fixed bottom-6 right-6 z-50 w-80 h-[420px] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <PomodoroTimer onClose={() => setShowPomodoro(false)} />
+          </div>
+        )}
       </main>
     </div>
   );

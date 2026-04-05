@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Columns3, List } from "lucide-react";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
 import { useTranslations, useLocale } from "next-intl";
 
@@ -35,7 +35,7 @@ export default function CalendarPage() {
   const tasks = useQuery(api.tasks.getMyTasks, {});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showNewTask, setShowNewTask] = useState(false);
-  const [view, setView] = useState<"month" | "agenda">("month");
+  const [view, setView] = useState<"month" | "week" | "agenda">("month");
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -81,6 +81,24 @@ export default function CalendarPage() {
 
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const prevWeek = () => setCurrentDate(new Date(currentDate.getTime() - 7 * 86_400_000));
+  const nextWeek = () => setCurrentDate(new Date(currentDate.getTime() + 7 * 86_400_000));
+
+  // Week view helpers
+  const weekStart = useMemo(() => {
+    const d = new Date(currentDate);
+    d.setDate(d.getDate() - d.getDay());
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, [currentDate]);
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [weekStart]);
 
   const upcomingTasks = useMemo(() => {
     return (tasks ?? [])
@@ -141,8 +159,21 @@ export default function CalendarPage() {
                     ? "bg-background shadow-sm text-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
+                title={tc("month")}
               >
                 <CalendarDays className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setView("week")}
+                className={cn(
+                  "rounded-md p-1.5 transition-all",
+                  view === "week"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                title="Week"
+              >
+                <Columns3 className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => setView("agenda")}
@@ -152,6 +183,7 @@ export default function CalendarPage() {
                     ? "bg-background shadow-sm text-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
+                title={tc("agenda")}
               >
                 <List className="h-3.5 w-3.5" />
               </button>
@@ -167,33 +199,26 @@ export default function CalendarPage() {
           </div>
         </div>
 
+        {/* Navigation bar — shared by month & week */}
+        {(view === "month" || view === "week") && (
+          <div className="flex items-center justify-between mb-4">
+            <Button variant="ghost" size="sm" onClick={view === "week" ? prevWeek : prevMonth} className="h-8 w-8 p-0">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <button
+              onClick={() => setCurrentDate(new Date())}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent"
+            >
+              {tc("today")}
+            </button>
+            <Button variant="ghost" size="sm" onClick={view === "week" ? nextWeek : nextMonth} className="h-8 w-8 p-0">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         {view === "month" ? (
           <>
-            {/* Month navigation */}
-            <div className="flex items-center justify-between mb-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={prevMonth}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <button
-                onClick={() => setCurrentDate(new Date())}
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-accent"
-              >
-                {tc("today")}
-              </button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={nextMonth}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
 
             {/* Day headers */}
             <div className="grid grid-cols-7 mb-1">
@@ -305,6 +330,74 @@ export default function CalendarPage() {
                 <div className="h-2 w-2 rounded-full bg-emerald-500/60" />
                 {tc("done")}
               </div>
+            </div>
+          </>
+        ) : view === "week" ? (
+          /* ── Week view ──────────────────────────────────────────────── */
+          <>
+            {/* Day headers */}
+            <div className="grid grid-cols-7 mb-1">
+              {weekDays.map((d) => {
+                const isTodayD = d.toDateString() === today.toDateString();
+                return (
+                  <div key={d.toISOString()} className="py-2 text-center">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {d.toLocaleDateString(locale, { weekday: "short" })}
+                    </p>
+                    <p className={cn(
+                      "mt-0.5 text-sm font-bold",
+                      isTodayD ? "text-primary" : "text-foreground",
+                    )}>
+                      {d.getDate()}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Week grid — taller cells for more task space */}
+            <div className="grid grid-cols-7 border-l border-t rounded-xl overflow-hidden">
+              {weekDays.map((d) => {
+                const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+                const dayTasks = tasksByDate[key] ?? [];
+                const isTodayD = d.toDateString() === today.toDateString();
+                const isPast = d < today && !isTodayD;
+
+                return (
+                  <div
+                    key={d.toISOString()}
+                    className={cn(
+                      "min-h-[180px] border-r border-b p-2 transition-colors",
+                      isTodayD && "bg-primary/5",
+                      isPast && "bg-muted/10",
+                    )}
+                  >
+                    <div className="space-y-1">
+                      {dayTasks.map((task) => (
+                        <div
+                          key={task._id}
+                          onClick={() => router.push(`/tasks/${task._id}`)}
+                          title={task.title}
+                          className={cn(
+                            "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium cursor-pointer transition-all hover:shadow-sm",
+                            task.status === "done"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 line-through opacity-50"
+                              : task.dueDate! < Date.now()
+                                ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                                : "bg-primary/8 text-primary hover:bg-primary/15",
+                          )}
+                        >
+                          <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", PRIORITY_DOT[task.priority] ?? "bg-slate-400")} />
+                          <span className="truncate">{task.title}</span>
+                        </div>
+                      ))}
+                      {dayTasks.length === 0 && (
+                        <p className="text-[10px] text-muted-foreground/30 text-center pt-6">—</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </>
         ) : (

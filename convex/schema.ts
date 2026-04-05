@@ -242,6 +242,102 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_team", ["teamId"]),
 
+  // ─── Databases (Notion-like custom tables) ───────────────────────────────
+  databases: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    color: v.optional(v.string()),
+    ownerId: v.string(),
+    projectId: v.optional(v.id("projects")),
+    teamId: v.optional(v.id("teams")),
+    // Columns definition as JSON: [{id, name, type, options?, width?}]
+    // Types: text, number, select, multiSelect, date, checkbox, url, person, relation
+    columns: v.string(),
+    isArchived: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_project", ["projectId"])
+    .index("by_team", ["teamId"]),
+
+  databaseRows: defineTable({
+    databaseId: v.id("databases"),
+    // Cell values as JSON: { [columnId]: value }
+    cells: v.string(),
+    order: v.optional(v.number()),
+    createdBy: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_database", ["databaseId"])
+    .index("by_database_order", ["databaseId", "order"]),
+
+  // ─── Templates Marketplace ───────────────────────────────────────────────
+  templates: defineTable({
+    title: v.string(),
+    description: v.string(),
+    longDescription: v.optional(v.string()),
+    category: v.union(
+      v.literal("project_management"),
+      v.literal("engineering"),
+      v.literal("design"),
+      v.literal("marketing"),
+      v.literal("sales"),
+      v.literal("hr"),
+      v.literal("education"),
+      v.literal("personal"),
+      v.literal("startup"),
+      v.literal("other"),
+    ),
+    coverImage: v.optional(v.string()),
+    previewImages: v.optional(v.array(v.string())),
+    icon: v.optional(v.string()),
+    color: v.optional(v.string()),
+
+    // What's included
+    includeTasks: v.boolean(),
+    includeDocuments: v.boolean(),
+    includeProject: v.boolean(),
+    includeDatabases: v.optional(v.boolean()),
+
+    // Template data (JSON-serialized)
+    tasksData: v.optional(v.string()),
+    documentsData: v.optional(v.string()),
+    projectData: v.optional(v.string()),
+    databasesData: v.optional(v.string()),
+
+    // Author
+    authorId: v.string(),
+    authorName: v.string(),
+    authorImage: v.optional(v.string()),
+
+    // Marketplace
+    isPublished: v.boolean(),
+    isFeatured: v.optional(v.boolean()),
+    usageCount: v.number(),
+    likesCount: v.number(),
+    tags: v.optional(v.array(v.string())),
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_author", ["authorId"])
+    .index("by_category", ["category"])
+    .index("by_published", ["isPublished"])
+    .index("by_featured", ["isFeatured", "isPublished"])
+    .index("by_usage", ["usageCount"]),
+
+  templateLikes: defineTable({
+    templateId: v.id("templates"),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_template", ["templateId"])
+    .index("by_user", ["userId"])
+    .index("by_template_user", ["templateId", "userId"]),
+
   notifications: defineTable({
     userId: v.string(),
     type: v.union(

@@ -54,6 +54,8 @@ const DEFAULT_EXTENSIONS: ExtensionConfig[] = [
   { id: "timeTracking", category: "productivity", enabled: true },
   { id: "customFields", category: "productivity", enabled: true },
   { id: "automations", category: "ai", enabled: false },
+  { id: "focusTimer", category: "productivity", enabled: true },
+  { id: "databases", category: "productivity", enabled: false },
 ];
 
 const DEFAULT_UI: UIConfig = {

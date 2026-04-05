@@ -15,6 +15,7 @@ import {
   Palette,
   Upload,
   Bell,
+  Database,
   Globe,
   Monitor,
   Moon,
@@ -114,6 +115,8 @@ const EXT_ICONS: Record<string, React.ElementType> = {
   timeTracking: Clock,
   customFields: Columns3,
   automations: Zap,
+  focusTimer: Clock,
+  databases: LayoutGrid,
 };
 
 function ExtensionsPanel() {

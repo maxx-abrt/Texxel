@@ -10,15 +10,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import {
+  BookOpen,
   CheckSquare,
   FolderKanban,
   FileText,
+  Target,
   Users,
   Plus,
   ArrowRight,
   AlertCircle,
   Circle,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
@@ -96,26 +99,27 @@ const DocumentsPage = () => {
       <div className="mx-auto max-w-5xl px-6 py-8 md:px-10">
         {/* Header */}
         <div className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight">
             {getGreeting()}, {firstName}
           </h1>
-          <p className="text-muted-foreground mt-1.5">
+          <p className="text-muted-foreground/70 mt-1">
             {td("overview")}
           </p>
         </div>
 
         {/* Stats row */}
         {myTasks === undefined ? (
-          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-4">
-            {[1,2,3,4].map((i) => (
+          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-5">
+            {[1,2,3,4,5].map((i) => (
               <Skeleton key={i} className="h-24 rounded-xl" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-5">
             {[
               { label: td("stats.openTasks"), value: activeTasks.length, icon: CheckSquare, gradient: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-500", href: "/tasks" },
               { label: td("stats.overdue"), value: overdueTaskCount, icon: AlertCircle, gradient: overdueTaskCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", iconColor: overdueTaskCount > 0 ? "text-red-500" : "text-emerald-500", href: "/tasks" },
+              { label: td("stats.doneToday"), value: doneTodayCount, icon: Trophy, gradient: doneTodayCount > 0 ? "from-emerald-500/10 to-emerald-500/5" : "from-slate-500/10 to-slate-500/5", iconColor: doneTodayCount > 0 ? "text-emerald-500" : "text-slate-400", href: "/tasks" },
               { label: td("stats.projects"), value: (myProjects ?? []).length, icon: FolderKanban, gradient: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-500", href: "/projects" },
               { label: td("stats.teams"), value: (myTeams ?? []).length, icon: Users, gradient: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-500", href: "/teams" },
             ].map((stat) => (
@@ -123,37 +127,36 @@ const DocumentsPage = () => {
                 key={stat.label}
                 href={stat.href}
                 prefetch
-                className={cn(
-                  "group relative overflow-hidden rounded-xl border p-4 text-left transition-all hover:shadow-md hover:border-primary/20",
-                  "bg-gradient-to-br",
-                  stat.gradient,
-                )}
+                className="group relative overflow-hidden rounded-xl border border-border/60 p-4 text-left transition-all duration-200 hover:shadow-sm hover:border-border"
               >
                 <div className="flex items-center justify-between mb-3">
                   <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
-                  <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
-                <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
-                <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
+                <p className="text-[11px] font-medium text-muted-foreground/60 mt-0.5">{stat.label}</p>
               </Link>
             ))}
           </div>
         )}
 
         {/* Quick actions row */}
-        <div className="flex flex-wrap gap-2 mb-10">
-          <Button onClick={onCreateDoc} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <FileText className="h-3.5 w-3.5" /> {td("newNote")}
-          </Button>
-          <Button onClick={() => setShowNewTask(true)} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <CheckSquare className="h-3.5 w-3.5" /> {td("newTask")}
-          </Button>
-          <Button onClick={() => router.push("/projects")} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <FolderKanban className="h-3.5 w-3.5" /> {td("myProjects")}
-          </Button>
-          <Button onClick={() => router.push("/teams")} size="sm" variant="outline" className="gap-2 rounded-lg h-8">
-            <Users className="h-3.5 w-3.5" /> {td("myTeams")}
-          </Button>
+        <div className="flex flex-wrap gap-1.5 mb-10">
+          {[
+            { label: td("newNote"), icon: FileText, action: onCreateDoc },
+            { label: td("newTask"), icon: CheckSquare, action: () => setShowNewTask(true) },
+            { label: td("myProjects"), icon: FolderKanban, action: () => router.push("/projects") },
+            { label: td("myTeams"), icon: Users, action: () => router.push("/teams") },
+            { label: td("templates") ?? "Templates", icon: BookOpen, action: () => router.push("/templates") },
+          ].map((item) => (
+            <button
+              key={item.label}
+              onClick={item.action}
+              className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:border-border hover:shadow-sm"
+            >
+              <item.icon className="h-3.5 w-3.5" /> {item.label}
+            </button>
+          ))}
         </div>
 
         <div className="grid gap-8 lg:grid-cols-5">
@@ -162,10 +165,10 @@ const DocumentsPage = () => {
             {/* Active tasks */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">{td("myTasks")}</h2>
+                <h2 className="text-[13px] font-medium text-foreground/80">{td("myTasks")}</h2>
                 <button
                   onClick={() => router.push("/tasks")}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
                 >
                   {td("viewAll")} <ArrowRight className="h-3 w-3" />
                 </button>
@@ -190,16 +193,16 @@ const DocumentsPage = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-xl border divide-y">
+                <div className="rounded-xl border border-border/40 divide-y divide-border/40">
                   {activeTasks.slice(0, 6).map((task) => (
                     <Link
                       key={task._id}
                       href={`/tasks/${task._id}`}
                       prefetch
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/30 transition-all duration-200 group first:rounded-t-xl last:rounded-b-xl"
                     >
-                      <Circle className="h-[14px] w-[14px] shrink-0 text-muted-foreground/40 group-hover:text-primary transition-colors" />
-                      <span className={cn("flex-1 text-sm truncate", task.dueDate && task.dueDate < Date.now() && "text-red-500/90")}>{task.title}</span>
+                      <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/25 group-hover:text-foreground/50 transition-colors duration-200" />
+                      <span className={cn("flex-1 text-[13px] truncate", task.dueDate && task.dueDate < Date.now() && "text-red-500/80")}>{task.title}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         {task.priority !== "none" && (
                           <div className={cn("h-1.5 w-1.5 rounded-full", priorityDot[task.priority])} />
@@ -220,7 +223,7 @@ const DocumentsPage = () => {
                     <Link
                       href="/tasks"
                       prefetch
-                      className="block w-full text-center text-xs text-muted-foreground hover:text-primary py-2.5 transition-colors rounded-b-xl hover:bg-accent/50"
+                      className="block w-full text-center text-[11px] text-muted-foreground/50 hover:text-foreground/70 py-2.5 transition-colors duration-200 rounded-b-xl hover:bg-accent/30"
                     >
                       +{activeTasks.length - 6} {td("more")}
                     </Link>
@@ -234,26 +237,26 @@ const DocumentsPage = () => {
               <section>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-semibold">{td("inbox")}</h2>
-                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-semibold text-white">
+                    <h2 className="text-[13px] font-medium text-foreground/80">{td("inbox")}</h2>
+                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background">
                       {unreadCount}
                     </div>
                   </div>
                   <button
                     onClick={() => router.push("/inbox")}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
                   >
                     {td("viewAll")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
-                <div className="rounded-xl border divide-y">
+                <div className="rounded-xl border border-border/40 divide-y divide-border/40">
                   {(notifications ?? []).filter((n) => !n.read).slice(0, 3).map((n) => (
                     <div
                       key={n._id}
                       onClick={() => router.push("/inbox")}
-                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/30 transition-all duration-200 first:rounded-t-xl last:rounded-b-xl"
                     >
-                      <div className="h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
                       <p className="flex-1 text-sm truncate font-medium">{n.title}</p>
                       <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(n.createdAt)}</span>
                     </div>
@@ -268,10 +271,10 @@ const DocumentsPage = () => {
             {/* Recent notes */}
             <section>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">{td("recentNotes")}</h2>
+                <h2 className="text-[13px] font-medium text-foreground/80">{td("recentNotes")}</h2>
                 <button
                   onClick={onCreateDoc}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
                 >
                   <Plus className="h-3 w-3" /> {tc("add")}
                 </button>
@@ -294,18 +297,18 @@ const DocumentsPage = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="rounded-xl border divide-y">
+                <div className="rounded-xl border border-border/40 divide-y divide-border/40">
                   {(recentDocs ?? []).slice(0, 6).map((doc) => (
                     <Link
                       key={doc._id}
                       href={`/documents/${doc._id}`}
                       prefetch
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors group first:rounded-t-xl last:rounded-b-xl"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/30 transition-all duration-200 group first:rounded-t-xl last:rounded-b-xl"
                     >
                       <span className="shrink-0 text-sm leading-none">
                         {doc.icon ?? "📄"}
                       </span>
-                      <span className="flex-1 text-sm truncate group-hover:text-primary transition-colors">
+                      <span className="flex-1 text-[13px] truncate group-hover:text-foreground transition-colors duration-200">
                         {doc.title || tc("untitled")}
                       </span>
                     </Link>
@@ -318,32 +321,32 @@ const DocumentsPage = () => {
             {(myProjects ?? []).length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold">{td("myProjects")}</h2>
+                  <h2 className="text-[13px] font-medium text-foreground/80">{td("myProjects")}</h2>
                   <button
                     onClick={() => router.push("/projects")}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
                   >
                     {td("viewAll")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {(myProjects ?? []).filter(Boolean).slice(0, 4).map((project) => (
                     <div
                       key={project!._id}
                       onClick={() => router.push(`/projects/${project!._id}`)}
-                      className="flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer hover:border-primary/20 hover:shadow-sm transition-all group"
+                      className="flex items-center gap-3 rounded-lg border border-border/40 px-3.5 py-2.5 cursor-pointer hover:border-border hover:bg-accent/30 transition-all duration-200 group"
                     >
                       <div
-                        className="h-7 w-7 shrink-0 rounded-md flex items-center justify-center text-white text-xs font-bold"
+                        className="h-6 w-6 shrink-0 rounded-md flex items-center justify-center text-white text-[10px] font-semibold"
                         style={{ backgroundColor: project!.color ?? "#6366f1" }}
                       >
                         {project!.icon ?? project!.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        <p className="text-[13px] font-medium truncate group-hover:text-foreground transition-colors duration-200">
                           {project!.name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground capitalize">{project!.status}</p>
+                        <p className="text-[10px] text-muted-foreground/50 capitalize">{project!.status}</p>
                       </div>
                     </div>
                   ))}
@@ -355,29 +358,29 @@ const DocumentsPage = () => {
             {(myTeams ?? []).length > 0 && (
               <section>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold">{td("myTeams")}</h2>
+                  <h2 className="text-[13px] font-medium text-foreground/80">{td("myTeams")}</h2>
                   <button
                     onClick={() => router.push("/teams")}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                    className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
                   >
                     {td("viewAll")} <ArrowRight className="h-3 w-3" />
                   </button>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {(myTeams ?? []).filter(Boolean).slice(0, 3).map((team: any) => (
                     <div
                       key={team._id}
                       onClick={() => router.push(`/teams/${team._id}`)}
-                      className="flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer hover:border-primary/20 hover:shadow-sm transition-all group"
+                      className="flex items-center gap-3 rounded-lg border border-border/40 px-3.5 py-2.5 cursor-pointer hover:border-border hover:bg-accent/30 transition-all duration-200 group"
                     >
-                      <div className="h-7 w-7 shrink-0 rounded-md bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-xs font-bold text-primary">
+                      <div className="h-6 w-6 shrink-0 rounded-md bg-foreground/5 flex items-center justify-center text-[10px] font-semibold text-foreground/60">
                         {team.icon ?? team.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                        <p className="text-[13px] font-medium truncate group-hover:text-foreground transition-colors duration-200">
                           {team.name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground capitalize">{team.role}</p>
+                        <p className="text-[10px] text-muted-foreground/50 capitalize">{team.role}</p>
                       </div>
                     </div>
                   ))}
@@ -401,7 +404,7 @@ const DocumentsPage = () => {
       {extEnabled("aiAssistant") && !showAi && (
         <button
           onClick={() => setShowAi(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background shadow-md transition-all duration-200 hover:scale-[1.04] active:scale-[0.97]"
           title="A2E AI"
         >
           <Sparkles className="h-5 w-5" />

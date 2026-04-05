@@ -73,7 +73,7 @@ export async function sendAiMessage(
     body: JSON.stringify({
       messages,
       temperature: opts?.temperature ?? 0.7,
-      max_tokens: opts?.max_tokens ?? 4096,
+      max_tokens: opts?.max_tokens ?? 8192,
     }),
   });
 

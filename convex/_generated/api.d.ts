@@ -10,11 +10,13 @@
 
 import type * as automations from "../automations.js";
 import type * as comments from "../comments.js";
+import type * as databases from "../databases.js";
 import type * as documents from "../documents.js";
 import type * as notifications from "../notifications.js";
 import type * as projects from "../projects.js";
 import type * as tasks from "../tasks.js";
 import type * as teams from "../teams.js";
+import type * as templates from "../templates.js";
 import type * as userProfiles from "../userProfiles.js";
 import type * as workspaces from "../workspaces.js";
 
@@ -27,11 +29,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   automations: typeof automations;
   comments: typeof comments;
+  databases: typeof databases;
   documents: typeof documents;
   notifications: typeof notifications;
   projects: typeof projects;
   tasks: typeof tasks;
   teams: typeof teams;
+  templates: typeof templates;
   userProfiles: typeof userProfiles;
   workspaces: typeof workspaces;
 }>;

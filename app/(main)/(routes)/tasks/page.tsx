@@ -284,38 +284,41 @@ export default function TasksPage() {
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+              <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground/60">
                 <span>{openCount} {t("open")}</span>
                 {overdueCount > 0 && (
-                  <span className="flex items-center gap-1 text-red-500 font-medium">
+                  <span className="flex items-center gap-1 text-red-500/80 font-medium">
                     <AlertCircle className="h-3 w-3" /> {overdueCount} {t("overdue_count")}
                   </span>
                 )}
-                {doneCount > 0 && <span className="text-emerald-600">{doneCount} {t("done_count")}</span>}
+                {doneCount > 0 && <span className="text-emerald-600/70">{doneCount} {t("done_count")}</span>}
               </div>
             </div>
             <div className="flex items-center gap-2">
               {/* View toggle — only show board if kanban extension enabled */}
               {kanbanEnabled && (
-                <div className="hidden sm:flex gap-0.5 rounded-lg border p-0.5">
+                <div className="hidden sm:flex gap-0.5 rounded-lg border border-border/40 p-0.5">
                   <button
                     onClick={() => setViewMode("list")}
-                    className={cn("rounded-md p-1.5 transition-all", viewMode === "list" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("rounded-md p-1.5 transition-all duration-200", viewMode === "list" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground/40 hover:text-foreground/70")}
                   >
                     <List className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => setViewMode("board")}
-                    className={cn("rounded-md p-1.5 transition-all", viewMode === "board" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    className={cn("rounded-md p-1.5 transition-all duration-200", viewMode === "board" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground/40 hover:text-foreground/70")}
                   >
                     <LayoutGrid className="h-3.5 w-3.5" />
                   </button>
                 </div>
               )}
-              <Button onClick={() => { setNewTaskStatus("todo"); setShowNewTask(true); }} size="sm" className="gap-1.5 h-8">
+              <button
+                onClick={() => { setNewTaskStatus("todo"); setShowNewTask(true); }}
+                className="flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-xs font-medium text-background transition-all duration-200 hover:opacity-90 active:scale-[0.97]"
+              >
                 <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{t("newTask")}</span>
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -326,10 +329,10 @@ export default function TasksPage() {
                 key={key}
                 onClick={() => setFilter(key)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border",
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-all duration-200 border",
                   filter === key
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-primary/30",
+                    ? "bg-foreground text-background border-foreground"
+                    : "border-border/40 text-muted-foreground/60 hover:text-foreground hover:border-border",
                   filter !== key && accent,
                 )}
               >
@@ -337,7 +340,7 @@ export default function TasksPage() {
                 {count !== undefined && count > 0 && (
                   <span className={cn(
                     "inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold",
-                    filter === key ? "bg-white/20 text-white" : "bg-muted text-muted-foreground",
+                    filter === key ? "bg-background/20 text-background" : "bg-muted text-muted-foreground/60",
                   )}>
                     {count}
                   </span>
@@ -362,7 +365,7 @@ export default function TasksPage() {
                 })}
                 className={cn(
                   "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs transition-colors",
-                  sortBy !== "default" ? "border-primary/40 text-primary bg-primary/5" : "text-muted-foreground hover:text-foreground",
+                  sortBy !== "default" ? "border-foreground/20 text-foreground bg-foreground/5" : "text-muted-foreground/50 hover:text-foreground/70",
                 )}
               >
                 <ArrowUpDown className="h-3 w-3" />

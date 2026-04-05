@@ -359,7 +359,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   button:not(:disabled),
@@ -367,8 +370,20 @@
     cursor: pointer;
   }
 
+  /* Unified transition for all interactive elements */
+  a, button, [role="button"], input, select, textarea {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Focus-visible: subtle ring instead of harsh outline */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+    border-radius: var(--radius);
+  }
+
   ::-webkit-scrollbar {
-    @apply h-2.5 w-2.5;
+    @apply h-1.5 w-1.5;
   }
 
   ::-webkit-scrollbar-track {
@@ -376,7 +391,10 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full border border-solid border-transparent bg-clip-padding;
+    @apply bg-foreground/8 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-foreground/15;
   }
   ::-webkit-scrollbar-corner {
     @apply bg-transparent;

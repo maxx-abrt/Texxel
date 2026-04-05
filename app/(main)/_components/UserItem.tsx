@@ -72,47 +72,47 @@ export const UserItem = () => {
       <DropdownMenuTrigger>
         <div
           role="button"
-          className="hover:bg-primary/5 flex w-full items-center p-3 text-sm"
+          className="group flex w-full items-center px-3.5 py-3 text-sm transition-all duration-200 ease-out hover:bg-foreground/[0.03]"
         >
-          <div className="flex max-w-39 items-center gap-x-2">
-            <Avatar className="h-5 w-5">
+          <div className="flex max-w-[180px] items-center gap-x-2.5">
+            <Avatar className="h-[22px] w-[22px] ring-1 ring-border/30 transition-shadow duration-200 group-hover:ring-border/50">
               <AvatarImage src={user?.image ?? undefined} />
-              <AvatarFallback>{user?.name?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
+              <AvatarFallback className="text-[10px] font-semibold bg-foreground/[0.06] text-foreground/60">{user?.name?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-start min-w-0">
-              <span className="line-clamp-1 text-start font-medium text-sm leading-tight">
+              <span className="line-clamp-1 text-start font-medium text-[13px] leading-tight text-foreground/90 transition-colors duration-200 group-hover:text-foreground">
                 {user?.name ?? "Texxel"}
               </span>
-              <span className="text-[10px] text-muted-foreground leading-tight truncate">
+              <span className="text-[10px] text-muted-foreground/50 leading-tight truncate transition-colors duration-200 group-hover:text-muted-foreground/70">
                 {activeLabel}
               </span>
             </div>
           </div>
-          <ChevronsLeftRight className="text-muted-foreground ml-2 h-4 w-4 rotate-90" />
+          <ChevronsLeftRight className="text-muted-foreground/30 ml-2 h-3.5 w-3.5 rotate-90 transition-colors duration-200 group-hover:text-muted-foreground/60" />
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-80"
+        className="w-80 rounded-xl border-border/50 shadow-lg shadow-black/5"
         align="start"
         alignOffset={11}
         forceMount
       >
-        <div className="flex flex-col space-y-3 p-2">
-          <p className="text-muted-foreground text-xs leading-none font-medium">
+        <div className="flex flex-col space-y-3 p-3">
+          <p className="text-muted-foreground/60 text-[11px] leading-none font-medium">
             {user?.email}
           </p>
-          <div className="flex items-center gap-x-2">
-            <div className="bg-secondary rounded-md p-1">
-              <Avatar>
+          <div className="flex items-center gap-x-2.5">
+            <div className="bg-foreground/[0.04] rounded-lg p-1">
+              <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.image ?? undefined} />
-                <AvatarFallback>{user?.name?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
+                <AvatarFallback className="text-xs font-semibold bg-foreground/[0.06] text-foreground/60">{user?.name?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
               </Avatar>
             </div>
             <div className="space-y-0.5">
-              <p className="line-clamp-1 text-sm font-medium">
+              <p className="line-clamp-1 text-[13px] font-semibold text-foreground/90">
                 {user?.name ?? "Texxel"}
               </p>
-              <p className="text-[11px] text-muted-foreground">{activeLabel}</p>
+              <p className="text-[11px] text-muted-foreground/60">{activeLabel}</p>
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ export const UserItem = () => {
           <>
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50 mb-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/40 mb-1.5">
                 {tw("title")}
               </p>
               <div className="space-y-0.5">
@@ -131,10 +131,10 @@ export const UserItem = () => {
                     key={ws._id}
                     onClick={() => handleSwitchWorkspace(ws._id)}
                     className={cn(
-                      "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
+                      "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm transition-all duration-200 ease-out",
                       ws._id === activeWorkspaceId
                         ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                        : "text-muted-foreground/80 hover:bg-foreground/[0.04] hover:text-foreground",
                     )}
                   >
                     <div
@@ -179,7 +179,7 @@ export const UserItem = () => {
               ) : (
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="mt-1.5 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="mt-1.5 flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground transition-all duration-200 ease-out"
                 >
                   <Plus className="h-3 w-3" />
                   {tw("create")}
@@ -195,18 +195,18 @@ export const UserItem = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           asChild
-          className="text-muted-foreground w-full cursor-pointer"
+          className="text-muted-foreground/80 w-full cursor-pointer rounded-lg text-[13px]"
         >
           <button onClick={() => router.push("/account/settings")}>
-            <Settings className="text-muted-foreground size-4" />
+            <Settings className="text-muted-foreground/60 size-3.5" />
             {t("manageAccount")}
           </button>
         </DropdownMenuItem>
 
-        <DropdownMenuItem asChild className="group w-full cursor-pointer">
+        <DropdownMenuItem asChild className="group w-full cursor-pointer rounded-lg text-[13px]">
           <button onClick={handleSignOut}>
-            <LogOut className="text-muted-foreground size-4" />
-            <span className="text-muted-foreground transition-colors group-hover:text-black! hover:text-black">
+            <LogOut className="text-muted-foreground/60 size-3.5" />
+            <span className="text-muted-foreground/80 transition-colors duration-200 group-hover:text-foreground">
               {t("logOut")}
             </span>
           </button>

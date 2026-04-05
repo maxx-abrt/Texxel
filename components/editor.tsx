@@ -412,27 +412,27 @@ const Editor = ({
         {documentId && showCommentsSidebar && (
           commentsSidebarContainer
             ? createPortal(
-                <div className="min-w-0 h-full overflow-x-hidden overflow-y-auto [&_.bn-thread-sidebar]:max-w-full! [&_.bn-thread-sidebar-item]:max-w-full! [&_.bn-thread]:max-w-full!">
+                <div className="min-w-0 h-full overflow-x-hidden overflow-y-auto [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:max-w-full!">
                   <ThreadsSidebar filter="open" sort="position" />
                 </div>,
                 commentsSidebarContainer,
               )
-            : <div className="fixed right-0 top-[41px] bottom-0 z-40 flex w-72 flex-col border-l bg-background/98">
-                <div className="flex shrink-0 items-center justify-between border-b border-border/50 px-4 py-3">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">{t("commentsTitle")}</span>
+            : <div className="fixed right-0 top-[41px] bottom-0 z-40 flex w-72 lg:w-80 flex-col border-l border-border/50 bg-background/98 backdrop-blur-sm shadow-[-1px_0_12px_0_rgba(0,0,0,.04)]">
+                <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">{t("commentsTitle")}</span>
                   {onCommentsSidebarClose && (
                     <button
                       onClick={onCommentsSidebarClose}
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground"
+                      className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground/40 transition-all duration-200 ease-out hover:bg-foreground/[0.06] hover:text-foreground/70"
                       aria-label={t("commentsTitle")}
                     >
-                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                      <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+                        <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                       </svg>
                     </button>
                   )}
                 </div>
-                <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&_.bn-thread-sidebar]:max-w-full! [&_.bn-thread-sidebar-item]:max-w-full! [&_.bn-thread]:max-w-full! [&_.bn-thread-sidebar-item]:border-b [&_.bn-thread-sidebar-item]:border-border/30 [&_.bn-thread-sidebar-item]:px-4 [&_.bn-thread-sidebar-item]:py-3">
+                <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:max-w-full!">
                   <ThreadsSidebar filter="open" sort="position" />
                 </div>
               </div>

@@ -54,15 +54,15 @@ export const ScrollableList = ({
     <div className="relative h-full">
       <div
         className={cn(
-          "from-secondary absolute top-0 right-0 left-0 z-10 mr-1 flex h-6 items-center justify-center bg-linear-to-b to-transparent transition-opacity duration-300",
+          "from-sidebar absolute top-0 right-0 left-0 z-10 flex h-7 items-center justify-center bg-linear-to-b to-transparent transition-opacity duration-300 ease-out",
           canScrollUp ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
         <button
           onClick={() => scrollBy(-70)}
-          className="bg-primary/5 hover:bg-primary/15 rounded-full p-0.5"
+          className="rounded-full p-0.5 bg-foreground/[0.04] hover:bg-foreground/[0.08] transition-all duration-200 ease-out"
         >
-          <ChevronUp className="text-muted-foreground size-4" />
+          <ChevronUp className="text-muted-foreground/50 size-3.5" />
         </button>
       </div>
 
@@ -80,15 +80,15 @@ export const ScrollableList = ({
 
       <div
         className={cn(
-          "from-secondary absolute right-0 bottom-0 left-0 z-10 mr-1 flex h-6 items-center justify-center bg-linear-to-t to-transparent transition-opacity duration-300",
+          "from-sidebar absolute right-0 bottom-0 left-0 z-10 flex h-7 items-center justify-center bg-linear-to-t to-transparent transition-opacity duration-300 ease-out",
           canScrollDown ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >
         <button
           onClick={() => scrollBy(70)}
-          className="bg-primary/5 hover:bg-primary/15 rounded-full p-0.5"
+          className="rounded-full p-0.5 bg-foreground/[0.04] hover:bg-foreground/[0.08] transition-all duration-200 ease-out"
         >
-          <ChevronDown className="text-muted-foreground size-4" />
+          <ChevronDown className="text-muted-foreground/50 size-3.5" />
         </button>
       </div>
     </div>

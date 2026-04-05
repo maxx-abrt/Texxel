@@ -1,6 +1,6 @@
 "use client";
 
-import React, { ComponentRef, useEffect, useRef, useState } from "react";
+import React, { ComponentRef, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "usehooks-ts";
 import { useMutation, useQuery } from "convex/react";
 import { useParams, usePathname, useRouter } from "next/navigation";
@@ -17,6 +17,7 @@ import {
   BookOpen,
   CalendarDays,
   CheckSquare,
+  ChevronDown,
   ChevronsLeft,
   Clock,
   Copy,
@@ -76,6 +77,12 @@ const Navigation = () => {
   const navbarRef = useRef<ComponentRef<"div">>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(isMobile);
+
+  // Collapsible section states
+  const [sectionsCollapsed, setSectionsCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSection = useCallback((key: string) => {
+    setSectionsCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
 
   useEffect(() => {
     if (isMobile) collapse();
@@ -163,8 +170,8 @@ const Navigation = () => {
         style={{ width: isMobile ? 0 : sidebarW }}
         className={cn(
           "group/sidebar bg-sidebar relative z-300 flex h-full flex-col overflow-hidden",
-          "border-r border-sidebar-border",
-          isResetting && "transition-all duration-300 ease-in-out",
+          "border-r border-sidebar-border/70",
+          isResetting && "transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         )}
       >
         {/* Collapse button */}
@@ -172,11 +179,11 @@ const Navigation = () => {
           onClick={collapse}
           role="button"
           className={cn(
-            "text-muted-foreground absolute top-3 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-md opacity-0 transition hover:bg-accent group-hover/sidebar:opacity-100",
+            "text-muted-foreground/50 absolute top-3.5 right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-lg opacity-0 transition-all duration-200 ease-out hover:bg-foreground/[0.06] hover:text-foreground/70 group-hover/sidebar:opacity-100",
             isMobile && "opacity-100",
           )}
         >
-          <ChevronsLeft className="h-4 w-4" />
+          <ChevronsLeft className="h-3.5 w-3.5" />
         </div>
 
         {/* User section */}
@@ -184,147 +191,211 @@ const Navigation = () => {
           <UserItem />
         </div>
 
-        {/* Quick actions */}
-        <div className="shrink-0 px-3 pt-2 pb-2">
+        {/* Search bar */}
+        <div className="shrink-0 px-3 pt-1 pb-1">
           <button
             onClick={openCommandPalette}
-            className="group flex w-full items-center rounded-lg px-3 py-2 text-[13px] font-medium text-muted-foreground/70 transition-all duration-150 hover:bg-accent/60 hover:text-foreground"
+            className="group flex w-full items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13px] font-medium text-muted-foreground/50 transition-all duration-200 ease-out hover:bg-foreground/[0.04] hover:text-muted-foreground/80"
           >
-            <Search className="mr-2.5 h-4 w-4 shrink-0" />
+            <Search className="h-3.5 w-3.5 shrink-0" />
             <span className="flex-1 text-left truncate">{t("search")}</span>
-            <kbd className="ml-auto hidden rounded-md border border-border/40 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/50 sm:inline-flex">
+            <kbd className="ml-auto hidden rounded-md border border-border/30 bg-foreground/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/35 sm:inline-flex">
               ⌘K
             </kbd>
           </button>
-          <Item
-            label={t("home")}
-            icon={Home}
-            onClick={() => router.push("/documents")}
-            active={pathname === "/documents"}
-          />
-          <div className="relative">
+        </div>
+
+        {/* Quick actions — collapsible */}
+        <div className="shrink-0 px-3 pb-1">
+          <button
+            onClick={() => toggleSection("quick")}
+            className="group/header flex w-full items-center gap-1.5 px-3 pb-1 pt-2.5"
+          >
+            <ChevronDown className={cn(
+              "h-2.5 w-2.5 text-muted-foreground/30 transition-transform duration-200 ease-out group-hover/header:text-muted-foreground/50",
+              sectionsCollapsed.quick && "-rotate-90",
+            )} />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
+              {t("home")}
+            </span>
+          </button>
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              sectionsCollapsed.quick ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100",
+            )}
+          >
             <Item
-              label={t("inbox")}
-              icon={Inbox}
-              onClick={() => router.push("/inbox")}
-              active={pathname === "/inbox"}
+              label={t("home")}
+              icon={Home}
+              onClick={() => router.push("/documents")}
+              active={pathname === "/documents"}
             />
-            {unreadCount > 0 && (
-              <div className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-semibold text-white">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </div>
+            <div className="relative">
+              <Item
+                label={t("inbox")}
+                icon={Inbox}
+                onClick={() => router.push("/inbox")}
+                active={pathname === "/inbox"}
+              />
+              {unreadCount > 0 && (
+                <div className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-blue-500/90 px-1 text-[9px] font-semibold text-white shadow-sm shadow-blue-500/20">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </div>
+              )}
+            </div>
+            <Item
+              label={t("settings")}
+              icon={Settings}
+              onClick={() => router.push("/settings")}
+              active={pathname.startsWith("/settings")}
+            />
+          </div>
+        </div>
+
+        {/* Workspace section — collapsible */}
+        <div className="shrink-0 px-3 pb-1">
+          <button
+            onClick={() => toggleSection("workspace")}
+            className="group/header flex w-full items-center gap-1.5 px-3 pb-1 pt-2.5"
+          >
+            <ChevronDown className={cn(
+              "h-2.5 w-2.5 text-muted-foreground/30 transition-transform duration-200 ease-out group-hover/header:text-muted-foreground/50",
+              sectionsCollapsed.workspace && "-rotate-90",
+            )} />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
+              {t("workspace")}
+            </span>
+          </button>
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              sectionsCollapsed.workspace ? "max-h-0 opacity-0" : "max-h-[300px] opacity-100",
+            )}
+          >
+            <Item
+              label={t("tasks")}
+              icon={CheckSquare}
+              onClick={() => router.push("/tasks")}
+              active={pathname.startsWith("/tasks")}
+            />
+            {extEnabled("calendar") && (
+              <Item
+                label={t("calendar")}
+                icon={CalendarDays}
+                onClick={() => router.push("/calendar")}
+                active={pathname.startsWith("/calendar")}
+              />
+            )}
+            <Item
+              label={t("projects")}
+              icon={FolderKanban}
+              onClick={() => router.push("/projects")}
+              active={pathname.startsWith("/projects")}
+            />
+            <Item
+              label={t("teams")}
+              icon={Users}
+              onClick={() => router.push("/teams")}
+              active={pathname.startsWith("/teams")}
+            />
+            <Item
+              label={t("templates")}
+              icon={BookOpen}
+              onClick={() => router.push("/templates")}
+              active={pathname.startsWith("/templates")}
+            />
+            {extEnabled("databases") && (
+              <Item
+                label={t("databases")}
+                icon={Database}
+                onClick={() => router.push("/databases")}
+                active={pathname.startsWith("/databases")}
+              />
             )}
           </div>
-          <Item
-            label={t("settings")}
-            icon={Settings}
-            onClick={() => router.push("/settings")}
-            active={pathname.startsWith("/settings")}
-          />
         </div>
 
-        {/* Workspace section */}
-        <div className="shrink-0 px-3 pb-2 border-b border-sidebar-border/60">
-          <p className="px-3 pb-1 pt-3 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/35">
-            {t("workspace")}
-          </p>
-          <Item
-            label={t("tasks")}
-            icon={CheckSquare}
-            onClick={() => router.push("/tasks")}
-            active={pathname.startsWith("/tasks")}
-          />
-          {extEnabled("calendar") && (
-            <Item
-              label={t("calendar")}
-              icon={CalendarDays}
-              onClick={() => router.push("/calendar")}
-              active={pathname.startsWith("/calendar")}
-            />
-          )}
-          <Item
-            label={t("projects")}
-            icon={FolderKanban}
-            onClick={() => router.push("/projects")}
-            active={pathname.startsWith("/projects")}
-          />
-          <Item
-            label={t("teams")}
-            icon={Users}
-            onClick={() => router.push("/teams")}
-            active={pathname.startsWith("/teams")}
-          />
-          <Item
-            label={t("templates")}
-            icon={BookOpen}
-            onClick={() => router.push("/templates")}
-            active={pathname.startsWith("/templates")}
-          />
-          {extEnabled("databases") && (
-            <Item
-              label={t("databases")}
-              icon={Database}
-              onClick={() => router.push("/databases")}
-              active={pathname.startsWith("/databases")}
-            />
-          )}
-        </div>
-
-        {/* Extension nav items */}
+        {/* Extension nav items — collapsible */}
         {(extEnabled("aiAssistant") || extEnabled("automations") || extEnabled("focusTimer")) && (
-          <div className="shrink-0 px-3 py-1 border-b border-sidebar-border">
-            {extEnabled("aiAssistant") && (
-              <Item
-                label="A2E AI"
-                icon={Sparkles}
-                onClick={() => router.push("/documents")}
-              />
-            )}
-            {extEnabled("automations") && (
-              <Item
-                label={t("workspace") === "Workspace" ? "Automations" : "Automatisations"}
-                icon={Zap}
-                onClick={() => router.push("/automations")}
-                active={pathname === "/automations"}
-              />
-            )}
-            {extEnabled("focusTimer") && (
-              <Item
-                label={t("workspace") === "Workspace" ? "Focus Timer" : "Minuteur Focus"}
-                icon={Clock}
-                onClick={() => {
-                  const event = new CustomEvent("toggle-pomodoro");
-                  window.dispatchEvent(event);
-                }}
-              />
-            )}
+          <div className="shrink-0 px-3 pb-1">
+            <button
+              onClick={() => toggleSection("extensions")}
+              className="group/header flex w-full items-center gap-1.5 px-3 pb-1 pt-2.5"
+            >
+              <ChevronDown className={cn(
+                "h-2.5 w-2.5 text-muted-foreground/30 transition-transform duration-200 ease-out group-hover/header:text-muted-foreground/50",
+                sectionsCollapsed.extensions && "-rotate-90",
+              )} />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
+                Extensions
+              </span>
+            </button>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                sectionsCollapsed.extensions ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100",
+              )}
+            >
+              {extEnabled("aiAssistant") && (
+                <Item
+                  label="A2E AI"
+                  icon={Sparkles}
+                  onClick={() => router.push("/documents")}
+                />
+              )}
+              {extEnabled("automations") && (
+                <Item
+                  label={t("workspace") === "Workspace" ? "Automations" : "Automatisations"}
+                  icon={Zap}
+                  onClick={() => router.push("/automations")}
+                  active={pathname === "/automations"}
+                />
+              )}
+              {extEnabled("focusTimer") && (
+                <Item
+                  label={t("workspace") === "Workspace" ? "Focus Timer" : "Minuteur Focus"}
+                  icon={Clock}
+                  onClick={() => {
+                    const event = new CustomEvent("toggle-pomodoro");
+                    window.dispatchEvent(event);
+                  }}
+                />
+              )}
+            </div>
           </div>
         )}
 
-        {/* Notes section */}
-        <div className="flex min-h-0 flex-1 flex-col px-3 pt-1">
-          <div className="flex items-center justify-between px-3 pb-1 pt-3">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/35">
-              {t("notes")}
-            </p>
+        {/* Subtle divider before notes */}
+        <div className="mx-5 border-t border-sidebar-border/40" />
+
+        {/* Notes section — always visible, takes remaining space */}
+        <div className="flex min-h-0 flex-1 flex-col px-3 pt-0.5">
+          <div className="flex items-center justify-between px-3 pb-1 pt-2.5">
+            <div className="flex items-center gap-1.5">
+              <ChevronDown className="h-2.5 w-2.5 text-muted-foreground/30" />
+              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30">
+                {t("notes")}
+              </span>
+            </div>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={bulkSelect.toggleSelecting}
                 className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-md transition-colors duration-200",
+                  "flex h-5 w-5 items-center justify-center rounded-md transition-all duration-200 ease-out",
                   bulkSelect.isSelecting
-                    ? "text-foreground bg-foreground/10"
-                    : "text-muted-foreground/40 hover:bg-accent/60 hover:text-foreground/70",
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground/30 hover:bg-foreground/[0.04] hover:text-muted-foreground/60",
                 )}
                 title={tb("selectAll")}
               >
-                <ListChecks className="h-3.5 w-3.5" />
+                <ListChecks className="h-3 w-3" />
               </button>
               <button
                 onClick={handleCreate}
-                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/40 transition-colors duration-200 hover:bg-accent/60 hover:text-foreground/70"
+                className="flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground/30 transition-all duration-200 ease-out hover:bg-foreground/[0.04] hover:text-muted-foreground/60"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3 w-3" />
               </button>
             </div>
           </div>
@@ -335,14 +406,14 @@ const Navigation = () => {
           </div>
           {/* Bulk action bar */}
           {bulkSelect.isSelecting && bulkSelect.selectedIds.size > 0 && (
-            <div className="shrink-0 border-t border-sidebar-border px-2 py-2">
+            <div className="shrink-0 border-t border-sidebar-border/40 px-2 py-2">
               <div className="flex items-center gap-1.5 mb-1.5">
                 <span className="text-[10px] font-semibold text-primary">
                   {bulkSelect.selectedIds.size} {tb("selected").replace("{count}", "").trim()}
                 </span>
                 <button
                   onClick={bulkSelect.exitSelecting}
-                  className="ml-auto flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                  className="ml-auto flex h-5 w-5 items-center justify-center rounded-lg text-muted-foreground/50 hover:bg-foreground/[0.06] hover:text-foreground transition-all duration-200"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -357,7 +428,7 @@ const Navigation = () => {
                       bulkSelect.exitSelecting();
                     } catch { toast.error(tb("failed")); }
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border/30 px-2 py-1.5 text-[11px] font-medium text-muted-foreground/70 hover:text-destructive hover:border-destructive/30 transition-all duration-200"
                 >
                   <Trash2 className="h-3 w-3" /> {tb("archive")}
                 </button>
@@ -370,14 +441,14 @@ const Navigation = () => {
                       bulkSelect.exitSelecting();
                     } catch { toast.error(tb("failed")); }
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-md border px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-border/30 px-2 py-1.5 text-[11px] font-medium text-muted-foreground/70 hover:text-foreground hover:border-primary/30 transition-all duration-200"
                 >
                   <Copy className="h-3 w-3" /> {tb("duplicate")}
                 </button>
               </div>
             </div>
           )}
-          <div className="shrink-0 border-t border-sidebar-border py-2">
+          <div className="shrink-0 border-t border-sidebar-border/40 py-1.5">
             <Item onClick={handleCreate} icon={PlusCircle} label={t("newNote")} />
             <Popover>
               <PopoverTrigger className="w-full">
@@ -385,7 +456,7 @@ const Navigation = () => {
               </PopoverTrigger>
               <PopoverContent
                 side={isMobile ? "bottom" : "right"}
-                className="w-72 p-0"
+                className="w-72 rounded-xl border-border/50 p-0 shadow-lg shadow-black/5"
                 collisionPadding={16}
               >
                 <TrashBox />
@@ -398,7 +469,7 @@ const Navigation = () => {
         <div
           onMouseDown={handleMouseDown}
           onClick={resetWidth}
-          className="absolute top-0 right-0 h-full w-1 cursor-ew-resize opacity-0 transition hover:bg-primary/20 group-hover/sidebar:opacity-100"
+          className="absolute top-0 right-0 h-full w-1 cursor-ew-resize opacity-0 transition-opacity duration-200 hover:bg-primary/15 group-hover/sidebar:opacity-100"
         />
       </aside>
 

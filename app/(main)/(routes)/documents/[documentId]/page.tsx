@@ -283,23 +283,23 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
 
       {/* Comments sidebar — portal target (hidden in focus mode) */}
       {showComments && !focusMode && (
-        <div className="hidden sm:flex h-full w-72 lg:w-80 shrink-0 flex-col border-l bg-background">
-          <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
+        <div className="hidden sm:flex h-full w-72 lg:w-80 shrink-0 flex-col border-l border-border/50 bg-background">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground/60" />
-              <span className="text-xs font-semibold tracking-wide text-muted-foreground/80">{t("commentsTitle")}</span>
+              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground/40" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">{t("commentsTitle")}</span>
             </div>
             <button
               onClick={toggleComments}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-accent hover:text-foreground"
+              className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground/40 transition-all duration-200 ease-out hover:bg-foreground/[0.06] hover:text-foreground/70"
               aria-label="Close"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-3 w-3" />
             </button>
           </div>
           <div
             ref={setCommentsSidebarEl as any}
-            className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-0 [&_.bn-thread-sidebar-item]:border-b [&_.bn-thread-sidebar-item]:border-border/30 [&_.bn-thread-sidebar-item]:px-4 [&_.bn-thread-sidebar-item]:py-3 [&_.bn-thread-sidebar-item]:transition-colors [&_.bn-thread-sidebar-item:hover]:bg-accent/30"
+            className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto"
           />
         </div>
       )}

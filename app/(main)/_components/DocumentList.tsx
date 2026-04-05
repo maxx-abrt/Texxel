@@ -91,14 +91,14 @@ const SortableItem = ({
       style={style}
       {...(isSelecting ? {} : { ...attributes, ...listeners })}
       className={cn(
-        "relative rounded-md transition-all",
-        isNestTarget && "ring-2 ring-primary/50 ring-offset-1 bg-primary/5",
-        isSelecting && selected && "bg-primary/8 ring-1 ring-primary/20",
+        "relative rounded-lg transition-all duration-200 ease-out",
+        isNestTarget && "ring-1.5 ring-primary/40 bg-primary/[0.04]",
+        isSelecting && selected && "bg-primary/[0.06] ring-1 ring-primary/15",
       )}
     >
       {isNestTarget && (
-        <div className="absolute -top-0.5 left-2 flex items-center gap-1 text-[10px] text-primary font-medium z-10 pointer-events-none">
-          <CornerDownRight className="h-3 w-3" />
+        <div className="absolute -top-0.5 left-2.5 flex items-center gap-1 text-[9px] text-primary/80 font-semibold z-10 pointer-events-none">
+          <CornerDownRight className="h-2.5 w-2.5" />
           Move inside
         </div>
       )}
@@ -106,7 +106,7 @@ const SortableItem = ({
         {isSelecting && (
           <button
             onClick={(e) => { e.stopPropagation(); toggle(document._id); }}
-            className="shrink-0 ml-1 flex h-5 w-5 items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+            className="shrink-0 ml-1 flex h-5 w-5 items-center justify-center text-muted-foreground/50 hover:text-primary transition-all duration-200"
           >
             {selected ? (
               <SquareCheckBig className="h-3.5 w-3.5 text-primary" />
@@ -272,7 +272,7 @@ export const DocumentList = ({
       {orderedDocuments.length === 0 && level !== 0 && (
         <p
           style={{ paddingLeft: level ? `${level * 12 + 25}px` : undefined }}
-          className="py-1 text-sm font-medium text-muted-foreground/80"
+          className="py-1.5 text-[12px] font-medium text-muted-foreground/40 italic"
         >
           No pages inside
         </p>
@@ -304,9 +304,9 @@ export const DocumentList = ({
           ))}
         </SortableContext>
 
-        <DragOverlay dropAnimation={{ duration: 120, easing: "ease" }}>
+        <DragOverlay dropAnimation={{ duration: 150, easing: "cubic-bezier(0.32, 0.72, 0, 1)" }}>
           {activeDoc ? (
-            <div className="opacity-90 shadow-lg rounded-md bg-background border px-2 py-1 text-sm font-medium truncate max-w-[200px]">
+            <div className="opacity-95 shadow-lg shadow-black/5 rounded-lg bg-background/95 backdrop-blur-sm border border-border/50 px-2.5 py-1.5 text-[13px] font-medium truncate max-w-[200px]">
               {activeDoc.icon ? `${activeDoc.icon} ` : ""}
               {activeDoc.title || "Untitled"}
             </div>

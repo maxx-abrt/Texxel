@@ -13,7 +13,24 @@
     "calendar": "Calendar",
     "workspace": "Workspace",
     "templates": "Templates",
-    "databases": "Databases"
+    "databases": "Databases",
+    "extensions": "Extensions",
+    "aiAssistant": "A2E AI",
+    "automations": "Automations",
+    "focusTimer": "Focus Timer",
+    "movingToTrash": "Moving to trash...",
+    "movedToTrash": "Note moved to trash!",
+    "archiveFailed": "Failed to archive note.",
+    "creatingNote": "Creating new note",
+    "noteCreated": "New note created.",
+    "createNoteFailed": "Failed to create note.",
+    "deleteItem": "Delete",
+    "moveToRoot": "Move to root",
+    "lastEditedBy": "Last edited by: {name}",
+    "addSubPage": "Add sub-page",
+    "moving": "Moving...",
+    "movedToRoot": "Moved to root",
+    "moveFailed": "Failed"
   },
   "common": {
     "cancel": "Cancel",
@@ -722,7 +739,22 @@
     "actionCreatedSubtask": "Subtask created ✅",
     "actionCreatedNote": "Note created 📝",
     "actionReplacedContent": "Content updated ✨",
-    "actionFailed": "Action failed"
+    "actionFailed": "Action failed",
+    "translate": "Translate this",
+    "analyzeDocument": "Analyze document",
+    "generateDocument": "Generate a document",
+    "codeReview": "Review code",
+    "explain": "Explain this",
+    "suiteRequired": "This feature requires **A2E Suite**. Upgrade for €5/mo to unlock advanced AI capabilities, unlimited requests, and infinite workspaces.",
+    "dailyLimitReached": "You've used your 5 free AI credits for today. Upgrade to A2E Suite for unlimited AI, or come back tomorrow!",
+    "requestsToday": "today",
+    "fixGrammar": "Fix grammar",
+    "makeShorter": "Make shorter",
+    "makeLonger": "Make longer",
+    "changeTone": "Change tone",
+    "generateChart": "Generate a chart",
+    "chartInserted": "Chart inserted into document",
+    "chartGenerated": "Here's your chart. You can edit the data by clicking the Edit button on the chart block."
   },
   "workspace": {
     "title": "Workspaces",
@@ -912,7 +944,35 @@
       "taskRefSubtext": "Link to one of your tasks inline",
       "projectRef": "Project ref",
       "projectRefSubtext": "Link to one of your projects inline",
-      "group": "Smart Chips"
+      "group": "Smart Chips",
+      "barChart": "Bar Chart",
+      "barChartSubtext": "Interactive bar chart with editable data",
+      "lineChart": "Line Chart",
+      "lineChartSubtext": "Trend line chart with smooth curves",
+      "areaChart": "Area Chart",
+      "areaChartSubtext": "Filled area chart for volume data",
+      "pieChart": "Pie Chart",
+      "pieChartSubtext": "Donut/pie chart for proportional data",
+      "chartGroup": "Charts & Graphs"
+    }
+  },
+  "chart": {
+    "untitled": "Chart",
+    "edit": "Edit",
+    "close": "Close",
+    "titlePlaceholder": "Chart title…",
+    "labelPlaceholder": "Label",
+    "addDataPoint": "Add data point",
+    "grid": "Grid",
+    "legend": "Legend",
+    "accentColor": "Color",
+    "cancel": "Cancel",
+    "apply": "Apply",
+    "types": {
+      "bar": "Bar",
+      "line": "Line",
+      "area": "Area",
+      "pie": "Pie"
     }
   },
   "databases": {
@@ -1011,7 +1071,36 @@
     "aboutTemplate": "About this template",
     "author": "Author",
     "share": "Share",
-    "linkCopied": "Link copied!"
+    "linkCopied": "Link copied!",
+    "categories": {
+      "all": "All",
+      "project_management": "Project Management",
+      "engineering": "Engineering",
+      "design": "Design",
+      "marketing": "Marketing",
+      "sales": "Sales",
+      "hr": "Human Resources",
+      "education": "Education",
+      "personal": "Personal",
+      "startup": "Startup",
+      "other": "Other"
+    },
+    "sort": {
+      "popular": "Most Popular",
+      "newest": "Newest",
+      "alphabetical": "A → Z"
+    },
+    "tasks_count": "{count} tasks",
+    "docs_count": "{count} documents",
+    "project_included": "Project included",
+    "by": "by",
+    "confirmDelete": "Are you sure you want to delete this template?",
+    "deleted": "Template deleted",
+    "deleteFailed": "Failed to delete template",
+    "editTemplate": "Edit Template",
+    "deleteTemplate": "Delete Template",
+    "visibility": "Visibility",
+    "selectCategory": "Select a category"
   },
   "landing": {
     "valueProps": {
@@ -1086,8 +1175,45 @@
       "step3Title": "Collaborate\nin real time",
       "step3Desc": "Invite teammates, edit together live and stay in sync. Everything works together — free forever."
     },
+    "pricing": {
+      "sectionNum": "[03] Pricing",
+      "heading": "One plan.",
+      "headingAccent": "Simple pricing.",
+      "subheading": "Unlimited notes, tasks, and projects — always free. Upgrade for more AI power and workspaces.",
+      "workspaceExplainer": "A workspace is a separate space for a class, a project, or a team — each with its own notes, tasks, and members.",
+      "free": {
+        "name": "Free",
+        "price": "€0",
+        "period": "forever",
+        "desc": "Everything you need — no limits on content.",
+        "f1": "Unlimited notes & block editor",
+        "f2": "Unlimited tasks & kanban boards",
+        "f3": "Unlimited projects",
+        "f4": "Up to 5 workspaces",
+        "f5": "5 AI credits per day",
+        "f6": "Public sharing links for notes",
+        "f7": "Real-time collaboration",
+        "cta": "Get started free"
+      },
+      "suite": {
+        "name": "A2E Suite",
+        "price": "€5",
+        "period": "/month",
+        "desc": "Unlimited AI and workspaces for power users.",
+        "badge": "Recommended",
+        "f1": "Everything in Free",
+        "f2": "Unlimited AI requests",
+        "f3": "Unlimited workspaces",
+        "f4": "Advanced AI: translate, analyze, brainstorm",
+        "f5": "Gemini Pro model access",
+        "f6": "Workspace roles: admin, editor, viewer",
+        "f7": "Code review & document generation",
+        "f8": "Priority support",
+        "cta": "Upgrade to Suite"
+      }
+    },
     "cta": {
-      "sectionNum": "[03] Get started",
+      "sectionNum": "[04] Get started",
       "heading": "Free forever.",
       "headingAccent": "No exceptions.",
       "desc": "Full access to every feature. No credit card. No hidden limits. No upgrade pressure.",

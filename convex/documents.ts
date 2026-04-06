@@ -298,6 +298,17 @@ export const getById = query({
       return document;
     }
 
+    // Allow workspace members to access docs in their workspace
+    if (document.workspaceId) {
+      const wsMember = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace_user", (q: any) =>
+          q.eq("workspaceId", document.workspaceId).eq("userId", userId),
+        )
+        .first();
+      if (wsMember) return document;
+    }
+
     // Allow team members to access docs shared with their team
     if (document.sharedTeamId) {
       const member = await ctx.db
@@ -436,7 +447,23 @@ export const update = mutation({
       throw new Error("Document not found");
     }
 
-    if (existingDocument.userId !== userId) {
+    // Owner can always edit
+    let authorized = existingDocument.userId === userId;
+
+    // Workspace members with editor/admin/owner role can edit
+    if (!authorized && existingDocument.workspaceId) {
+      const wsMember = await ctx.db
+        .query("workspaceMembers")
+        .withIndex("by_workspace_user", (q: any) =>
+          q.eq("workspaceId", existingDocument.workspaceId).eq("userId", userId),
+        )
+        .first();
+      if (wsMember && (wsMember.role === "owner" || wsMember.role === "admin" || wsMember.role === "editor")) {
+        authorized = true;
+      }
+    }
+
+    if (!authorized) {
       throw new Error("Unauthorized");
     }
 

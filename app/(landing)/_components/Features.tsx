@@ -1,76 +1,60 @@
 "use client";
 import { useTranslations } from "next-intl";
 
-const FEATURE_COLORS = [
-  { num: "[01]", tagColor: "#f76c5e", accent: true },
-  { num: "[02]", tagColor: "#60a5fa", accent: false },
-  { num: "[03]", tagColor: "#4ade80", accent: false },
-  { num: "[04]", tagColor: "#a78bfa", accent: false },
-  { num: "[05]", tagColor: "#f76c5e", accent: false },
-  { num: "[06]", tagColor: "#fbbf24", accent: false },
-];
-
-const FEATURE_KEYS = ["f1", "f2", "f3", "f4", "f5", "f6"] as const;
+const FEATURES = [
+  { key: "f1", color: "#f76c5e", accent: true },
+  { key: "f2", color: "#60a5fa" },
+  { key: "f3", color: "#4ade80" },
+  { key: "f4", color: "#a78bfa" },
+  { key: "f5", color: "#f76c5e" },
+  { key: "f6", color: "#fbbf24" },
+] as const;
 
 export function Features() {
   const tf = useTranslations("landing.features");
 
-  const row1 = FEATURE_KEYS.slice(0, 3);
-  const row2 = FEATURE_KEYS.slice(3);
-
   return (
-    <section id="features" className="w-full py-20 md:py-[100px] bg-gray-50 dark:bg-[#0d0d0d]">
-      <div className="mx-auto max-w-[1100px] px-5 md:px-10">
-        <div className="mb-12 flex flex-col gap-3">
-          <span className="font-mono text-[10px] md:text-[12px] font-bold uppercase tracking-[3px] text-[#f76c5e]">{tf("sectionNum")}</span>
-          <h2 className="font-mono text-[32px] md:text-[52px] font-bold leading-[1.05] tracking-[-1px] text-gray-900 dark:text-[#f0f0ee]">
-            {tf("heading")}<br />
+    <section id="features" className="w-full py-20 md:py-28 bg-gray-50/50 dark:bg-[#0a0a0a]">
+      <div className="mx-auto max-w-[1060px] px-5 md:px-8">
+        {/* Section header */}
+        <div className="mb-14 max-w-[520px]">
+          <span className="text-[12px] font-semibold uppercase tracking-widest text-[#f76c5e]">{tf("sectionNum")}</span>
+          <h2 className="mt-3 text-[28px] md:text-[44px] font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-white">
+            {tf("heading")}{" "}
             <span className="text-[#f76c5e]">{tf("headingAccent")}</span>
           </h2>
-          <p className="font-mono text-[11px] md:text-[13px] leading-[1.6] tracking-[1px] max-w-[500px] text-gray-500 dark:text-[#666]">{tf("subheading")}</p>
+          <p className="mt-4 text-[14px] md:text-[16px] leading-relaxed text-gray-500 dark:text-gray-400">{tf("subheading")}</p>
         </div>
 
-        <div className="flex flex-col gap-[2px]">
-          <div className="flex flex-col md:flex-row gap-[2px]">
-            {/* Accent card */}
-            <div className="flex flex-col gap-4 p-8 md:p-10 w-full md:flex-1" style={{ backgroundColor: "#f76c5e", minHeight: 280 }}>
-              <span className="font-mono text-[11px] font-bold uppercase tracking-[2px]" style={{ color: "rgba(0,0,0,0.5)" }}>{FEATURE_COLORS[0].num}</span>
-              <h3 className="font-mono text-[22px] md:text-[26px] font-bold leading-[1.1] whitespace-pre-line" style={{ color: "#fff" }}>{tf("f1Title")}</h3>
-              <p className="font-mono text-[11px] leading-[1.6] tracking-[0.5px]" style={{ color: "rgba(255,255,255,0.75)" }}>{tf("f1Desc")}</p>
-              <div className="flex items-center h-7 px-3 w-fit rounded" style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>
-                <span className="font-mono text-[9px] font-bold uppercase tracking-[2px]" style={{ color: "#fff" }}>{tf("liveBadge")}</span>
-              </div>
+        {/* Feature grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Accent card */}
+          <div className="flex flex-col justify-between gap-6 p-7 md:p-8 rounded-2xl bg-[#f76c5e] min-h-[260px]">
+            <div className="flex flex-col gap-3">
+              <h3 className="text-[20px] md:text-[24px] font-bold leading-tight text-white">{tf("f1Title")}</h3>
+              <p className="text-[13px] leading-relaxed text-white/70">{tf("f1Desc")}</p>
             </div>
-            {row1.slice(1).map((key, i) => {
-              const fc = FEATURE_COLORS[i + 1];
-              return (
-                <div key={key} className="flex flex-col gap-4 p-8 md:p-10 w-full md:flex-1 group transition-colors bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#2d2d2d] hover:border-gray-400 dark:hover:border-[#3a3a3a]" style={{ minHeight: 280 }}>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{fc.num}</span>
-                  <h3 className="font-mono text-[22px] md:text-[26px] font-bold leading-[1.1] whitespace-pre-line text-gray-900 dark:text-[#f0f0ee]">{tf(`${key}Title` as any)}</h3>
-                  <p className="font-mono text-[11px] leading-[1.6] tracking-[0.5px] text-gray-500 dark:text-[#666]">{tf(`${key}Desc` as any)}</p>
-                  <div className="flex items-center h-7 px-3 w-fit rounded bg-gray-100 dark:bg-[#1a1a1a]" style={{ border: `1px solid ${fc.tagColor}` }}>
-                    <span className="font-mono text-[9px] uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{tf(`${key}Tag` as any)}</span>
-                  </div>
-                </div>
-              );
-            })}
+            <span className="inline-flex items-center h-6 px-2.5 w-fit rounded-md bg-black/15 text-[10px] font-semibold uppercase tracking-wider text-white/90">{tf("liveBadge")}</span>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-[2px]">
-            {row2.map((key, i) => {
-              const fc = FEATURE_COLORS[i + 3];
-              return (
-                <div key={key} className="flex flex-col gap-4 p-8 md:p-10 w-full md:flex-1 transition-colors bg-white dark:bg-[#111111] border border-gray-200 dark:border-[#2d2d2d] hover:border-gray-400 dark:hover:border-[#3a3a3a]" style={{ minHeight: 240 }}>
-                  <span className="font-mono text-[11px] font-bold uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{fc.num}</span>
-                  <h3 className="font-mono text-[20px] md:text-[24px] font-bold leading-[1.1] whitespace-pre-line text-gray-900 dark:text-[#f0f0ee]">{tf(`${key}Title` as any)}</h3>
-                  <p className="font-mono text-[11px] leading-[1.6] tracking-[0.5px] text-gray-500 dark:text-[#666]">{tf(`${key}Desc` as any)}</p>
-                  <div className="flex items-center h-7 px-3 w-fit rounded bg-gray-100 dark:bg-[#1a1a1a]" style={{ border: `1px solid ${fc.tagColor}` }}>
-                    <span className="font-mono text-[9px] uppercase tracking-[2px]" style={{ color: fc.tagColor }}>{tf(`${key}Tag` as any)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Regular cards */}
+          {FEATURES.slice(1).map((f) => (
+            <div
+              key={f.key}
+              className="flex flex-col justify-between gap-6 p-7 md:p-8 rounded-2xl bg-white dark:bg-white/[0.03] border border-gray-100 dark:border-white/[0.06] transition-all hover:border-gray-200 dark:hover:border-white/[0.1] hover:shadow-sm min-h-[240px]"
+            >
+              <div className="flex flex-col gap-3">
+                <h3 className="text-[18px] md:text-[22px] font-bold leading-tight text-gray-900 dark:text-white">{tf(`${f.key}Title` as any)}</h3>
+                <p className="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">{tf(`${f.key}Desc` as any)}</p>
+              </div>
+              <span
+                className="inline-flex items-center h-6 px-2.5 w-fit rounded-md text-[10px] font-medium uppercase tracking-wider"
+                style={{ backgroundColor: f.color + "12", color: f.color, border: `1px solid ${f.color}25` }}
+              >
+                {tf(`${f.key}Tag` as any)}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </section>

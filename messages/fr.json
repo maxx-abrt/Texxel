@@ -13,7 +13,24 @@
     "calendar": "Calendrier",
     "workspace": "Espace de travail",
     "templates": "Modèles",
-    "databases": "Bases de données"
+    "databases": "Bases de données",
+    "extensions": "Extensions",
+    "aiAssistant": "A2E IA",
+    "automations": "Automatisations",
+    "focusTimer": "Minuteur Focus",
+    "movingToTrash": "Déplacement vers la corbeille...",
+    "movedToTrash": "Note déplacée dans la corbeille !",
+    "archiveFailed": "Échec de l'archivage.",
+    "creatingNote": "Création de la note",
+    "noteCreated": "Note créée.",
+    "createNoteFailed": "Échec de la création.",
+    "deleteItem": "Supprimer",
+    "moveToRoot": "Déplacer à la racine",
+    "lastEditedBy": "Dernière modification par : {name}",
+    "addSubPage": "Ajouter une sous-page",
+    "moving": "Déplacement...",
+    "movedToRoot": "Déplacé à la racine",
+    "moveFailed": "Échec"
   },
   "common": {
     "cancel": "Annuler",
@@ -722,7 +739,22 @@
     "actionCreatedSubtask": "Sous-tâche créée ✅",
     "actionCreatedNote": "Note créée 📝",
     "actionReplacedContent": "Contenu mis à jour ✨",
-    "actionFailed": "Action échouée"
+    "actionFailed": "Action échouée",
+    "translate": "Traduire ce texte",
+    "analyzeDocument": "Analyser le document",
+    "generateDocument": "Générer un document",
+    "codeReview": "Réviser le code",
+    "explain": "Expliquer ceci",
+    "suiteRequired": "Cette fonctionnalité nécessite **A2E Suite**. Passez à la Suite pour 5 €/mois et débloquez l'IA avancée, les requêtes illimitées et les espaces de travail infinis.",
+    "dailyLimitReached": "Vous avez utilisé vos 5 crédits IA gratuits pour aujourd'hui. Passez à A2E Suite pour l'IA illimitée, ou revenez demain !",
+    "requestsToday": "aujourd'hui",
+    "fixGrammar": "Corriger la grammaire",
+    "makeShorter": "Raccourcir",
+    "makeLonger": "Allonger",
+    "changeTone": "Changer le ton",
+    "generateChart": "Générer un graphique",
+    "chartInserted": "Graphique inséré dans le document",
+    "chartGenerated": "Voici votre graphique. Vous pouvez modifier les données en cliquant sur le bouton Modifier du bloc graphique."
   },
   "workspace": {
     "title": "Espaces de travail",
@@ -912,7 +944,35 @@
       "taskRefSubtext": "Lien vers l'une de vos tâches en ligne",
       "projectRef": "Réf. projet",
       "projectRefSubtext": "Lien vers l'un de vos projets en ligne",
-      "group": "Puces intelligentes"
+      "group": "Puces intelligentes",
+      "barChart": "Diagramme en barres",
+      "barChartSubtext": "Graphique en barres interactif avec données éditables",
+      "lineChart": "Graphique linéaire",
+      "lineChartSubtext": "Graphique de tendance avec courbes lisses",
+      "areaChart": "Graphique en aires",
+      "areaChartSubtext": "Graphique en aires remplies pour les données de volume",
+      "pieChart": "Diagramme circulaire",
+      "pieChartSubtext": "Diagramme en secteurs pour les données proportionnelles",
+      "chartGroup": "Graphiques & Diagrammes"
+    }
+  },
+  "chart": {
+    "untitled": "Graphique",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "titlePlaceholder": "Titre du graphique\u2026",
+    "labelPlaceholder": "Libell\u00e9",
+    "addDataPoint": "Ajouter un point",
+    "grid": "Grille",
+    "legend": "L\u00e9gende",
+    "accentColor": "Couleur",
+    "cancel": "Annuler",
+    "apply": "Appliquer",
+    "types": {
+      "bar": "Barres",
+      "line": "Ligne",
+      "area": "Aires",
+      "pie": "Secteurs"
     }
   },
   "databases": {
@@ -1011,7 +1071,36 @@
     "aboutTemplate": "À propos de ce modèle",
     "author": "Auteur",
     "share": "Partager",
-    "linkCopied": "Lien copié !"
+    "linkCopied": "Lien copié !",
+    "categories": {
+      "all": "Tous",
+      "project_management": "Gestion de projet",
+      "engineering": "Ingénierie",
+      "design": "Design",
+      "marketing": "Marketing",
+      "sales": "Ventes",
+      "hr": "Ressources humaines",
+      "education": "Éducation",
+      "personal": "Personnel",
+      "startup": "Startup",
+      "other": "Autre"
+    },
+    "sort": {
+      "popular": "Les plus populaires",
+      "newest": "Les plus récents",
+      "alphabetical": "A → Z"
+    },
+    "tasks_count": "{count} tâches",
+    "docs_count": "{count} documents",
+    "project_included": "Projet inclus",
+    "by": "par",
+    "confirmDelete": "Voulez-vous vraiment supprimer ce modèle ?",
+    "deleted": "Modèle supprimé",
+    "deleteFailed": "Échec de la suppression du modèle",
+    "editTemplate": "Modifier le modèle",
+    "deleteTemplate": "Supprimer le modèle",
+    "visibility": "Visibilité",
+    "selectCategory": "Choisir une catégorie"
   },
   "landing": {
     "valueProps": {
@@ -1086,8 +1175,45 @@
       "step3Title": "Collaborez\nen temps réel",
       "step3Desc": "Invitez vos camarades, éditez ensemble en direct et restez synchronisés. Tout fonctionne ensemble — gratuit pour toujours."
     },
+    "pricing": {
+      "sectionNum": "[03] Tarifs",
+      "heading": "Un seul tarif.",
+      "headingAccent": "Simple et clair.",
+      "subheading": "Notes, tâches et projets illimités — toujours gratuit. Passez à la Suite pour plus d'IA et d'espaces.",
+      "workspaceExplainer": "Un espace de travail est un espace dédié à un cours, un projet ou une équipe — avec ses propres notes, tâches et membres.",
+      "free": {
+        "name": "Gratuit",
+        "price": "0 €",
+        "period": "pour toujours",
+        "desc": "Tout ce qu'il faut — sans limite de contenu.",
+        "f1": "Notes & éditeur de blocs illimités",
+        "f2": "Tâches & tableaux kanban illimités",
+        "f3": "Projets illimités",
+        "f4": "Jusqu'à 5 espaces de travail",
+        "f5": "5 crédits IA par jour",
+        "f6": "Liens de partage public pour les notes",
+        "f7": "Collaboration en temps réel",
+        "cta": "Commencer gratuitement"
+      },
+      "suite": {
+        "name": "A2E Suite",
+        "price": "5 €",
+        "period": "/mois",
+        "desc": "IA et espaces illimités pour les power users.",
+        "badge": "Recommandé",
+        "f1": "Tout ce qui est inclus dans Gratuit",
+        "f2": "Requêtes IA illimitées",
+        "f3": "Espaces de travail illimités",
+        "f4": "IA avancée : traduction, analyse, brainstorming",
+        "f5": "Accès au modèle Gemini Pro",
+        "f6": "Rôles d'espace : admin, éditeur, lecteur",
+        "f7": "Revue de code & génération de documents",
+        "f8": "Support prioritaire",
+        "cta": "Passer à la Suite"
+      }
+    },
     "cta": {
-      "sectionNum": "[03] Commencer",
+      "sectionNum": "[04] Commencer",
       "heading": "Gratuit pour toujours.",
       "headingAccent": "Sans exception.",
       "desc": "Accès complet à toutes les fonctionnalités. Sans carte bancaire. Sans limites cachées. Sans pression.",

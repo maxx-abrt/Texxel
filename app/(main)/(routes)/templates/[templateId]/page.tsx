@@ -23,23 +23,12 @@ import {
   Tag,
   User,
 } from "lucide-react";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  project_management: "Project Management",
-  engineering: "Engineering",
-  design: "Design",
-  marketing: "Marketing",
-  sales: "Sales",
-  hr: "HR & People",
-  education: "Education",
-  personal: "Personal",
-  startup: "Startup",
-  other: "Other",
-};
+import { useTranslations } from "next-intl";
 
 export default function TemplateDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const t = useTranslations("templates");
   const templateId = params.templateId as Id<"templates">;
 
   const template = useQuery(api.templates.getById, { id: templateId });
@@ -53,10 +42,10 @@ export default function TemplateDetailPage() {
     try {
       const result = await useTemplateMutation({ templateId });
       const parts: string[] = [];
-      if (result.projectId) parts.push("1 project");
-      if (result.taskIds.length) parts.push(`${result.taskIds.length} tasks`);
-      if (result.documentIds.length) parts.push(`${result.documentIds.length} docs`);
-      toast.success(`Template applied! Created ${parts.join(", ")}`);
+      if (result.projectId) parts.push(t("project_included"));
+      if (result.taskIds.length) parts.push(t("tasks_count", { count: result.taskIds.length }));
+      if (result.documentIds.length) parts.push(t("docs_count", { count: result.documentIds.length }));
+      toast.success(`${t("used")} ${parts.join(", ")}`);
 
       if (result.projectId) {
         router.push(`/projects/${result.projectId}`);
@@ -66,7 +55,7 @@ export default function TemplateDetailPage() {
         router.push("/documents");
       }
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to use template");
+      toast.error(err.message ?? t("useFailed"));
     } finally {
       setIsUsing(false);
     }
@@ -76,7 +65,7 @@ export default function TemplateDetailPage() {
     try {
       await toggleLikeMutation({ templateId });
     } catch {
-      toast.error("Failed to update like");
+      toast.error(t("useFailed"));
     }
   };
 
@@ -99,9 +88,9 @@ export default function TemplateDetailPage() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <BookOpen className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm font-medium text-muted-foreground">Template not found</p>
+          <p className="text-sm font-medium text-muted-foreground">{t("noTemplates")}</p>
           <Button variant="outline" size="sm" onClick={() => router.push("/templates")} className="mt-3 gap-2">
-            <ArrowLeft className="h-3 w-3" /> Back to templates
+            <ArrowLeft className="h-3 w-3" /> {t("backToTemplates")}
           </Button>
         </div>
       </div>
@@ -138,7 +127,7 @@ export default function TemplateDetailPage() {
           onClick={() => router.push("/templates")}
           className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6"
         >
-          <ArrowLeft className="h-3 w-3" /> Back to templates
+          <ArrowLeft className="h-3 w-3" /> {t("backToTemplates")}
         </button>
 
         {/* Cover image */}
@@ -158,11 +147,11 @@ export default function TemplateDetailPage() {
             <div className="flex items-center gap-2 mb-2">
               <span className="text-2xl">{template.icon ?? "📋"}</span>
               <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-                {CATEGORY_LABELS[template.category] ?? template.category}
+                {t(`categories.${template.category}` as any)}
               </span>
               {template.isFeatured && (
                 <span className="flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                  <Star className="h-2.5 w-2.5 fill-current" /> Featured
+                  <Star className="h-2.5 w-2.5 fill-current" /> {t("featured")}
                 </span>
               )}
             </div>
@@ -173,7 +162,7 @@ export default function TemplateDetailPage() {
           <div className="flex flex-col gap-2 shrink-0">
             <Button onClick={handleUse} disabled={isUsing} className="gap-2 h-10 px-6">
               <Download className="h-4 w-4" />
-              {isUsing ? "Applying..." : "Use Template"}
+              {isUsing ? t("using") : t("useTemplate")}
             </Button>
             <div className="flex items-center gap-2">
               <button
@@ -191,11 +180,11 @@ export default function TemplateDetailPage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(window.location.href);
-                  toast.success("Link copied!");
+                  toast.success(t("linkCopied"));
                 }}
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border h-9 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Share2 className="h-3.5 w-3.5" /> Share
+                <Share2 className="h-3.5 w-3.5" /> {t("share")}
               </button>
             </div>
           </div>
@@ -213,13 +202,13 @@ export default function TemplateDetailPage() {
             )}
             <div>
               <p className="text-sm font-medium">{template.authorName}</p>
-              <p className="text-[11px] text-muted-foreground">Author</p>
+              <p className="text-[11px] text-muted-foreground">{t("author")}</p>
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Download className="h-3.5 w-3.5" />
             <span className="text-sm font-medium">{template.usageCount}</span>
-            <span className="text-xs">uses</span>
+            <span className="text-xs">{t("uses")}</span>
           </div>
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
@@ -236,7 +225,7 @@ export default function TemplateDetailPage() {
         {/* Long description */}
         {template.longDescription && (
           <section className="mb-8">
-            <h2 className="text-sm font-semibold mb-3">About this template</h2>
+            <h2 className="text-sm font-semibold mb-3">{t("aboutTemplate")}</h2>
             <div className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
               {template.longDescription}
             </div>
@@ -259,27 +248,27 @@ export default function TemplateDetailPage() {
 
         {/* What's included */}
         <section className="mb-8">
-          <h2 className="text-sm font-semibold mb-4">What&apos;s included</h2>
+          <h2 className="text-sm font-semibold mb-4">{t("whatsIncluded")}</h2>
           <div className="grid gap-3 sm:grid-cols-3">
             {template.includeProject && (
               <div className="rounded-xl border p-4 bg-gradient-to-br from-violet-500/5 to-transparent">
                 <FolderKanban className="h-5 w-5 text-violet-500 mb-2" />
-                <p className="text-sm font-medium">Project</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Ready-to-use project setup</p>
+                <p className="text-sm font-medium">{t("project_included")}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("includeProject")}</p>
               </div>
             )}
             {template.includeTasks && (
               <div className="rounded-xl border p-4 bg-gradient-to-br from-blue-500/5 to-transparent">
                 <CheckSquare className="h-5 w-5 text-blue-500 mb-2" />
-                <p className="text-sm font-medium">{taskCount} Tasks</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Pre-configured task list</p>
+                <p className="text-sm font-medium">{t("tasks_count", { count: taskCount })}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("includeTasks")}</p>
               </div>
             )}
             {template.includeDocuments && (
               <div className="rounded-xl border p-4 bg-gradient-to-br from-emerald-500/5 to-transparent">
                 <FileText className="h-5 w-5 text-emerald-500 mb-2" />
-                <p className="text-sm font-medium">{docCount} Documents</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Template documents & notes</p>
+                <p className="text-sm font-medium">{t("docs_count", { count: docCount })}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{t("includeDocs")}</p>
               </div>
             )}
           </div>
@@ -288,7 +277,7 @@ export default function TemplateDetailPage() {
         {/* Task previews */}
         {taskPreviews.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-semibold mb-3">Tasks preview</h2>
+            <h2 className="text-sm font-semibold mb-3">{t("tasksPreview")}</h2>
             <div className="rounded-xl border divide-y">
               {taskPreviews.map((task, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-2.5">
@@ -309,7 +298,7 @@ export default function TemplateDetailPage() {
               ))}
               {taskCount > 6 && (
                 <div className="px-4 py-2 text-center text-xs text-muted-foreground">
-                  +{taskCount - 6} more tasks
+                  +{taskCount - 6}
                 </div>
               )}
             </div>
@@ -319,7 +308,7 @@ export default function TemplateDetailPage() {
         {/* Document previews */}
         {docPreviews.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-semibold mb-3">Documents preview</h2>
+            <h2 className="text-sm font-semibold mb-3">{t("docsPreview")}</h2>
             <div className="rounded-xl border divide-y">
               {docPreviews.map((doc, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-2.5">
@@ -329,7 +318,7 @@ export default function TemplateDetailPage() {
               ))}
               {docCount > 6 && (
                 <div className="px-4 py-2 text-center text-xs text-muted-foreground">
-                  +{docCount - 6} more documents
+                  +{docCount - 6}
                 </div>
               )}
             </div>
@@ -339,7 +328,7 @@ export default function TemplateDetailPage() {
         {/* Tags */}
         {template.tags && template.tags.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-semibold mb-3">Tags</h2>
+            <h2 className="text-sm font-semibold mb-3">{t("tags")}</h2>
             <div className="flex flex-wrap gap-1.5">
               {template.tags.map((tag: string) => (
                 <span
@@ -357,10 +346,10 @@ export default function TemplateDetailPage() {
         <div className="border-t pt-8 text-center">
           <Button onClick={handleUse} disabled={isUsing} size="lg" className="gap-2 px-8">
             <Download className="h-4 w-4" />
-            {isUsing ? "Applying template..." : "Use this Template"}
+            {isUsing ? t("using") : t("useTemplate")}
           </Button>
           <p className="text-xs text-muted-foreground mt-2">
-            This will create a copy of all included items in your workspace
+            {t("selectContentDesc")}
           </p>
         </div>
       </div>

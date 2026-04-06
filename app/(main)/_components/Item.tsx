@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { ActionTooltip } from "@/components/action-tooltip";
+import { useTranslations } from "next-intl";
 
 interface ItemProps {
   id?: Id<"documents">;
@@ -57,6 +58,7 @@ export const Item = ({
   const user = session?.user;
   const router = useRouter();
   const params = useParams();
+  const t = useTranslations("nav");
   const create = useMutation(api.documents.create);
   const archive = useMutation(api.documents.archive);
   const setParent = useMutation(api.documents.setParent);
@@ -71,9 +73,9 @@ export const Item = ({
     });
 
     toast.promise(promise, {
-      loading: "Moving to trash...",
-      success: "Note moved to trash!",
-      error: "Failed to archive note.",
+      loading: t("movingToTrash"),
+      success: t("movedToTrash"),
+      error: t("archiveFailed"),
     });
   };
 
@@ -98,9 +100,9 @@ export const Item = ({
     );
 
     toast.promise(promise, {
-      loading: "Creating new note",
-      success: "New note created.",
-      error: "Failed to create note.",
+      loading: t("creatingNote"),
+      success: t("noteCreated"),
+      error: t("createNoteFailed"),
     });
   };
 
@@ -171,7 +173,7 @@ export const Item = ({
             >
               <DropdownMenuItem onClick={onArchive} className="rounded-lg text-[13px]">
                 <Trash className="mr-2 h-3.5 w-3.5" />
-                Delete
+                {t("deleteItem")}
               </DropdownMenuItem>
               {isNested && (
                 <DropdownMenuItem
@@ -181,21 +183,21 @@ export const Item = ({
                     if (!id) return;
                     toast.promise(
                       setParent({ id, parentDocument: undefined }),
-                      { loading: "Moving...", success: "Moved to root", error: "Failed" },
+                      { loading: t("moving"), success: t("movedToRoot"), error: t("moveFailed") },
                     );
                   }}
                 >
                   <ChevronsUp className="mr-2 h-3.5 w-3.5" />
-                  Move to root
+                  {t("moveToRoot")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator className="bg-border/30" />
               <div className="text-muted-foreground/60 px-2 py-1.5 text-[11px]">
-                Last edited by: {user?.name}
+                {t("lastEditedBy", { name: user?.name ?? "" })}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
-          <ActionTooltip label="Add sub-page">
+          <ActionTooltip label={t("addSubPage")}>
             <div
               role="button"
               onClick={onCreate}

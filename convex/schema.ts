@@ -20,12 +20,42 @@ export default defineSchema({
     userEmail: v.string(),
     userName: v.string(),
     userImage: v.optional(v.string()),
-    role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member")),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("admin"),
+      v.literal("editor"),
+      v.literal("viewer"),
+    ),
     joinedAt: v.number(),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"])
     .index("by_workspace_user", ["workspaceId", "userId"]),
+
+  workspaceInvitations: defineTable({
+    workspaceId: v.id("workspaces"),
+    invitedEmail: v.string(),
+    invitedBy: v.string(),
+    invitedByName: v.optional(v.string()),
+    role: v.union(
+      v.literal("admin"),
+      v.literal("editor"),
+      v.literal("viewer"),
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("rejected"),
+      v.literal("expired"),
+    ),
+    token: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_email", ["invitedEmail"])
+    .index("by_token", ["token"])
+    .index("by_workspace_email", ["workspaceId", "invitedEmail"]),
 
   documents: defineTable({
     title: v.string(),
@@ -337,6 +367,33 @@ export default defineSchema({
     .index("by_template", ["templateId"])
     .index("by_user", ["userId"])
     .index("by_template_user", ["templateId", "userId"]),
+
+  // ─── A2E Suite Subscriptions ────────────────────────────────────────────
+  subscriptions: defineTable({
+    userId: v.string(),
+    plan: v.union(v.literal("free"), v.literal("suite")),
+    // Suite = €5/mo — unlocks extended AI, infinite workspaces
+    status: v.union(v.literal("active"), v.literal("cancelled"), v.literal("expired")),
+    currentPeriodStart: v.optional(v.number()),
+    currentPeriodEnd: v.optional(v.number()),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_stripe_customer", ["stripeCustomerId"]),
+
+  // ─── AI Token Usage Tracking ──────────────────────────────────────────
+  aiUsage: defineTable({
+    userId: v.string(),
+    // Daily bucket key e.g. "2026-04-06"
+    date: v.string(),
+    tokensUsed: v.number(),
+    requestCount: v.number(),
+  })
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user", ["userId"]),
 
   notifications: defineTable({
     userId: v.string(),

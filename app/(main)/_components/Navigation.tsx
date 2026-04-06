@@ -328,7 +328,7 @@ const Navigation = () => {
                 sectionsCollapsed.extensions && "-rotate-90",
               )} />
               <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
-                Extensions
+                {t("extensions")}
               </span>
             </button>
             <div
@@ -339,14 +339,14 @@ const Navigation = () => {
             >
               {extEnabled("aiAssistant") && (
                 <Item
-                  label="A2E AI"
+                  label={t("aiAssistant")}
                   icon={Sparkles}
                   onClick={() => router.push("/documents")}
                 />
               )}
               {extEnabled("automations") && (
                 <Item
-                  label={t("workspace") === "Workspace" ? "Automations" : "Automatisations"}
+                  label={t("automations")}
                   icon={Zap}
                   onClick={() => router.push("/automations")}
                   active={pathname === "/automations"}
@@ -354,7 +354,7 @@ const Navigation = () => {
               )}
               {extEnabled("focusTimer") && (
                 <Item
-                  label={t("workspace") === "Workspace" ? "Focus Timer" : "Minuteur Focus"}
+                  label={t("focusTimer")}
                   icon={Clock}
                   onClick={() => {
                     const event = new CustomEvent("toggle-pomodoro");

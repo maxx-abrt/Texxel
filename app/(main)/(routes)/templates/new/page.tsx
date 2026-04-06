@@ -28,31 +28,18 @@ import {
   X,
 } from "lucide-react";
 
-const CATEGORIES = [
-  { id: "project_management", label: "Project Management" },
-  { id: "engineering", label: "Engineering" },
-  { id: "design", label: "Design" },
-  { id: "marketing", label: "Marketing" },
-  { id: "sales", label: "Sales" },
-  { id: "hr", label: "HR & People" },
-  { id: "education", label: "Education" },
-  { id: "personal", label: "Personal" },
-  { id: "startup", label: "Startup" },
-  { id: "other", label: "Other" },
+const CATEGORY_IDS = [
+  "project_management",
+  "engineering",
+  "design",
+  "marketing",
+  "sales",
+  "hr",
+  "education",
+  "personal",
+  "startup",
+  "other",
 ] as const;
-
-const CATEGORY_FR: Record<string, string> = {
-  project_management: "Gestion de projet",
-  engineering: "Ingénierie",
-  design: "Design",
-  marketing: "Marketing",
-  sales: "Ventes",
-  hr: "RH & Personnel",
-  education: "Éducation",
-  personal: "Personnel",
-  startup: "Startup",
-  other: "Autre",
-};
 
 export default function NewTemplatePage() {
   const router = useRouter();
@@ -275,18 +262,18 @@ export default function NewTemplatePage() {
               <div className="space-y-2">
                 <Label>{t("category")}</Label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {CATEGORIES.map((cat) => (
+                  {CATEGORY_IDS.map((catId) => (
                     <button
-                      key={cat.id}
-                      onClick={() => setCategory(cat.id)}
+                      key={catId}
+                      onClick={() => setCategory(catId)}
                       className={cn(
                         "rounded-lg border px-3 py-2 text-xs font-medium transition-all text-left",
-                        category === cat.id
+                        category === catId
                           ? "border-primary bg-primary/5 text-primary"
                           : "hover:border-primary/30 text-muted-foreground",
                       )}
                     >
-                      {cat.label}
+                      {t(`categories.${catId}` as any)}
                     </button>
                   ))}
                 </div>
@@ -485,9 +472,9 @@ export default function NewTemplatePage() {
                 <h3 className="font-semibold">{title || t("templateNamePlaceholder")}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{description || t("shortDescPlaceholder")}</p>
                 <div className="flex gap-1.5 mt-3">
-                  {includeProject && selectedProjectId && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium">Project</span>}
-                  {includeTasks && selectedTaskIds.size > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium">{selectedTaskIds.size} Tasks</span>}
-                  {includeDocuments && selectedDocIds.size > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium">{selectedDocIds.size} Docs</span>}
+                  {includeProject && selectedProjectId && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium">{t("project_included")}</span>}
+                  {includeTasks && selectedTaskIds.size > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium">{t("tasks_count", { count: selectedTaskIds.size })}</span>}
+                  {includeDocuments && selectedDocIds.size > 0 && <span className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium">{t("docs_count", { count: selectedDocIds.size })}</span>}
                 </div>
               </div>
             </div>

@@ -28,27 +28,24 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 // ─── Category config ─────────────────────────────────────────────────────────
 
-const CATEGORIES = [
-  { id: "all", label: "All Templates", icon: LayoutGrid },
-  { id: "project_management", label: "Project Management", icon: FolderKanban },
-  { id: "engineering", label: "Engineering", icon: Zap },
-  { id: "design", label: "Design", icon: Sparkles },
-  { id: "marketing", label: "Marketing", icon: TrendingUp },
-  { id: "sales", label: "Sales", icon: Users },
-  { id: "hr", label: "HR & People", icon: Users },
-  { id: "education", label: "Education", icon: BookOpen },
-  { id: "personal", label: "Personal", icon: Star },
-  { id: "startup", label: "Startup", icon: Zap },
+const CATEGORY_IDS = [
+  { id: "all", icon: LayoutGrid },
+  { id: "project_management", icon: FolderKanban },
+  { id: "engineering", icon: Zap },
+  { id: "design", icon: Sparkles },
+  { id: "marketing", icon: TrendingUp },
+  { id: "sales", icon: Users },
+  { id: "hr", icon: Users },
+  { id: "education", icon: BookOpen },
+  { id: "personal", icon: Star },
+  { id: "startup", icon: Zap },
 ] as const;
 
-const SORT_OPTIONS = [
-  { id: "popular", label: "Most Popular" },
-  { id: "newest", label: "Newest" },
-  { id: "featured", label: "Featured" },
-] as const;
+const SORT_IDS = ["popular", "newest", "featured"] as const;
 
 const CATEGORY_COLORS: Record<string, string> = {
   project_management: "from-blue-500/10 to-blue-500/5 text-blue-600 dark:text-blue-400",
@@ -77,12 +74,13 @@ function TemplateCard({
   isLiked: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("templates");
   const colorClass = CATEGORY_COLORS[template.category] ?? CATEGORY_COLORS.other;
 
-  const includes: string[] = [];
-  if (template.includeProject) includes.push("Project");
-  if (template.includeTasks) includes.push("Tasks");
-  if (template.includeDocuments) includes.push("Docs");
+  const includes: { key: string; label: string }[] = [];
+  if (template.includeProject) includes.push({ key: "project", label: t("project_included") });
+  if (template.includeTasks) includes.push({ key: "tasks", label: t("includeTasks") });
+  if (template.includeDocuments) includes.push({ key: "docs", label: t("includeDocs") });
 
   return (
     <div
@@ -109,7 +107,7 @@ function TemplateCard({
       {/* Featured badge */}
       {template.isFeatured && (
         <div className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-amber-500/90 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-sm">
-          <Star className="h-2.5 w-2.5 fill-current" /> Featured
+          <Star className="h-2.5 w-2.5 fill-current" /> {t("featured")}
         </div>
       )}
 
@@ -131,10 +129,10 @@ function TemplateCard({
           <div className="flex flex-wrap gap-1 mt-3">
             {includes.map((tag) => (
               <span
-                key={tag}
+                key={tag.key}
                 className="rounded-md bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
               >
-                {tag}
+                {tag.label}
               </span>
             ))}
             {(template.tags ?? []).slice(0, 2).map((tag: string) => (
@@ -188,18 +186,17 @@ function TemplateCard({
 // ─── Empty state ─────────────────────────────────────────────────────────────
 
 function EmptyState({ search, category }: { search: string; category: string }) {
+  const t = useTranslations("templates");
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
         <BookOpen className="h-7 w-7 text-muted-foreground/40" />
       </div>
-      <h3 className="text-sm font-semibold mb-1">No templates found</h3>
+      <h3 className="text-sm font-semibold mb-1">{t("noTemplates")}</h3>
       <p className="text-xs text-muted-foreground max-w-[280px]">
         {search
-          ? `No templates match "${search}". Try a different search term.`
-          : category !== "all"
-            ? "No templates in this category yet. Be the first to create one!"
-            : "The marketplace is empty. Create the first template to share with the community!"}
+          ? t("searchPlaceholder")
+          : t("subtitle")}
       </p>
     </div>
   );
@@ -209,6 +206,7 @@ function EmptyState({ search, category }: { search: string; category: string }) 
 
 export default function TemplatesPage() {
   const router = useRouter();
+  const t = useTranslations("templates");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [sort, setSort] = useState<"popular" | "newest" | "featured">("featured");
@@ -227,10 +225,10 @@ export default function TemplatesPage() {
     try {
       const result = await useTemplateMutation({ templateId });
       const parts: string[] = [];
-      if (result.projectId) parts.push("1 project");
-      if (result.taskIds.length) parts.push(`${result.taskIds.length} tasks`);
-      if (result.documentIds.length) parts.push(`${result.documentIds.length} docs`);
-      toast.success(`Template applied! Created ${parts.join(", ")}`);
+      if (result.projectId) parts.push(t("project_included"));
+      if (result.taskIds.length) parts.push(t("tasks_count", { count: result.taskIds.length }));
+      if (result.documentIds.length) parts.push(t("docs_count", { count: result.documentIds.length }));
+      toast.success(`${t("used")} ${parts.join(", ")}`);
 
       if (result.projectId) {
         router.push(`/projects/${result.projectId}`);
@@ -238,7 +236,7 @@ export default function TemplatesPage() {
         router.push(`/documents/${result.documentIds[0]}`);
       }
     } catch (err: any) {
-      toast.error(err.message ?? "Failed to use template");
+      toast.error(err.message ?? t("useFailed"));
     }
   };
 
@@ -246,7 +244,7 @@ export default function TemplatesPage() {
     try {
       await toggleLikeMutation({ templateId });
     } catch {
-      toast.error("Failed to update like");
+      toast.error(t("useFailed"));
     }
   };
 
@@ -263,9 +261,9 @@ export default function TemplatesPage() {
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Template Gallery</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
               <p className="text-sm text-muted-foreground">
-                Discover and share project templates with the community
+                {t("subtitle")}
               </p>
             </div>
           </div>
@@ -275,7 +273,7 @@ export default function TemplatesPage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search templates..."
+                placeholder={t("searchPlaceholder")}
                 className="pl-9 h-9 rounded-lg"
               />
             </div>
@@ -284,7 +282,7 @@ export default function TemplatesPage() {
               size="sm"
               className="gap-2 h-9 rounded-lg"
             >
-              <Plus className="h-3.5 w-3.5" /> Publish Template
+              <Plus className="h-3.5 w-3.5" /> {t("publish")}
             </Button>
           </div>
         </div>
@@ -292,7 +290,7 @@ export default function TemplatesPage() {
         {/* Category pills + sort */}
         <div className="flex items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-            {CATEGORIES.map((cat) => (
+            {CATEGORY_IDS.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setCategory(cat.id)}
@@ -304,23 +302,23 @@ export default function TemplatesPage() {
                 )}
               >
                 <cat.icon className="h-3 w-3" />
-                {cat.label}
+                {t(`categories.${cat.id}` as any)}
               </button>
             ))}
           </div>
           <div className="flex gap-0.5 rounded-lg border p-0.5 shrink-0">
-            {SORT_OPTIONS.map((opt) => (
+            {SORT_IDS.map((id) => (
               <button
-                key={opt.id}
-                onClick={() => setSort(opt.id as any)}
+                key={id}
+                onClick={() => setSort(id as any)}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-[11px] font-medium transition-all whitespace-nowrap",
-                  sort === opt.id
+                  sort === id
                     ? "bg-background shadow-sm text-foreground"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {opt.label}
+                {id === "featured" ? t("featured") : t(`sort.${id}` as any)}
               </button>
             ))}
           </div>
@@ -331,15 +329,15 @@ export default function TemplatesPage() {
           <section className="mb-10">
             <div className="flex items-center gap-2 mb-5">
               <Star className="h-4 w-4 text-amber-500" />
-              <h2 className="text-sm font-semibold">Featured Templates</h2>
+              <h2 className="text-sm font-semibold">{t("featured")}</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {(featured ?? []).slice(0, 4).map((t) => (
+              {(featured ?? []).slice(0, 4).map((tpl) => (
                 <TemplateCard
-                  key={t._id}
-                  template={t}
-                  onUse={() => handleUseTemplate(t._id)}
-                  onLike={() => handleToggleLike(t._id)}
+                  key={tpl._id}
+                  template={tpl}
+                  onUse={() => handleUseTemplate(tpl._id)}
+                  onLike={() => handleToggleLike(tpl._id)}
                   isLiked={false}
                 />
               ))}
@@ -353,7 +351,7 @@ export default function TemplatesPage() {
             <div className="flex items-center gap-2 mb-5">
               <LayoutGrid className="h-4 w-4 text-muted-foreground" />
               <h2 className="text-sm font-semibold">
-                {category === "all" ? "All Templates" : CATEGORIES.find((c) => c.id === category)?.label ?? "Templates"}
+                {category === "all" ? t("allTemplates") : t(`categories.${category}` as any)}
               </h2>
               {templates && (
                 <span className="text-xs text-muted-foreground ml-1">({templates.length})</span>
@@ -378,12 +376,12 @@ export default function TemplatesPage() {
             <EmptyState search={search} category={category} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {templates.map((t) => (
+              {templates.map((tpl) => (
                 <TemplateCard
-                  key={t._id}
-                  template={t}
-                  onUse={() => handleUseTemplate(t._id)}
-                  onLike={() => handleToggleLike(t._id)}
+                  key={tpl._id}
+                  template={tpl}
+                  onUse={() => handleUseTemplate(tpl._id)}
+                  onLike={() => handleToggleLike(tpl._id)}
                   isLiked={false}
                 />
               ))}

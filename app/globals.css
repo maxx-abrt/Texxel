@@ -39,6 +39,25 @@
   --background: oklch(1 0 0);
   --foreground: oklch(0.13 0 0);
   --dark: oklch(0.165 0.008 280);
+
+  /* Texxel design tokens — light */
+  --tx-surface-0: #ffffff;
+  --tx-surface-1: #fafafa;
+  --tx-surface-2: #f5f5f4;
+  --tx-surface-3: #eeeeec;
+  --tx-border: #e5e5e3;
+  --tx-border-subtle: #f0f0ee;
+  --tx-text: #1a1a1a;
+  --tx-text-muted: #6b6b6b;
+  --tx-text-dim: #a0a0a0;
+  --tx-accent: #f76c5e;
+  --tx-accent-hover: #e85d4f;
+
+  /* Texture / grain overlay */
+  --tx-grain-opacity: 0.03;
+  --tx-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --tx-transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --tx-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark {
@@ -75,7 +94,8 @@
   --sidebar-border: #2a2a2a;
   --sidebar-ring: oklch(0.72 0.19 22);
   --dark: #141414;
-  /* Texxel design tokens */
+
+  /* Texxel design tokens — dark */
   --tx-surface-0: #0f0f0f;
   --tx-surface-1: #141414;
   --tx-surface-2: #1c1c1c;
@@ -86,6 +106,8 @@
   --tx-text-muted: #7a7a7a;
   --tx-text-dim: #444444;
   --tx-accent: #f76c5e;
+  --tx-accent-hover: #ff7d70;
+  --tx-grain-opacity: 0.04;
 }
 
 @theme inline {

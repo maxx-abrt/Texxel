@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useTranslations, useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
+  BarChart3,
   Check,
   CheckSquare,
   ChevronDown,
@@ -17,10 +18,14 @@ import {
   Lightbulb,
   ListTodo,
   Loader2,
+  Minimize2,
+  Maximize2,
+  Palette,
   Pencil,
   Plus,
   RotateCcw,
   Send,
+  SpellCheck,
   Sparkles,
   Wand2,
   X,
@@ -38,6 +43,7 @@ import {
   type AppContext,
 } from "@/lib/ai";
 import { useExtensions } from "@/hooks/useExtensions";
+import { Crown, Globe, BookOpen, Code2, MessageSquareText } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -73,7 +79,38 @@ const SUGGESTION_ICONS: Record<string, React.ElementType> = {
   analyzeWorkspace: Eye,
   planDay: ClipboardList,
   brainstorm: Zap,
+  translate: Globe,
+  analyzeDocument: BookOpen,
+  generateDocument: FileText,
+  codeReview: Code2,
+  explain: MessageSquareText,
+  fixGrammar: SpellCheck,
+  makeShorter: Minimize2,
+  makeLonger: Maximize2,
+  changeTone: Palette,
+  generateChart: BarChart3,
 };
+
+// Mapping from suggestion key → API action name
+const SUGGESTION_TO_ACTION: Record<string, string> = {
+  summarize: "summarize",
+  improveWriting: "improve_writing",
+  fixGrammar: "fix_grammar",
+  makeShorter: "make_shorter",
+  makeLonger: "make_longer",
+  changeTone: "change_tone",
+  translate: "translate",
+  generateTasks: "generate_tasks",
+  analyzeDocument: "analyze_document",
+  generateDocument: "generate_document",
+  brainstorm: "brainstorm",
+  codeReview: "code_review",
+  explain: "explain",
+  generateChart: "generate_chart",
+};
+
+// Suite-only action keys
+const SUITE_ACTIONS = new Set(["translate", "generateTasks", "analyzeDocument", "generateDocument", "brainstorm", "codeReview", "explain"]);
 
 const ACTION_TYPE_ICONS: Record<string, React.ElementType> = {
   create_task: CheckSquare,
@@ -241,9 +278,21 @@ export function AiAssistantPanel({
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [totalTokensUsed, setTotalTokensUsed] = useState(0);
+  const [currentAction, setCurrentAction] = useState<string | undefined>();
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const aiAccess = useExtensions().getAiAccess();
+
+  // Subscription & usage
+  const subscription = useQuery(api.subscriptions.getMySubscription);
+  const aiUsage = useQuery(api.subscriptions.getMyAiUsage);
+  const trackUsage = useMutation(api.subscriptions.trackAiUsage);
+  const plan = (subscription?.plan ?? "free") as "free" | "suite";
+  const isSuite = plan === "suite";
+  const dailyLimit = isSuite ? -1 : 5;
+  const dailyUsed = aiUsage?.requestCount ?? 0;
+  const dailyRemaining = dailyLimit === -1 ? Infinity : Math.max(0, dailyLimit - dailyUsed);
 
   // Convex queries
   const myTasks = useQuery(api.tasks.getMyTasks, {});
@@ -283,11 +332,19 @@ export function AiAssistantPanel({
   })();
 
   // ── Dynamic suggestions ────────────────────────────────────────────────────
-  const suggestions = documentContext
-    ? ["summarize", "improveWriting", "generateTasks", "correctErrors"]
+  const baseSuggestions = documentContext
+    ? ["summarize", "improveWriting", "fixGrammar", "makeShorter", "makeLonger", "generateChart"]
     : taskContext
-      ? ["suggestPriority", "generateTasks", "brainstorm"]
-      : ["analyzeWorkspace", "generateTasks", "createNote", "planDay"];
+      ? ["suggestPriority", "brainstorm", "generateChart"]
+      : ["analyzeWorkspace", "createNote", "planDay", "generateChart"];
+
+  const suiteSuggestions = documentContext
+    ? ["translate", "analyzeDocument", "generateTasks", "changeTone"]
+    : taskContext
+      ? ["generateTasks", "explain"]
+      : ["generateDocument", "generateTasks", "brainstorm"];
+
+  const suggestions = [...baseSuggestions, ...suiteSuggestions];
 
   // ── Build full app context (filtered by AI access scope) ────────────────────
   const buildCtx = useCallback((): AppContext => {
@@ -475,7 +532,51 @@ export function AiAssistantPanel({
         { role: "user", content: msg },
       ];
 
-      const response = await sendAiMessage(apiMessages);
+      // Check daily limit for free tier
+      if (!isSuite && dailyRemaining <= 0) {
+        setMessages((prev) => [
+          ...prev,
+          { role: "ai", text: t("dailyLimitReached") },
+        ]);
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await sendAiMessage(apiMessages, { plan, action: currentAction });
+
+      // Track usage
+      if (response.usage) {
+        setTotalTokensUsed((prev) => prev + response.usage!.total_tokens);
+        trackUsage({ tokensUsed: response.usage.total_tokens }).catch(() => {});
+      }
+
+      // Handle chart generation: try to parse JSON chart data and create insert action
+      if (currentAction === "generate_chart" && response.text) {
+        try {
+          const cleaned = response.text.replace(/```json\n?|```\n?/g, "").trim();
+          const chartConfig = JSON.parse(cleaned);
+          if (chartConfig.type && chartConfig.data) {
+            const chartAction: AiAction = {
+              type: "create_document" as any,
+              label: t("chartInserted"),
+              data: {
+                title: chartConfig.title || "Chart",
+                blocks: [{
+                  type: "chart",
+                  props: { chartData: JSON.stringify(chartConfig) },
+                }],
+              },
+            };
+            setMessages((prev) => [...prev, {
+              role: "ai",
+              text: t("chartGenerated"),
+              pendingActions: [{ action: chartAction, status: "pending" }],
+            }]);
+            setCurrentAction(undefined);
+            return;
+          }
+        } catch { /* not valid JSON, fall through to normal display */ }
+      }
 
       const pendingActions: PendingAction[] = response.actions.map((a) => ({
         action: a,
@@ -488,10 +589,14 @@ export function AiAssistantPanel({
         pendingActions: pendingActions.length > 0 ? pendingActions : undefined,
       };
       setMessages((prev) => [...prev, aiMsg]);
+      setCurrentAction(undefined);
     } catch (err: any) {
+      const errMsg = err.message === "suite_required"
+        ? t("suiteRequired")
+        : `${t("errorPrefix")}: ${err.message ?? t("unknownError")}`;
       setMessages((prev) => [
         ...prev,
-        { role: "ai", text: `${t("errorPrefix")}: ${err.message ?? t("unknownError")}` },
+        { role: "ai", text: errMsg },
       ]);
     } finally {
       setIsLoading(false);
@@ -499,6 +604,19 @@ export function AiAssistantPanel({
   };
 
   const handleSuggestion = (key: string) => {
+    // For suite-only suggestions, check plan first
+    if (SUITE_ACTIONS.has(key) && !isSuite) {
+      setMessages((prev) => [...prev,
+        { role: "user", text: t(key as any) },
+        { role: "ai", text: t("suiteRequired") },
+      ]);
+      return;
+    }
+    // Set the action type for API routing
+    const apiAction = SUGGESTION_TO_ACTION[key];
+    if (apiAction) {
+      setCurrentAction(apiAction);
+    }
     handleSend(t(key as any));
   };
 
@@ -517,7 +635,14 @@ export function AiAssistantPanel({
         <div className="flex items-center gap-2.5">
           <A2EAvatar size="md" />
           <div>
-            <h3 className="text-sm font-bold tracking-tight">{t("title")}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-sm font-bold tracking-tight">{t("title")}</h3>
+              {isSuite && (
+                <span className="flex items-center gap-0.5 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                  <Crown className="h-2.5 w-2.5" /> Suite
+                </span>
+              )}
+            </div>
             <p className="text-[10px] text-muted-foreground/60">{t("subtitle")}</p>
           </div>
         </div>
@@ -633,14 +758,21 @@ export function AiAssistantPanel({
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((key) => {
               const Icon = SUGGESTION_ICONS[key] ?? Sparkles;
+              const isSuiteOnly = SUITE_ACTIONS.has(key);
               return (
                 <button
                   key={key}
                   onClick={() => handleSuggestion(key)}
-                  className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all",
+                    isSuiteOnly && !isSuite
+                      ? "border-amber-500/20 bg-amber-500/5 text-amber-600/60 dark:text-amber-400/60 hover:border-amber-500/40 hover:bg-amber-500/10"
+                      : "border-border/60 bg-background text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5",
+                  )}
                 >
                   <Icon className="h-3 w-3" />
                   {t(key as any)}
+                  {isSuiteOnly && !isSuite && <Crown className="h-2.5 w-2.5 text-amber-500/50" />}
                 </button>
               );
             })}
@@ -674,9 +806,21 @@ export function AiAssistantPanel({
             {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </Button>
         </div>
-        <p className="text-[9px] text-muted-foreground/30 text-center mt-1.5">
-          A2E AI · {t("poweredBy")}
-        </p>
+        <div className="flex items-center justify-between mt-1.5">
+          <p className="text-[9px] text-muted-foreground/30">
+            A2E AI · {t("poweredBy")}
+          </p>
+          {dailyLimit !== -1 && (
+            <p className="text-[9px] text-muted-foreground/30">
+              {dailyUsed}/{dailyLimit} {t("requestsToday") ?? "today"}
+            </p>
+          )}
+          {isSuite && (
+            <p className="text-[9px] text-amber-500/50">
+              ∞ {t("requestsToday") ?? "today"}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

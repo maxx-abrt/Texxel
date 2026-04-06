@@ -85,14 +85,26 @@ export const create = mutation({
     const identity = await requireAuth(ctx);
     const userId = identity.subject;
 
-    // Check max 5 owned workspaces
+    // Check subscription tier for workspace limit
+    const sub = await ctx.db
+      .query("subscriptions")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    const isActiveSuite =
+      sub?.plan === "suite" &&
+      sub.status === "active" &&
+      (!sub.currentPeriodEnd || sub.currentPeriodEnd > Date.now());
+
+    const maxWorkspaces = isActiveSuite ? Infinity : 5;
+
     const owned = await ctx.db
       .query("workspaces")
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
       .collect();
 
-    if (owned.length >= 5) {
-      throw new Error("Maximum 5 workspaces per user");
+    if (owned.length >= maxWorkspaces) {
+      throw new Error(isActiveSuite ? "workspace_limit" : "workspace_limit_free");
     }
 
     const wsId = await ctx.db.insert("workspaces", {
@@ -176,7 +188,7 @@ export const addMember = mutation({
     userEmail: v.string(),
     userName: v.string(),
     userId: v.string(),
-    role: v.optional(v.union(v.literal("admin"), v.literal("member"))),
+    role: v.optional(v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer"))),
   },
   handler: async (ctx, args) => {
     const identity = await requireAuth(ctx);
@@ -209,9 +221,44 @@ export const addMember = mutation({
       userId: args.userId,
       userEmail: args.userEmail,
       userName: args.userName,
-      role: args.role ?? "member",
+      role: args.role ?? "editor",
       joinedAt: Date.now(),
     });
+  },
+});
+
+export const updateMemberRole = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    targetUserId: v.string(),
+    newRole: v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await requireAuth(ctx);
+    const userId = identity.subject;
+
+    // Check caller is owner or admin
+    const callerMember = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", userId),
+      )
+      .first();
+    if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+      throw new Error("Not authorized");
+    }
+
+    const target = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", args.targetUserId),
+      )
+      .first();
+    if (!target) throw new Error("Member not found");
+    if (target.role === "owner") throw new Error("Cannot change owner role");
+
+    await ctx.db.patch(target._id, { role: args.newRole });
+    return true;
   },
 });
 
@@ -223,8 +270,17 @@ export const removeMember = mutation({
   handler: async (ctx, args) => {
     const identity = await requireAuth(ctx);
     const userId = identity.subject;
-    const ws = await ctx.db.get(args.workspaceId);
-    if (!ws || ws.ownerId !== userId) throw new Error("Not authorized");
+
+    // Check caller is owner or admin
+    const callerMember = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", userId),
+      )
+      .first();
+    if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+      throw new Error("Not authorized");
+    }
 
     const member = await ctx.db
       .query("workspaceMembers")
@@ -232,6 +288,197 @@ export const removeMember = mutation({
         q.eq("workspaceId", args.workspaceId).eq("userId", args.targetUserId),
       )
       .first();
-    if (member) await ctx.db.delete(member._id);
+    if (!member) return;
+    if (member.role === "owner") throw new Error("Cannot remove owner");
+    await ctx.db.delete(member._id);
+  },
+});
+
+export const getMyRole = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const userId = identity.subject;
+    const member = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", userId),
+      )
+      .first();
+    return member?.role ?? null;
+  },
+});
+
+// ─── Workspace Invitations (Notion-like) ────────────────────────────────────
+
+export const inviteMember = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    email: v.string(),
+    role: v.optional(v.union(v.literal("admin"), v.literal("editor"), v.literal("viewer"))),
+  },
+  handler: async (ctx, args) => {
+    const identity = await requireAuth(ctx);
+    const userId = identity.subject;
+
+    // Check caller is owner or admin
+    const callerMember = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", userId),
+      )
+      .first();
+    if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+      throw new Error("Not authorized to invite");
+    }
+
+    // Check if already invited (pending)
+    const existingInvite = await ctx.db
+      .query("workspaceInvitations")
+      .withIndex("by_workspace_email", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("invitedEmail", args.email),
+      )
+      .first();
+    if (existingInvite && existingInvite.status === "pending") {
+      throw new Error("Already invited");
+    }
+
+    // Check if already a member
+    const members = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    if (members.some((m) => m.userEmail === args.email)) {
+      throw new Error("Already a member");
+    }
+
+    const token = `ws-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    return ctx.db.insert("workspaceInvitations", {
+      workspaceId: args.workspaceId,
+      invitedEmail: args.email,
+      invitedBy: userId,
+      invitedByName: identity.name ?? undefined,
+      role: args.role ?? "editor",
+      status: "pending",
+      token,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+      createdAt: Date.now(),
+    });
+  },
+});
+
+export const getWorkspaceInvitations = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    return ctx.db
+      .query("workspaceInvitations")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+  },
+});
+
+export const getMyInvitations = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || !identity.email) return [];
+    const invites = await ctx.db
+      .query("workspaceInvitations")
+      .withIndex("by_email", (q) => q.eq("invitedEmail", identity.email!))
+      .collect();
+    // Only show pending, non-expired
+    const now = Date.now();
+    const pending = invites.filter((i) => i.status === "pending" && i.expiresAt > now);
+    // Enrich with workspace name
+    const enriched = await Promise.all(
+      pending.map(async (inv) => {
+        const ws = await ctx.db.get(inv.workspaceId);
+        return { ...inv, workspaceName: ws?.name ?? "Unknown" };
+      }),
+    );
+    return enriched;
+  },
+});
+
+export const acceptInvitation = mutation({
+  args: { invitationId: v.id("workspaceInvitations") },
+  handler: async (ctx, args) => {
+    const identity = await requireAuth(ctx);
+    const userId = identity.subject;
+    const inv = await ctx.db.get(args.invitationId);
+    if (!inv) throw new Error("Invitation not found");
+    if (inv.status !== "pending") throw new Error("Invitation already processed");
+    if (inv.expiresAt < Date.now()) throw new Error("Invitation expired");
+    if (inv.invitedEmail !== identity.email) throw new Error("This invitation is not for you");
+
+    // Add as workspace member
+    await ctx.db.insert("workspaceMembers", {
+      workspaceId: inv.workspaceId,
+      userId,
+      userEmail: identity.email ?? "",
+      userName: identity.name ?? "",
+      userImage: (identity as any).pictureUrl ?? undefined,
+      role: inv.role,
+      joinedAt: Date.now(),
+    });
+
+    // Mark invitation as accepted
+    await ctx.db.patch(args.invitationId, { status: "accepted" });
+    return inv.workspaceId;
+  },
+});
+
+export const rejectInvitation = mutation({
+  args: { invitationId: v.id("workspaceInvitations") },
+  handler: async (ctx, args) => {
+    const identity = await requireAuth(ctx);
+    const inv = await ctx.db.get(args.invitationId);
+    if (!inv) throw new Error("Invitation not found");
+    if (inv.invitedEmail !== identity.email) throw new Error("Not your invitation");
+    await ctx.db.patch(args.invitationId, { status: "rejected" });
+  },
+});
+
+export const revokeInvitation = mutation({
+  args: { invitationId: v.id("workspaceInvitations") },
+  handler: async (ctx, args) => {
+    const identity = await requireAuth(ctx);
+    const userId = identity.subject;
+    const inv = await ctx.db.get(args.invitationId);
+    if (!inv) throw new Error("Invitation not found");
+
+    // Check caller is owner or admin of the workspace
+    const callerMember = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", inv.workspaceId).eq("userId", userId),
+      )
+      .first();
+    if (!callerMember || (callerMember.role !== "owner" && callerMember.role !== "admin")) {
+      throw new Error("Not authorized");
+    }
+
+    await ctx.db.delete(args.invitationId);
+  },
+});
+
+export const leaveWorkspace = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const identity = await requireAuth(ctx);
+    const userId = identity.subject;
+
+    const member = await ctx.db
+      .query("workspaceMembers")
+      .withIndex("by_workspace_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", userId),
+      )
+      .first();
+    if (!member) throw new Error("Not a member");
+    if (member.role === "owner") throw new Error("Owner cannot leave — transfer ownership or delete workspace");
+    await ctx.db.delete(member._id);
   },
 });

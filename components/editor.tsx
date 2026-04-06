@@ -2,6 +2,7 @@
 
 import {
   BlockNoteSchema,
+  defaultBlockSpecs,
   defaultInlineContentSpecs,
   PartialBlock,
 } from "@blocknote/core";
@@ -28,6 +29,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { ConvexThreadStore } from "@/lib/ConvexThreadStore";
 import { ColorChipSpec, DateChipSpec, BadgeChipSpec, ProgressChipSpec, EventChipSpec, PlaceChipSpec, RefChipSpec, buildChipMenuItems, buildChipSlashMenuItems } from "@/components/chips";
+import { ChartBlockSpec, buildChartSlashMenuItems } from "@/components/chart-block";
 import * as Y from "yjs";
 import YPartyKitProvider from "y-partykit/provider";
 
@@ -84,6 +86,10 @@ const MentionSpec = createReactInlineContentSpec(
 );
 
 const editorSchema = BlockNoteSchema.create({
+  blockSpecs: {
+    ...defaultBlockSpecs,
+    chart: ChartBlockSpec(),
+  },
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
     mention: MentionSpec,
@@ -391,10 +397,13 @@ const Editor = ({
           triggerCharacter="/"
           getItems={async (query) => {
             const defaults = getDefaultReactSlashMenuItems(editor);
+            const chartItems = buildChartSlashMenuItems(editor, (key) => {
+              try { return tChips(key as any); } catch { return key; }
+            });
             const chipItems = buildChipSlashMenuItems(editor, (key) => {
               try { return tChips(key as any); } catch { return key; }
             });
-            const all = [...defaults, ...chipItems];
+            const all = [...defaults, ...chartItems, ...chipItems];
             if (!query) return all;
             const q = query.toLowerCase();
             return all.filter(

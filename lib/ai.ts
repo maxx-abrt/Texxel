@@ -63,10 +63,23 @@ function defaultLabel(a: AiAction): string {
   }
 }
 
+export interface AiSendOptions {
+  temperature?: number;
+  max_tokens?: number;
+  action?: string;
+  plan?: "free" | "suite";
+  model?: string;
+}
+
+export interface AiFullResponse extends AiResponse {
+  usage?: { input_tokens: number; output_tokens: number; total_tokens: number };
+  model?: string;
+}
+
 export async function sendAiMessage(
   messages: AiMessage[],
-  opts?: { temperature?: number; max_tokens?: number },
-): Promise<AiResponse> {
+  opts?: AiSendOptions,
+): Promise<AiFullResponse> {
   const res = await fetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -74,16 +87,27 @@ export async function sendAiMessage(
       messages,
       temperature: opts?.temperature ?? 0.7,
       max_tokens: opts?.max_tokens ?? 8192,
+      action: opts?.action ?? "chat",
+      plan: opts?.plan ?? "free",
+      model: opts?.model,
     }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Network error" }));
+    if (err.error === "suite_required") {
+      throw new Error("suite_required");
+    }
     throw new Error(err.error ?? `AI request failed (${res.status})`);
   }
 
   const data = await res.json();
-  return parseActions(data.content);
+  const parsed = parseActions(data.content);
+  return {
+    ...parsed,
+    usage: data.usage,
+    model: data.model,
+  };
 }
 
 // ─── System prompt builder ───────────────────────────────────────────────────

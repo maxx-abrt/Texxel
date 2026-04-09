@@ -50,7 +50,7 @@ interface ShareDialogProps {
     guestCanEdit?: boolean;
   };
 }
-
+ 
 type CollabMode = "view_only" | "open" | "restricted";
 
 export function ShareDialog({ open, onClose, documentId, document }: ShareDialogProps) {

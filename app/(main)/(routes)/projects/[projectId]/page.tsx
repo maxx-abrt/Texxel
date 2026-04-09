@@ -71,11 +71,9 @@ const statusCols = [
 function SortableTaskCard({
   task,
   onToggleDone,
-  compact,
 }: {
   task: any;
   onToggleDone: (id: Id<"tasks">, current: string) => void;
-  compact?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
   const style = {
@@ -90,14 +88,9 @@ function SortableTaskCard({
       style={style}
       {...attributes}
       {...listeners}
-      className="group/drag relative cursor-grab active:cursor-grabbing touch-none"
+      className="cursor-grab active:cursor-grabbing touch-none"
     >
-      <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground/20 opacity-0 group-hover/drag:opacity-100 transition-opacity pointer-events-none">
-        <GripVertical className="h-3 w-3" />
-      </div>
-      <div className="pl-5">
-        <TaskCard task={task} onToggleDone={onToggleDone} compact={compact} />
-      </div>
+      <TaskCard task={task} onToggleDone={onToggleDone} kanban />
     </div>
   );
 }
@@ -122,27 +115,35 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-xl border transition-all duration-150",
+        "flex w-72 shrink-0 flex-col rounded-2xl border transition-all duration-150",
         isOver
-          ? "border-primary/50 bg-primary/5 shadow-sm shadow-primary/10"
-          : "border-border/60 bg-muted/15",
+          ? "border-primary/40 bg-primary/3 shadow-sm"
+          : "border-border/50 bg-muted/20",
       )}
     >
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        <div className={cn("h-2 w-2 rounded-full", col.dot)} />
-        <span className={cn("text-xs font-semibold uppercase tracking-wider", col.color)}>
+      {/* Column header */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40">
+        <div className={cn("h-2.5 w-2.5 rounded-full shrink-0", col.dot)} />
+        <span className={cn("text-[13px] font-semibold", col.color)}>
           {tt(`statuses.${col.key}` as any)}
         </span>
-        <span className="ml-auto text-[10px] text-muted-foreground font-medium bg-muted rounded-full px-1.5 py-0.5">
+        <span className={cn(
+          "ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-semibold",
+          col.key === "todo" ? "bg-slate-100 dark:bg-slate-800 text-slate-500" :
+          col.key === "in_progress" ? "bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400" :
+          col.key === "in_review" ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400" :
+          "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400",
+        )}>
           {taskCount}
         </span>
       </div>
-      <div className="flex-1 space-y-1.5 overflow-y-auto px-2 pb-2 min-h-20">
+      {/* Cards */}
+      <div className="flex-1 space-y-2 overflow-y-auto px-2.5 py-2.5 min-h-24">
         {children}
         {taskCount === 0 && (
           <div
             className={cn(
-              "flex items-center justify-center rounded-lg border-2 border-dashed py-8 text-[11px] text-muted-foreground/40 transition-colors",
+              "flex items-center justify-center rounded-xl border-2 border-dashed py-10 text-[11px] text-muted-foreground/40 transition-colors",
               isOver ? "border-primary/30 text-primary/50" : "border-muted-foreground/10",
             )}
           >
@@ -152,9 +153,9 @@ function DroppableColumn({
       </div>
       <button
         onClick={onAddTask}
-        className="mx-2 mb-2 flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"
+        className="mx-2.5 mb-2.5 flex items-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-medium text-muted-foreground/60 hover:bg-accent hover:text-foreground transition-colors border border-dashed border-border/40 hover:border-border/70"
       >
-        <Plus className="h-3 w-3" />
+        <Plus className="h-3.5 w-3.5" />
         {tp("addTask")}
       </button>
     </div>

@@ -2,15 +2,15 @@
 
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
-import { AlertCircle, Calendar, CheckCircle2, Circle, Clock } from "lucide-react";
+import { AlertCircle, Calendar, CheckCircle2, Circle, Clock, CheckSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const PRIORITY_CONFIG: Record<string, { dot: string; ring: string; border: string }> = {
-  none:   { dot: "bg-slate-300 dark:bg-slate-600",  ring: "",                       border: "" },
-  low:    { dot: "bg-sky-400",                       ring: "ring-sky-400/20",        border: "border-l-sky-400/40" },
-  medium: { dot: "bg-amber-400",                     ring: "ring-amber-400/20",      border: "border-l-amber-400/40" },
-  high:   { dot: "bg-orange-500",                    ring: "ring-orange-500/20",     border: "border-l-orange-500/60" },
-  urgent: { dot: "bg-red-500",                       ring: "ring-red-500/20",        border: "border-l-red-500" },
+const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
+  none:   { label: "None",   color: "text-slate-400",                bg: "bg-slate-100 dark:bg-slate-800/50",       border: "border-l-slate-200 dark:border-l-slate-700",   dot: "bg-slate-300 dark:bg-slate-600" },
+  low:    { label: "Low",    color: "text-sky-600 dark:text-sky-400", bg: "bg-sky-50 dark:bg-sky-900/20",            border: "border-l-sky-300 dark:border-l-sky-700",       dot: "bg-sky-400" },
+  medium: { label: "Medium", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/20",   border: "border-l-amber-300 dark:border-l-amber-700",   dot: "bg-amber-400" },
+  high:   { label: "High",   color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-900/20", border: "border-l-orange-400 dark:border-l-orange-700", dot: "bg-orange-500" },
+  urgent: { label: "Critical", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/20",         border: "border-l-red-400 dark:border-l-red-600",       dot: "bg-red-500" },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
@@ -38,27 +38,26 @@ function labelPalette(label: string) {
   return LABEL_PALETTES[h % LABEL_PALETTES.length];
 }
 
-function formatDue(ts: number, locale = "en") {
+function formatDue(ts: number) {
   const now = Date.now();
   const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
   const todayEnd = todayStart + 86_400_000;
-  if (ts >= todayStart && ts < todayEnd) return { label: "Today", overdue: false, today: true };
+  if (ts >= todayStart && ts < todayEnd) return { label: "Today", overdue: false, today: true, soon: false };
   if (ts < now) {
     const days = Math.ceil((now - ts) / 86_400_000);
-    return { label: days === 1 ? "Yesterday" : `${days}d ago`, overdue: true, today: false };
+    return { label: days === 1 ? "Yesterday" : `${days}d ago`, overdue: true, today: false, soon: false };
   }
   const soon = ts - now < 3 * 86_400_000;
   return {
-    label: new Date(ts).toLocaleDateString(locale, { month: "short", day: "numeric" }),
-    overdue: false,
-    today: false,
-    soon,
+    label: new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }),
+    overdue: false, today: false, soon,
   };
 }
 
 export interface Task {
   _id: Id<"tasks">;
   title: string;
+  description?: string;
   status: string;
   priority: string;
   dueDate?: number;
@@ -78,9 +77,11 @@ interface TaskCardProps {
   selected?: boolean;
   onSelect?: (id: Id<"tasks">, checked: boolean) => void;
   showStatus?: boolean;
+  /** When true, renders as a rich kanban card (description, all meta) */
+  kanban?: boolean;
 }
 
-export function TaskCard({ task, onToggleDone, compact, selected, onSelect, showStatus }: TaskCardProps) {
+export function TaskCard({ task, onToggleDone, compact, selected, onSelect, showStatus, kanban }: TaskCardProps) {
   const router = useRouter();
   const isDone = task.status === "done";
   const isCancelled = task.status === "cancelled";
@@ -88,8 +89,116 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
   const sCfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
   const dueInfo = task.dueDate ? formatDue(task.dueDate) : null;
   const hasSubtasks = (task.subtaskCount ?? 0) > 0;
-  const subtaskProgress = hasSubtasks ? Math.round(((task.completedSubtasks ?? 0) / task.subtaskCount!) * 100) : 0;
 
+  /* ── Kanban card (rich, screenshot-style) ────────────────────────── */
+  if (kanban) {
+    return (
+      <div
+        className={cn(
+          "group relative rounded-xl border border-l-[3px] bg-card shadow-sm hover:shadow-md transition-all duration-150 cursor-pointer overflow-hidden",
+          "px-3.5 pt-3 pb-2.5",
+          isDone || isCancelled ? "opacity-60" : "",
+          pCfg.border,
+          selected && "ring-2 ring-primary/30",
+        )}
+        onClick={() => router.push(`/tasks/${task._id}`)}
+      >
+        {/* Title */}
+        <p className={cn(
+          "text-[13.5px] font-semibold leading-snug mb-1",
+          isDone && "line-through text-muted-foreground/60",
+          isCancelled && "line-through text-muted-foreground/40",
+        )}>
+          {task.title}
+        </p>
+
+        {/* Description snippet */}
+        {task.description && (
+          <p className="text-[12px] text-muted-foreground/70 leading-relaxed line-clamp-2 mb-2.5">
+            {task.description}
+          </p>
+        )}
+
+        {/* Date + subtasks row */}
+        {(dueInfo || hasSubtasks) && (
+          <div className="flex items-center gap-2 mb-2">
+            {dueInfo && (
+              <span className={cn(
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium border",
+                dueInfo.overdue
+                  ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800/50"
+                  : dueInfo.today
+                  ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50"
+                  : "bg-muted/60 text-muted-foreground border-border/40",
+              )}>
+                <Calendar className="h-3 w-3 shrink-0" />
+                {dueInfo.label}
+              </span>
+            )}
+            {hasSubtasks && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70">
+                <CheckSquare className="h-3 w-3 shrink-0" />
+                {task.completedSubtasks ?? 0}/{task.subtaskCount}
+              </span>
+            )}
+            {task.estimateMinutes && task.estimateMinutes > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 ml-auto">
+                <Clock className="h-3 w-3 shrink-0" />
+                {task.estimateMinutes >= 60
+                  ? `${Math.floor(task.estimateMinutes / 60)}h${task.estimateMinutes % 60 ? `${task.estimateMinutes % 60}m` : ""}`
+                  : `${task.estimateMinutes}m`}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Labels */}
+        {(task.labels?.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {task.labels!.slice(0, 3).map((label) => (
+              <span key={label} className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", labelPalette(label))}>
+                {label}
+              </span>
+            ))}
+            {task.labels!.length > 3 && (
+              <span className="text-[10px] text-muted-foreground/50">+{task.labels!.length - 3}</span>
+            )}
+          </div>
+        )}
+
+        {/* Bottom row: priority + assignee */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/30">
+          <div className="flex items-center gap-2">
+            {task.priority !== "none" && (
+              <span className={cn("text-[11px] font-medium", pCfg.color)}>
+                Priority: {pCfg.label}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {task.assigneeId && (
+              <span className="text-[11px] text-muted-foreground/60">
+                {task.assigneeImage ? (
+                  <img src={task.assigneeImage} alt="" className="h-5 w-5 rounded-full object-cover ring-1 ring-border inline-block" />
+                ) : (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary ring-1 ring-primary/20">
+                    {task.assigneeName?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                )}
+              </span>
+            )}
+            {!task.assigneeId && task.estimateMinutes && task.estimateMinutes > 0 && !dueInfo && (
+              <span className="text-[11px] text-muted-foreground/60">
+                Estimated Hours: {Math.round(task.estimateMinutes / 60 * 10) / 10}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Standard list card ──────────────────────────────────────────── */
   return (
     <div
       className={cn(
@@ -101,7 +210,6 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
       )}
       onClick={() => router.push(`/tasks/${task._id}`)}
     >
-      {/* Multi-select checkbox */}
       {onSelect && (
         <div
           className={cn(
@@ -114,7 +222,6 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
         </div>
       )}
 
-      {/* Complete toggle */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleDone(task._id, task.status); }}
         className="mt-0.5 shrink-0 text-muted-foreground/30 hover:text-foreground transition-colors duration-150"
@@ -126,9 +233,7 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
         )}
       </button>
 
-      {/* Main content */}
       <div className="flex-1 min-w-0 space-y-1.5">
-        {/* Title row */}
         <div className="flex items-center gap-2">
           {task.priority !== "none" && (
             <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 mt-0.5", pCfg.dot)} />
@@ -142,17 +247,13 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
           </span>
         </div>
 
-        {/* Metadata row */}
         {!compact && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            {/* Status pill — only if explicitly requested */}
             {showStatus && !isDone && (
               <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold", sCfg.color, sCfg.bg)}>
                 {sCfg.label}
               </span>
             )}
-
-            {/* Due date */}
             {dueInfo && (
               <span className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
@@ -165,8 +266,6 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
                 {dueInfo.label}
               </span>
             )}
-
-            {/* Estimate */}
             {task.estimateMinutes && task.estimateMinutes > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                 <Clock className="h-2.5 w-2.5" />
@@ -175,8 +274,6 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
                   : `${task.estimateMinutes}m`}
               </span>
             )}
-
-            {/* Labels */}
             {task.labels?.slice(0, 3).map((label) => (
               <span key={label} className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium", labelPalette(label))}>
                 {label}
@@ -185,12 +282,10 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
             {(task.labels?.length ?? 0) > 3 && (
               <span className="text-[10px] text-muted-foreground/60">+{task.labels!.length - 3}</span>
             )}
-
-            {/* Subtask progress */}
             {hasSubtasks && (
               <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
                 <span className="w-12 h-1 rounded-full bg-muted overflow-hidden">
-                  <span className="block h-full bg-emerald-500 rounded-full" style={{ width: `${subtaskProgress}%` }} />
+                  <span className="block h-full bg-emerald-500 rounded-full" style={{ width: `${Math.round(((task.completedSubtasks ?? 0) / task.subtaskCount!) * 100)}%` }} />
                 </span>
                 <span>{task.completedSubtasks ?? 0}/{task.subtaskCount}</span>
               </span>
@@ -199,7 +294,6 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
         )}
       </div>
 
-      {/* Right side: assignee avatar */}
       {task.assigneeId && (
         <div className="shrink-0 mt-0.5" title={task.assigneeName ?? "Assignee"}>
           {task.assigneeImage ? (

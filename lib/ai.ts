@@ -26,29 +26,43 @@ export interface AiResponse {
   actions: AiAction[];
 }
 
-const ACTION_REGEX = /```action\s*\n([\s\S]*?)\n```/g;
+const ACTION_REGEX = /```action\s*\n?([\s\S]*?)\n?```/g;
+
+function tryParseActionJson(json: string): AiAction[] {
+  const trimmed = json.trim();
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed.filter((a: any) => a.type);
+    if (parsed.type) return [parsed];
+  } catch {}
+  return [];
+}
 
 function parseActions(raw: string): { text: string; actions: AiAction[] } {
   const actions: AiAction[] = [];
-  const text = raw.replace(ACTION_REGEX, (_, json) => {
-    try {
-      const parsed = JSON.parse(json);
-      if (Array.isArray(parsed)) {
-        actions.push(...parsed.filter((a: any) => a.type));
-      } else if (parsed.type) {
-        actions.push(parsed);
-      }
-    } catch {
-      // ignore malformed action blocks
-    }
+
+  // Primary: ```action blocks
+  let text = raw.replace(ACTION_REGEX, (_, json) => {
+    actions.push(...tryParseActionJson(json));
     return "";
+  }).trim();
+
+  // Fallback: ```json blocks that contain action-shaped JSON (have a "type" field matching known actions)
+  const JSON_REGEX = /```json\s*\n?([\s\S]*?)\n?```/g;
+  const knownTypes = new Set(["create_task","edit_task","create_subtask","create_document","replace_content","edit_document_blocks","insert_blocks","create_project"]);
+  text = text.replace(JSON_REGEX, (full, json) => {
+    const found = tryParseActionJson(json);
+    const actionFound = found.filter((a) => knownTypes.has(a.type));
+    if (actionFound.length > 0) {
+      actions.push(...actionFound);
+      return "";
+    }
+    return full;
   }).trim();
 
   // Auto-generate labels if missing
   for (const a of actions) {
-    if (!a.label) {
-      a.label = defaultLabel(a);
-    }
+    if (!a.label) a.label = defaultLabel(a);
   }
   return { text, actions };
 }
@@ -280,12 +294,20 @@ You PROPOSE actions — the user sees each as an approval card and clicks "Apply
 
 Embed actions using \`\`\`action\`\`\` JSON blocks. Always include a short "label".
 
+### ⚠️ MANDATORY ACTION RULE — READ CAREFULLY:
+You MUST emit a \`\`\`action block for ANY request that involves creating or modifying content. NEVER just describe what you would do — always output the action block so the user can click Apply.
+
 ### DECISION TREE — which action to use for notes:
 ${ctx.currentDocument
   ? `**YOU ARE ON NOTE "${ctx.currentDocument.title}" [ID: ${ctx.currentDocument.id}]**
-- User asks to ADD/GENERATE content (table, text, list, summary…) → use **insert_blocks** with documentId: "${ctx.currentDocument.id}"
+- User asks to ADD/INSERT content (table, text, list, summary, any new content…) → **MUST use insert_blocks** with documentId: "${ctx.currentDocument.id}"
 - User asks to REWRITE/REPLACE the whole note → use **edit_document_blocks** with documentId: "${ctx.currentDocument.id}"
-- User asks to CREATE A NEW separate note → use **create_document**`
+- User asks to CREATE A NEW separate note → use **create_document**
+
+**EXAMPLE** — user asks "add a 3x3 table":
+\`\`\`action
+{"type":"insert_blocks","label":"Insert 3x3 table","data":{"documentId":"${ctx.currentDocument.id}","blocks":[{"type":"table","content":{"type":"tableContent","rows":[{"cells":[[{"type":"text","text":"Col 1","styles":{"bold":true}}],[{"type":"text","text":"Col 2","styles":{"bold":true}}],[{"type":"text","text":"Col 3","styles":{"bold":true}}]]},{"cells":[[{"type":"text","text":""}],[{"type":"text","text":""}],[{"type":"text","text":""}]]},{"cells":[[{"type":"text","text":""}],[{"type":"text","text":""}],[{"type":"text","text":""}]]}]}}]}}
+\`\`\``
   : `- No active note open → use **create_document** for any note creation`}
 
 ---

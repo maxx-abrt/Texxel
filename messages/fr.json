@@ -785,6 +785,7 @@
     "makeLonger": "Allonger",
     "changeTone": "Changer le ton",
     "generateChart": "Générer un graphique",
+    "insertTable": "Insérer un tableau",
     "chartInserted": "Graphique inséré dans le document",
     "chartGenerated": "Voici votre graphique. Vous pouvez modifier les données en cliquant sur le bouton Modifier du bloc graphique."
   },

@@ -784,7 +784,8 @@
     "makeShorter": "Make shorter",
     "makeLonger": "Make longer",
     "changeTone": "Change tone",
-    "generateChart": "Generate a chart",
+    "generateChart": "Generate chart",
+    "insertTable": "Insert table",
     "chartInserted": "Chart inserted into document",
     "chartGenerated": "Here's your chart. You can edit the data by clicking the Edit button on the chart block."
   },

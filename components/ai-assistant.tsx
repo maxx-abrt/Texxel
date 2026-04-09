@@ -30,6 +30,7 @@ import {
   Send,
   SpellCheck,
   Sparkles,
+  Table,
   Wand2,
   X,
   XCircle,
@@ -96,6 +97,7 @@ const SUGGESTION_ICONS: Record<string, React.ElementType> = {
   makeLonger: Maximize2,
   changeTone: Palette,
   generateChart: BarChart3,
+  insertTable: Table,
 };
 
 // Mapping from suggestion key → API action name
@@ -384,7 +386,7 @@ export function AiAssistantPanel({
 
   // ── Dynamic suggestions ────────────────────────────────────────────────────
   const baseSuggestions = documentContext
-    ? ["summarize", "improveWriting", "fixGrammar", "makeShorter", "makeLonger", "generateChart"]
+    ? ["insertTable", "summarize", "improveWriting", "fixGrammar", "makeShorter", "makeLonger", "generateChart"]
     : taskContext
       ? ["suggestPriority", "brainstorm", "generateChart"]
       : ["analyzeWorkspace", "createNote", "planDay", "generateChart"];
@@ -607,15 +609,16 @@ export function AiAssistantPanel({
     try {
       const systemPrompt = buildSystemPrompt(buildCtx());
       const actionReminder = documentContext
-        ? `\n\n[SYSTEM REMINDER: If proposing any content for the note, you MUST emit a \`\`\`action block with type insert_blocks or edit_document_blocks. Do NOT describe the action — output it as a JSON action block.]`
-        : `\n\n[SYSTEM REMINDER: If creating tasks, notes, or projects, you MUST output them as \`\`\`action JSON blocks. Do NOT describe what you would do — emit the actual action blocks so the user can apply them.]`;
+        ? `CRITICAL INSTRUCTION: The user has asked to add or modify content in the note. You MUST emit a \`\`\`action block (type: insert_blocks or edit_document_blocks) with the actual content. Do NOT describe what you would insert — output the JSON action block directly so the user can click Apply. If you do not emit an action block, the action cannot be applied.`
+        : `CRITICAL INSTRUCTION: If creating tasks, notes, or projects, you MUST output \`\`\`action JSON blocks. Never just describe what you would do — always emit the actual action blocks.`;
       const apiMessages: AiMessage[] = [
         { role: "developer", content: systemPrompt },
+        { role: "developer", content: actionReminder },
         ...messages.slice(-20).map((m) => ({
           role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
           content: m.text,
         })),
-        { role: "user", content: msg + actionReminder },
+        { role: "user", content: msg },
       ];
 
       // Check daily limit for free tier
@@ -702,6 +705,14 @@ export function AiAssistantPanel({
         { role: "user", text: t(key as any) },
         { role: "ai", text: t("suiteRequired") },
       ]);
+      return;
+    }
+    // insertTable: send a direct prompt that the AI must respond to with an insert_blocks action
+    if (key === "insertTable") {
+      const prompt = locale === "fr"
+        ? "Crée un tableau 3x3 avec des en-têtes et insère-le dans la note active."
+        : "Create a 3x3 table with headers and insert it into the active note.";
+      handleSend(prompt);
       return;
     }
     // Set the action type for API routing
@@ -925,6 +936,20 @@ export function AiAssistantPanel({
                 >
                   {msg.text}
                 </div>
+              )}
+
+              {/* Fallback: AI replied with prose but no action block while on a document — offer to force re-apply */}
+              {msg.role === "ai" && documentContext && (!msg.pendingActions || msg.pendingActions.length === 0) && msg.text && i === messages.length - 1 && !isLoading && (
+                <button
+                  onClick={() => {
+                    const forceMsg = `[FORCE ACTION] The previous response did not include an action block. You MUST now re-emit the exact same content but as a \`\`\`action block with type insert_blocks, documentId "${documentContext.id}", and the correct BlockNote blocks. Output ONLY the action block, no prose.`;
+                    handleSend(forceMsg);
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors mt-0.5"
+                >
+                  <Plus className="h-3 w-3" />
+                  {locale === "fr" ? "Appliquer dans la note" : "Apply to note"}
+                </button>
               )}
 
               {/* Action cards (pending approval) */}

@@ -513,7 +513,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                     onAddTask={() => { setNewTaskStatus(col.key as any); setShowNewTask(true); }}
                   >
                     {col.tasks.map((task) => (
-                      <SortableTaskCard key={task._id} task={task} onToggleDone={handleToggleDone} compact />
+                      <SortableTaskCard key={task._id} task={task} onToggleDone={handleToggleDone} />
                     ))}
                   </DroppableColumn>
                 </SortableContext>

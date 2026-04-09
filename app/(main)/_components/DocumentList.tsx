@@ -34,6 +34,7 @@ import { Item } from "./Item";
 
 import { FileIcon, CornerDownRight, Square, SquareCheckBig } from "lucide-react";
 import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 interface SortableItemProps {
   document: Doc<"documents">;
@@ -155,8 +156,10 @@ export const DocumentList = ({
   const nestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastOverRef = useRef<string | null>(null);
 
+  const { activeWorkspaceId } = useWorkspace();
   const documents = useQuery(api.documents.getSidebar, {
     parentDocument: parentDocumentId,
+    workspaceId: activeWorkspaceId as any,
   });
 
   useEffect(() => {

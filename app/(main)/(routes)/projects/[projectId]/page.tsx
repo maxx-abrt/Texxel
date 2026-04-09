@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Calendar, Clock, GanttChart as GanttIcon, GripVertical, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, FileText, GanttChart as GanttIcon, GripVertical, LayoutGrid, List, Pencil, Plus, Trash2 } from "lucide-react";
 import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -85,12 +85,14 @@ function SortableTaskCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="group/drag relative">
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 cursor-grab active:cursor-grabbing p-1 rounded text-muted-foreground/30 opacity-0 group-hover/drag:opacity-100 transition-opacity touch-none"
-      >
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="group/drag relative cursor-grab active:cursor-grabbing touch-none"
+    >
+      <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground/20 opacity-0 group-hover/drag:opacity-100 transition-opacity pointer-events-none">
         <GripVertical className="h-3 w-3" />
       </div>
       <div className="pl-5">
@@ -167,6 +169,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const router = useRouter();
   const project = useQuery(api.projects.getById, { id: projectId as Id<"projects"> });
   const tasks = useQuery(api.tasks.getByProject, { projectId: projectId as Id<"projects"> });
+  const projectDocs = useQuery(api.documents.getByProject, { projectId: projectId as Id<"projects"> });
   const myTeams = useQuery(api.teams.getMyTeams);
   const updateTask = useMutation(api.tasks.update);
   const updateProject = useMutation(api.projects.update);
@@ -177,7 +180,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const uiCfg = getUIConfig();
   const ganttEnabled = isEnabled("gantt");
   const retroEnabled = isEnabled("retroPlanning");
-  const [viewMode, setViewMode] = useState<"board" | "list" | "gantt">(uiCfg.defaultProjectView);
+  const [viewMode, setViewMode] = useState<"board" | "list" | "gantt" | "notes">(uiCfg.defaultProjectView);
   const [activeTask, setActiveTask] = useState<any>(null);
   const [isOver, setIsOver] = useState<string | null>(null);
   const [showEdit, setShowEdit] = useState(false);
@@ -380,6 +383,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
                   <GanttIcon className="h-3.5 w-3.5" />
                 </button>
               )}
+              <button
+                onClick={() => setViewMode("notes")}
+                className={cn("rounded-md p-1.5 transition-all", viewMode === "notes" ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                title={tp("notes")}
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </button>
             </div>
             <Button variant="outline" size="sm" onClick={openEdit} className="gap-1.5 h-8">
               <Pencil className="h-3.5 w-3.5" />
@@ -417,7 +427,61 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
       </Sheet>
 
       {/* Content */}
-      {viewMode === "gantt" ? (
+      {viewMode === "notes" ? (
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="mx-auto max-w-3xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">{tp("notes")}</h2>
+                {(projectDocs ?? []).length > 0 && (
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5 tabular-nums">
+                    {(projectDocs ?? []).length}
+                  </span>
+                )}
+              </div>
+            </div>
+            {(projectDocs ?? []).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border border-dashed">
+                <FileText className="h-9 w-9 text-muted-foreground/20 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">{tp("noNotes")}</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">{tp("noNotesDesc")}</p>
+              </div>
+            ) : (
+              <div className="rounded-xl border bg-card divide-y overflow-hidden">
+                {(projectDocs ?? []).map((doc: any) => {
+                  const relDate = (() => {
+                    const ms = Date.now() - doc._creationTime;
+                    const mins = Math.floor(ms / 60000);
+                    const hours = Math.floor(ms / 3600000);
+                    const days = Math.floor(ms / 86400000);
+                    if (mins < 1) return "just now";
+                    if (mins < 60) return `${mins}m ago`;
+                    if (hours < 24) return `${hours}h ago`;
+                    if (days < 7) return `${days}d ago`;
+                    return new Date(doc._creationTime).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                  })();
+                  return (
+                    <div
+                      key={doc._id}
+                      onClick={() => router.push(`/documents/${doc._id}`)}
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-accent/30 transition-colors group"
+                    >
+                      <span className="text-base shrink-0">{doc.icon ?? "📄"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                          {doc.title || tc("untitled")}
+                        </p>
+                      </div>
+                      <span className="text-[11px] text-muted-foreground/50 shrink-0 tabular-nums">{relDate}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : viewMode === "gantt" ? (
         <div className="flex-1 overflow-hidden">
           <GanttChart
             tasks={(tasks ?? []) as any}

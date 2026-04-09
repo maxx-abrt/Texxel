@@ -71,10 +71,14 @@ export const create = mutation({
     priority: v.optional(v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
     projectId: v.optional(v.id("projects")),
     teamId: v.optional(v.id("teams")),
+    workspaceId: v.optional(v.id("workspaces")),
     assigneeId: v.optional(v.string()),
     dueDate: v.optional(v.number()),
+    startDate: v.optional(v.number()),
     parentTaskId: v.optional(v.id("tasks")),
     labels: v.optional(v.array(v.string())),
+    estimateMinutes: v.optional(v.number()),
+    blockedBy: v.optional(v.array(v.id("tasks"))),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -87,11 +91,15 @@ export const create = mutation({
       priority: args.priority ?? "none",
       projectId: args.projectId,
       teamId: args.teamId,
+      workspaceId: args.workspaceId,
       createdBy: userId,
       assigneeId: args.assigneeId,
       dueDate: args.dueDate,
+      startDate: args.startDate,
       parentTaskId: args.parentTaskId,
       labels: args.labels,
+      estimateMinutes: args.estimateMinutes,
+      blockedBy: args.blockedBy,
       createdAt: now,
       updatedAt: now,
     });
@@ -157,7 +165,10 @@ export const update = mutation({
     priority: v.optional(v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent"))),
     assigneeId: v.optional(v.string()),
     dueDate: v.optional(v.number()),
+    startDate: v.optional(v.number()),
     labels: v.optional(v.array(v.string())),
+    estimateMinutes: v.optional(v.number()),
+    blockedBy: v.optional(v.array(v.id("tasks"))),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -261,6 +272,7 @@ export const getByProject = query({
 export const getMyTasks = query({
   args: {
     status: v.optional(v.union(v.literal("todo"), v.literal("in_progress"), v.literal("in_review"), v.literal("done"), v.literal("cancelled"))),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -278,7 +290,10 @@ export const getMyTasks = query({
       .collect();
 
     const all = [...assigned, ...created.filter((t) => !assigned.find((a) => a._id === t._id))];
-    const filtered = args.status ? all.filter((t) => t.status === args.status) : all.filter((t) => t.status !== "cancelled");
+    const byStatus = args.status ? all.filter((t) => t.status === args.status) : all.filter((t) => t.status !== "cancelled");
+    const filtered = args.workspaceId
+      ? byStatus.filter((t) => t.workspaceId === args.workspaceId)
+      : byStatus;
     return enrichWithAssignee(ctx, filtered);
   },
 });

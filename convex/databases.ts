@@ -4,15 +4,17 @@ import { mutation, query } from "./_generated/server";
 // ─── Queries ─────────────────────────────────────────────────────────────────
 
 export const getMyDatabases = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { workspaceId: v.optional(v.id("workspaces")) },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
-    return await ctx.db
+    const all = await ctx.db
       .query("databases")
       .withIndex("by_owner", (q) => q.eq("ownerId", identity.subject))
       .collect()
       .then((dbs) => dbs.filter((d) => !d.isArchived));
+    if (!args.workspaceId) return all;
+    return all.filter((d) => d.workspaceId === args.workspaceId);
   },
 });
 
@@ -44,6 +46,7 @@ export const create = mutation({
     columns: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
     teamId: v.optional(v.id("teams")),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -63,6 +66,7 @@ export const create = mutation({
       color: args.color,
       columns: args.columns ?? defaultColumns,
       ownerId: identity.subject,
+      workspaceId: args.workspaceId,
       projectId: args.projectId,
       teamId: args.teamId,
       createdAt: now,

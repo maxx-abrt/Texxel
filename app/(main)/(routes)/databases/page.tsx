@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslations } from "next-intl";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   ArrowRight,
   Database,
@@ -24,7 +25,9 @@ export default function DatabasesPage() {
   const t = useTranslations("databases");
   const tc = useTranslations("common");
   const router = useRouter();
-  const databases = useQuery(api.databases.getMyDatabases);
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
+  const databases = useQuery(api.databases.getMyDatabases, { workspaceId: wsId });
   const createDb = useMutation(api.databases.create);
   const removeDb = useMutation(api.databases.remove);
   const [search, setSearch] = useState("");
@@ -37,7 +40,7 @@ export default function DatabasesPage() {
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      const id = await createDb({ title: t("untitledDb") });
+      const id = await createDb({ title: t("untitledDb"), workspaceId: wsId });
       router.push(`/databases/${id}`);
     } catch {
       toast.error(t("createFailed"));

@@ -422,46 +422,48 @@ function BadgeChipRenderer({ inlineContent }: {
         }}
       >
         <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: bgColor }} />
-        {emoji && <span className="leading-none">{emoji}</span>}
         <span>{text}</span>
       </span>
       {open && (
         <ChipPopover anchor={ref.current} onClose={() => setOpen(false)} onApply={apply}>
-          <div className="p-2.5 pb-1.5">
-            <div className="grid grid-cols-2 gap-1">
+          <div className="p-3 pb-2">
+            <div className="grid grid-cols-3 gap-1">
               {BADGE_STATUS_PRESETS.map((p) => (
                 <button
                   key={p.key}
-                  onMouseDown={(e) => { e.preventDefault(); setDraftText(t(`badge.presets.${p.key}` as any)); setDraftBg(p.color); setDraftEmoji(""); }}
-                  className="flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold transition-all hover:scale-105 active:scale-95 truncate"
+                  onMouseDown={(e) => { e.preventDefault(); setDraftText(t(`badge.presets.${p.key}` as any)); setDraftBg(p.color); }}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-semibold transition-all hover:opacity-90 active:scale-95 truncate",
+                    draftText === t(`badge.presets.${p.key}` as any) && draftBg === p.color ? "ring-2 ring-offset-1" : ""
+                  )}
                   style={{
-                    border: `1px solid ${p.color}50`,
-                    backgroundColor: p.color + "18",
+                    border: `1px solid ${p.color}40`,
+                    backgroundColor: p.color + "15",
                     color: p.color,
                   }}
                 >
-                  <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: p.color }} />
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full flex-none" style={{ backgroundColor: p.color }} />
                   <span className="truncate">{t(`badge.presets.${p.key}` as any)}</span>
                 </button>
               ))}
             </div>
           </div>
-          <div className="border-t border-border/40 px-3 py-2.5 space-y-2">
+          <div className="border-t border-border/40 px-3 py-2.5 space-y-2.5">
             <input
               type="text" value={draftText} onChange={(e) => setDraftText(e.target.value)}
               placeholder={t("badge.labelPlaceholder")}
               className="w-full rounded-lg border px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-background"
             />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <input
                 type="color" value={draftBg} onChange={(e) => setDraftBg(e.target.value)}
                 className="h-8 w-8 shrink-0 cursor-pointer rounded-lg border border-border/50 p-0.5 bg-background"
               />
               <span
-                className="flex h-7 flex-1 min-w-0 items-center gap-1.5 justify-center rounded-full px-3 text-[11px] font-semibold"
+                className="flex h-7 flex-1 min-w-0 items-center gap-1.5 justify-center rounded-full px-3 text-[11px] font-semibold select-none"
                 style={{
                   border: `1px solid ${draftBg}55`,
-                  backgroundColor: draftBg + "20",
+                  backgroundColor: draftBg + "18",
                   color: draftBg,
                 }}
               >

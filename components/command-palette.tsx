@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   BookOpen,
   CalendarDays,
@@ -51,13 +52,15 @@ export function CommandPalette() {
   const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
   const createDoc = useMutation(api.documents.create);
   const createTask = useMutation(api.tasks.create);
 
-  const docs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
-  const tasks = useQuery(api.tasks.getMyTasks, {});
-  const projects = useQuery(api.projects.getMyProjects, {});
-  const teams = useQuery(api.teams.getMyTeams);
+  const docs = useQuery(api.documents.getSidebar, { parentDocument: undefined, workspaceId: wsId });
+  const tasks = useQuery(api.tasks.getMyTasks, { workspaceId: wsId });
+  const projects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
+  const teams = useQuery(api.teams.getMyTeams, { workspaceId: wsId });
 
   globalOpen = setOpen;
 
@@ -124,7 +127,7 @@ export function CommandPalette() {
         action: async () => {
           setCreating(true);
           try {
-            const id = await createDoc({ title: "Untitled" });
+            const id = await createDoc({ title: "Untitled", workspaceId: wsId });
             setOpen(false);
             router.push(`/documents/${id}`);
           } catch { toast.error("Failed to create note"); }
@@ -142,7 +145,7 @@ export function CommandPalette() {
           if (!query.trim()) { setOpen(false); router.push("/tasks"); return; }
           setCreating(true);
           try {
-            await createTask({ title: query.trim(), priority: "none" });
+            await createTask({ title: query.trim(), priority: "none", workspaceId: wsId });
             toast.success(`Task "${query}" created`);
             setOpen(false);
             setQuery("");

@@ -49,12 +49,12 @@ const DEFAULT_EXTENSIONS: ExtensionConfig[] = [
   { id: "kanban", category: "productivity", enabled: true },
   { id: "gantt", category: "visualization", enabled: true },
   { id: "retroPlanning", category: "visualization", enabled: true },
-  { id: "aiAssistant", category: "ai", enabled: true },
+  { id: "aiAssistant", category: "ai", enabled: false },
   { id: "calendar", category: "productivity", enabled: true },
   { id: "timeTracking", category: "productivity", enabled: true },
   { id: "customFields", category: "productivity", enabled: true },
   { id: "automations", category: "ai", enabled: false },
-  { id: "focusTimer", category: "productivity", enabled: true },
+  { id: "focusTimer", category: "productivity", enabled: false },
   { id: "databases", category: "productivity", enabled: false },
 ];
 

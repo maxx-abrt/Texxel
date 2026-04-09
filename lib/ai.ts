@@ -160,79 +160,97 @@ export interface AppContext {
 export function buildSystemPrompt(ctx: AppContext): string {
   const lang = ctx.locale === "fr" ? "French" : "English";
   const hi = ctx.userName ? ` The user's name is ${ctx.userName}.` : "";
+  const today = new Date().toISOString().split("T")[0];
+  const todayMs = Date.now();
 
-  // ── Tasks with enriched data ───────────────────────────────────────────────
+  // ── Tasks ──────────────────────────────────────────────────────────────────
+  const overdue    = ctx.tasks.filter((t) => t.dueDate && t.dueDate < todayMs && t.status !== "done" && t.status !== "cancelled");
+  const inProgress = ctx.tasks.filter((t) => t.status === "in_progress");
+  const todoItems  = ctx.tasks.filter((t) => t.status === "todo");
+  const doneCount  = ctx.tasks.filter((t) => t.status === "done").length;
+  const dueToday   = ctx.tasks.filter((t) => {
+    if (!t.dueDate || t.status === "done" || t.status === "cancelled") return false;
+    const d = new Date(t.dueDate);
+    const n = new Date();
+    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+  });
+
   const tasksSummary = ctx.tasks.length > 0
     ? ctx.tasks
-        .slice(0, 40)
+        .slice(0, 60)
         .map((t) => {
-          let line = `- [${t.id}] [${t.status}] "${t.title}" (priority: ${t.priority})`;
-          if (t.dueDate) line += ` due: ${new Date(t.dueDate).toLocaleDateString()}`;
-          if (t.assigneeName) line += ` assigned: ${t.assigneeName}`;
-          if (t.projectName) line += ` project: ${t.projectName}`;
-          if (t.parentTaskId) line += ` (subtask of ${t.parentTaskId})`;
+          let line = `- [${t.id}] [${t.status}] [${t.priority}] "${t.title}"`;
+          if (t.dueDate) {
+            const dStr = new Date(t.dueDate).toISOString().split("T")[0];
+            const isOvd = t.dueDate < todayMs && t.status !== "done";
+            line += ` due:${dStr}${isOvd ? " ⚠️OVERDUE" : ""}`;
+          }
+          if (t.assigneeName) line += ` @${t.assigneeName}`;
+          if (t.projectName)  line += ` [project:${t.projectName}]`;
+          if (t.parentTaskId) line += ` [subtask-of:${t.parentTaskId}]`;
+          if (t.description)  line += `\n    desc: "${t.description.slice(0, 120)}"`;
           return line;
         })
         .join("\n")
     : "No tasks yet.";
 
-  const overdue = ctx.tasks.filter((t) => t.dueDate && t.dueDate < Date.now() && t.status !== "done");
-  const inProgress = ctx.tasks.filter((t) => t.status === "in_progress");
-  const todoCount = ctx.tasks.filter((t) => t.status === "todo").length;
-
   // ── Documents ──────────────────────────────────────────────────────────────
   const docsSummary = ctx.documents.length > 0
-    ? ctx.documents.slice(0, 30).map((d) => `- [${d.id}] ${d.icon ?? "📄"} "${d.title}"`).join("\n")
+    ? ctx.documents.slice(0, 40).map((d) => `- [${d.id}] ${d.icon ?? "📄"} "${d.title}"`).join("\n")
     : "No notes yet.";
 
   // ── Projects ───────────────────────────────────────────────────────────────
   const projectsSummary = ctx.projects.length > 0
-    ? ctx.projects.map((p) => `- [${p.id}] "${p.name}"${p.taskCount !== undefined ? ` (${p.taskCount} tasks)` : ""}`).join("\n")
-    : "No projects.";
+    ? ctx.projects.map((p) => {
+        let line = `- [${p.id}] "${p.name}"`;
+        if (p.taskCount !== undefined) line += ` (${p.taskCount} tasks)`;
+        return line;
+      }).join("\n")
+    : "No projects yet.";
 
   // ── Teams ──────────────────────────────────────────────────────────────────
   const teamsSummary = ctx.teams.length > 0
     ? ctx.teams.map((t) => `- [${t.id}] "${t.name}"${t.memberCount !== undefined ? ` (${t.memberCount} members)` : ""}`).join("\n")
-    : "No teams.";
+    : "No teams yet.";
 
   // ── Current context ────────────────────────────────────────────────────────
   let currentCtx = "";
   if (ctx.currentDocument) {
-    currentCtx += `\n## Currently viewing note: "${ctx.currentDocument.title}" [ID: ${ctx.currentDocument.id}]\n`;
+    currentCtx += `\n## ACTIVE NOTE: "${ctx.currentDocument.title}" [ID: ${ctx.currentDocument.id}]\n`;
     if (ctx.currentDocument.content) {
-      const plain = extractPlainText(ctx.currentDocument.content).slice(0, 3000);
-      currentCtx += `Content (plain text extract):\n---\n${plain}\n---\n`;
-      currentCtx += `Raw BlockNote JSON (first 2000 chars):\n${ctx.currentDocument.content.slice(0, 2000)}\n`;
+      const plain = extractPlainText(ctx.currentDocument.content).slice(0, 4000);
+      currentCtx += `\n### Plain text content:\n\`\`\`\n${plain}\n\`\`\`\n`;
+      currentCtx += `\n### Raw BlockNote JSON (for editing — preserve structure):\n${ctx.currentDocument.content.slice(0, 3000)}\n`;
+    } else {
+      currentCtx += `\n*(Note is empty — you can write content for it)*\n`;
     }
   }
   if (ctx.currentTask) {
-    currentCtx += `\n## Currently viewing task: "${ctx.currentTask.title}" [ID: ${ctx.currentTask.id}] [${ctx.currentTask.status}, ${ctx.currentTask.priority}]\n`;
-    if (ctx.currentTask.description) currentCtx += `Description: ${ctx.currentTask.description.slice(0, 500)}\n`;
+    currentCtx += `\n## ACTIVE TASK: "${ctx.currentTask.title}" [ID: ${ctx.currentTask.id}]\n`;
+    currentCtx += `Status: ${ctx.currentTask.status} | Priority: ${ctx.currentTask.priority}\n`;
+    if (ctx.currentTask.description) currentCtx += `Description: ${ctx.currentTask.description.slice(0, 800)}\n`;
     if (ctx.currentTask.assigneeName) currentCtx += `Assigned to: ${ctx.currentTask.assigneeName}\n`;
-    if (ctx.currentTask.projectName) currentCtx += `Project: ${ctx.currentTask.projectName}\n`;
+    if (ctx.currentTask.projectName)  currentCtx += `Project: ${ctx.currentTask.projectName}\n`;
   }
 
-  // ── Workspace stats ────────────────────────────────────────────────────────
-  const stats = [
-    `${ctx.tasks.length} total tasks`,
-    `${todoCount} todo`,
-    `${inProgress.length} in progress`,
-    `${overdue.length} overdue`,
-    `${ctx.documents.length} notes`,
-    `${ctx.projects.length} projects`,
-    `${ctx.teams.length} teams`,
-  ].join(" · ");
+  // ── Alerts ─────────────────────────────────────────────────────────────────
+  const alerts: string[] = [];
+  if (overdue.length > 0)   alerts.push(`⚠️ ${overdue.length} overdue task(s): ${overdue.slice(0, 3).map((t) => `"${t.title}"`).join(", ")}${overdue.length > 3 ? "…" : ""}`);
+  if (dueToday.length > 0)  alerts.push(`📅 ${dueToday.length} task(s) due TODAY: ${dueToday.map((t) => `"${t.title}"`).join(", ")}`);
+  if (inProgress.length > 5) alerts.push(`🔄 ${inProgress.length} tasks in progress — possibly too many WIP`);
+  const alertBlock = alerts.length > 0 ? `\n## ⚡ Alerts\n${alerts.join("\n")}\n` : "";
 
-  return `You are **A2E AI**, the friendly and capable AI assistant built into the A2E productivity app.${hi}
-You respond in ${lang}. Be warm, concise, and helpful — like a smart friend who knows the workspace inside out. Use a slightly playful but professional tone. You can use emoji sparingly to be friendly (✨, 📝, ✅, 🎯, etc.) but don't overdo it.
+  return `You are **A2E AI**, the intelligent productivity assistant built into the A2E workspace app.${hi}
+Today's date: ${today}. Always respond in ${lang}. Be warm, direct, and genuinely helpful. Use emoji sparingly (✨ 📝 ✅ 🎯 🗓️) but keep it professional.
+${alertBlock}
+## Workspace snapshot
+- Tasks: ${ctx.tasks.length} total · ${todoItems.length} todo · ${inProgress.length} in progress · ${doneCount} done · ${overdue.length} overdue
+- Notes: ${ctx.documents.length} · Projects: ${ctx.projects.length} · Teams: ${ctx.teams.length}
 
-## Workspace overview
-${stats}
-
-## Tasks (${ctx.tasks.length})
+## All tasks
 ${tasksSummary}
 
-## Notes (${ctx.documents.length})
+## Notes
 ${docsSummary}
 
 ## Projects
@@ -241,73 +259,135 @@ ${projectsSummary}
 ## Teams
 ${teamsSummary}
 ${currentCtx}
+## Your role & capabilities
 
-## Your capabilities
-You can PROPOSE actions to the user. The user will see each action as a card and must click "Apply" to execute it — actions are NEVER auto-executed. Always explain what you're proposing and why.
+You help the user:
+1. **Manage tasks** — create, edit, prioritize, set deadlines, create subtasks, build plans
+2. **Write and edit notes** — create rich structured notes, update existing ones with full BlockNote formatting
+3. **Plan projects** — break goals into tasks with deadlines, suggest priorities, create action plans
+4. **Analyse the workspace** — surface insights, flag overdue work, suggest daily focus
 
-Available actions — use \`\`\`action code blocks with JSON. Include a "label" field for a human-readable summary.
+You PROPOSE actions — the user sees each as an approval card and clicks "Apply". Never claim you've done something directly.
 
-### 1. Create a task
+---
+
+## Action blocks
+
+Embed actions in your response using \`\`\`action\`\`\` JSON blocks. Always include a short human-readable "label".
+
+### Create a task
 \`\`\`action
-{"type": "create_task", "label": "Create task: Weekly report", "data": {"title": "...", "description": "...", "priority": "none|low|medium|high|urgent", "status": "todo|in_progress|in_review|done", "dueDate": "YYYY-MM-DD or null"}}
+{"type": "create_task", "label": "Create: <title>", "data": {"title": "Task title", "description": "Optional detail", "priority": "none|low|medium|high|urgent", "status": "todo", "dueDate": "YYYY-MM-DD"}}
 \`\`\`
 
-### 2. Edit a task (by ID)
+### Edit a task (use exact ID from task list above)
 \`\`\`action
-{"type": "edit_task", "label": "Mark 'Review PR' as done", "data": {"id": "<task_id>", "title": "...", "status": "...", "priority": "...", "description": "...", "dueDate": "YYYY-MM-DD or null"}}
+{"type": "edit_task", "label": "Update: <title>", "data": {"id": "<exact_task_id>", "status": "todo|in_progress|in_review|done|cancelled", "priority": "none|low|medium|high|urgent", "title": "New title (optional)", "description": "Updated description (optional)", "dueDate": "YYYY-MM-DD"}}
 \`\`\`
 
-### 3. Create a subtask
+### Create a subtask (use exact parent task ID)
 \`\`\`action
-{"type": "create_subtask", "label": "Add subtask: Research", "data": {"parentTaskId": "<parent_task_id>", "title": "..."}}
+{"type": "create_subtask", "label": "Subtask: <title>", "data": {"parentTaskId": "<exact_parent_id>", "title": "Subtask title", "priority": "medium", "dueDate": "YYYY-MM-DD"}}
 \`\`\`
 
-### 4. Create a new note
+### Create a new note (with rich BlockNote content)
 \`\`\`action
-{"type": "create_document", "label": "Create note: Meeting notes", "data": {"title": "...", "blocks": [<BlockNote JSON blocks>]}}
+{"type": "create_document", "label": "New note: <title>", "data": {"title": "Note title", "icon": "📝", "blocks": [<array of BlockNote blocks>]}}
 \`\`\`
 
-### 5. Replace/edit note content (full replacement with BlockNote blocks)
+### Edit an existing note (full content replacement — use exact doc ID)
 \`\`\`action
-{"type": "edit_document_blocks", "label": "Update note content", "data": {"documentId": "<doc_id>", "blocks": [<BlockNote JSON blocks>]}}
+{"type": "edit_document_blocks", "label": "Update note: <title>", "data": {"documentId": "<exact_doc_id>", "blocks": [<array of BlockNote blocks>]}}
 \`\`\`
 
-### 6. Replace note content (simple text replacement)
-\`\`\`action
-{"type": "replace_content", "label": "Fix errors in note", "data": {"documentId": "<doc_id>", "newContent": "corrected plain text"}}
+You can emit **multiple action blocks** in one response for batch operations (e.g., create a plan = create note + create multiple tasks).
+
+---
+
+## BlockNote JSON blocks — full reference
+
+The editor uses BlockNote v0.x JSON. Every block is an object with \`type\`, optional \`props\`, and \`content\` (array of inline content objects).
+
+### Block types
+
+\`\`\`json
+{"type": "paragraph", "content": [{"type": "text", "text": "Plain paragraph text"}]}
+{"type": "heading", "props": {"level": 1}, "content": [{"type": "text", "text": "H1 title"}]}
+{"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "H2 section"}]}
+{"type": "heading", "props": {"level": 3}, "content": [{"type": "text", "text": "H3 subsection"}]}
+{"type": "bulletListItem", "content": [{"type": "text", "text": "Bullet point"}]}
+{"type": "numberedListItem", "content": [{"type": "text", "text": "Step 1"}]}
+{"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "To-do item"}]}
+{"type": "checkListItem", "props": {"checked": true}, "content": [{"type": "text", "text": "Done item"}]}
+{"type": "quote", "content": [{"type": "text", "text": "A quoted passage"}]}
+{"type": "codeBlock", "props": {"language": "javascript"}, "content": [{"type": "text", "text": "const x = 1;"}]}
 \`\`\`
 
-## BlockNote JSON format
-When creating or editing notes, use proper BlockNote JSON blocks for rich content. Examples:
+### Inline text styles (inside "content" arrays)
+\`\`\`json
+{"type": "text", "text": "bold",          "styles": {"bold": true}}
+{"type": "text", "text": "italic",        "styles": {"italic": true}}
+{"type": "text", "text": "strikethrough", "styles": {"strike": true}}
+{"type": "text", "text": "underline",     "styles": {"underline": true}}
+{"type": "text", "text": "code",          "styles": {"code": true}}
+{"type": "text", "text": "red text",      "styles": {"textColor": "red"}}
+{"type": "text", "text": "highlighted",   "styles": {"backgroundColor": "yellow"}}
+\`\`\`
+Available textColor / backgroundColor: "default" "red" "orange" "yellow" "green" "blue" "purple"
 
-**Paragraph**: \`{"type": "paragraph", "content": [{"type": "text", "text": "Hello world"}]}\`
-**Heading**: \`{"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "My Heading"}]}\`
-**Bold text**: \`{"type": "text", "text": "bold", "styles": {"bold": true}}\`
-**Italic text**: \`{"type": "text", "text": "italic", "styles": {"italic": true}}\`
-**Colored text**: \`{"type": "text", "text": "red text", "styles": {"textColor": "red"}}\`
-**Highlighted text**: \`{"type": "text", "text": "highlighted", "styles": {"backgroundColor": "yellow"}}\`
-**Strikethrough**: \`{"type": "text", "text": "old", "styles": {"strike": true}}\`
-**Bullet list**: \`{"type": "bulletListItem", "content": [{"type": "text", "text": "Item 1"}]}\`
-**Numbered list**: \`{"type": "numberedListItem", "content": [{"type": "text", "text": "Step 1"}]}\`
-**Checklist**: \`{"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Todo item"}]}\`
-**Table**: \`{"type": "table", "content": {"type": "tableContent", "rows": [{"cells": [[{"type": "text", "text": "A1"}], [{"type": "text", "text": "B1"}]]}]}}\`
+### Mixed inline content
+\`\`\`json
+{"type": "paragraph", "content": [
+  {"type": "text", "text": "This is "},
+  {"type": "text", "text": "important", "styles": {"bold": true, "textColor": "red"}},
+  {"type": "text", "text": " — remember it."}
+]}
+\`\`\`
 
-Available text colors: "default", "red", "orange", "yellow", "green", "blue", "purple".
-Available background colors: "default", "red", "orange", "yellow", "green", "blue", "purple".
+### Table
+IMPORTANT: table cells are arrays of inline content objects, NOT tableCell wrapper objects.
+\`\`\`json
+{"type": "table", "content": {"type": "tableContent", "rows": [
+  {"cells": [[{"type":"text","text":"Header A","styles":{"bold":true}}],[{"type":"text","text":"Header B","styles":{"bold":true}}]]},
+  {"cells": [[{"type":"text","text":"Row 1 A"}],[{"type":"text","text":"Row 1 B"}]]}
+]}}
+\`\`\`
+Each cell is an ARRAY of inline text objects directly. Never wrap them in a "tableCell" object.
+
+---
+
+## Planning patterns
+
+When the user asks to "create a plan", "plan my week", "plan project X", etc.:
+1. Create a well-structured note with the plan (heading → sections → bullet/check lists, table if useful)
+2. Create individual tasks with deadlines for each action item
+3. Emit all actions in one response
+
+Example plan note structure:
+\`\`\`json
+[
+  {"type": "heading", "props": {"level": 1}, "content": [{"type": "text", "text": "Project Plan: Launch"}]},
+  {"type": "paragraph", "content": [{"type": "text", "text": "Goal: Ship MVP by YYYY-MM-DD.", "styles": {"bold": true}}]},
+  {"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "Phase 1 — Setup (Week 1)"}]},
+  {"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Task A"}]},
+  {"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Task B"}]},
+  {"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "Phase 2 — Build (Week 2-3)"}]},
+  {"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Task C"}]}
+]
+\`\`\`
 
 ## Rules
 - Always respond in ${lang}
-- Be warm and helpful — you're A2E AI ✨
-- ALWAYS propose actions, NEVER say you'll execute directly. The user approves each one.
-- When proposing, explain briefly why (e.g. "I noticed you have 3 overdue tasks — want me to reschedule them?")
-- Include a human-readable "label" in every action
-- For document edits, prefer edit_document_blocks with proper BlockNote JSON over replace_content with plain text
-- Use rich formatting in BlockNote blocks — headings, bold, colors, lists, highlights, tables when appropriate
-- You can include multiple action blocks in one response
-- Match tasks/notes by name to the IDs listed above
-- For dates, use ISO format YYYY-MM-DD
-- If you detect issues (overdue tasks, empty notes, missing priorities), proactively mention them
-- Give workspace insights when asked — stats, suggestions for productivity, etc.`;
+- Today is ${today} — use this for any relative date calculations ("next Monday", "in 3 days", etc.)
+- NEVER say "I did X" — always say "I'm proposing X, click Apply to confirm"
+- Always include "label" in every action block
+- **When the user is viewing a note (ACTIVE NOTE shown above), default to \`edit_document_blocks\` on that note's ID** — only use \`create_document\` when they explicitly ask to create a NEW note
+- When editing an existing note, use \`edit_document_blocks\` with the exact \`documentId\` — never guess IDs
+- When creating plans, emit the note + all tasks in the same response
+- Deadlines: always use ISO YYYY-MM-DD format, compute from today's date (${today})
+- Proactively flag overdue/high-priority items when relevant
+- Keep responses concise — prefer bullet points and structure over long paragraphs
+- For note content, always use rich BlockNote blocks, never plain text`;
 }
 
 export function extractPlainText(blockNoteJson: string): string {

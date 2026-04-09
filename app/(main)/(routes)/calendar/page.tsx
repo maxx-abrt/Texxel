@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, Columns3, List } from "lucide-react";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
 import { useTranslations, useLocale } from "next-intl";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const PRIORITY_DOT: Record<string, string> = {
   none: "bg-slate-400",
@@ -32,10 +33,20 @@ export default function CalendarPage() {
   const tc = useTranslations("calendar");  
   const locale = useLocale();
   const router = useRouter();
-  const tasks = useQuery(api.tasks.getMyTasks, {});
+  const { activeWorkspaceId } = useWorkspace();
+  const tasks = useQuery(api.tasks.getMyTasks, { workspaceId: activeWorkspaceId as any });
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showNewTask, setShowNewTask] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<string | undefined>(undefined);
   const [view, setView] = useState<"month" | "week" | "agenda">("month");
+
+  const openNewTaskForDay = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    setSelectedDay(`${y}-${m}-${d}`);
+    setShowNewTask(true);
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -189,7 +200,7 @@ export default function CalendarPage() {
               </button>
             </div>
             <Button
-              onClick={() => setShowNewTask(true)}
+              onClick={() => { setSelectedDay(undefined); setShowNewTask(true); }}
               size="sm"
               className="gap-1.5 h-8"
             >
@@ -249,9 +260,10 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={idx}
+                    onClick={() => day && openNewTaskForDay(new Date(year, month, day))}
                     className={cn(
-                      "min-h-[96px] border-r border-b p-1.5 transition-colors",
-                      day ? "hover:bg-accent/20" : "bg-muted/10",
+                      "group/cell min-h-[96px] border-r border-b p-1.5 transition-colors",
+                      day ? "cursor-pointer hover:bg-accent/20" : "bg-muted/10",
                       isToday(day ?? 0) && day && "bg-primary/5",
                       hasOverdue && "bg-red-500/3",
                     )}
@@ -271,19 +283,25 @@ export default function CalendarPage() {
                           >
                             {day}
                           </span>
-                          {dayTasks.length > 0 && (
-                            <span className="text-[9px] text-muted-foreground/60">
-                              {dayTasks.length}
+                          <span className="flex items-center gap-1">
+                            {dayTasks.length > 0 && (
+                              <span className="text-[9px] text-muted-foreground/60">
+                                {dayTasks.length}
+                              </span>
+                            )}
+                            <span className="opacity-0 group-hover/cell:opacity-100 transition-opacity">
+                              <Plus className="h-3 w-3 text-muted-foreground/50" />
                             </span>
-                          )}
+                          </span>
                         </div>
                         <div className="space-y-0.5">
                           {dayTasks.slice(0, 3).map((task) => (
                             <div
                               key={task._id}
-                              onClick={() =>
-                                router.push(`/tasks/${task._id}`)
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/tasks/${task._id}`);
+                              }}
                               title={task.title}
                               className={cn(
                                 "flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-medium truncate cursor-pointer transition-opacity hover:opacity-80",
@@ -366,17 +384,22 @@ export default function CalendarPage() {
                 return (
                   <div
                     key={d.toISOString()}
+                    onClick={() => openNewTaskForDay(d)}
                     className={cn(
-                      "min-h-[180px] border-r border-b p-2 transition-colors",
-                      isTodayD && "bg-primary/5",
+                      "group/cell min-h-[180px] border-r border-b p-2 transition-colors cursor-pointer",
+                      isTodayD && "bg-primary/5 hover:bg-primary/8",
+                      !isTodayD && "hover:bg-accent/20",
                       isPast && "bg-muted/10",
                     )}
                   >
+                    <div className="flex justify-end mb-1">
+                      <Plus className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover/cell:opacity-100 transition-opacity" />
+                    </div>
                     <div className="space-y-1">
                       {dayTasks.map((task) => (
                         <div
                           key={task._id}
-                          onClick={() => router.push(`/tasks/${task._id}`)}
+                          onClick={(e) => { e.stopPropagation(); router.push(`/tasks/${task._id}`); }}
                           title={task.title}
                           className={cn(
                             "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[11px] font-medium cursor-pointer transition-all hover:shadow-sm",
@@ -480,7 +503,7 @@ export default function CalendarPage() {
         )}
       </div>
 
-      <NewTaskDialog open={showNewTask} onClose={() => setShowNewTask(false)} />
+      <NewTaskDialog open={showNewTask} onClose={() => { setShowNewTask(false); setSelectedDay(undefined); }} initialDueDate={selectedDay} />
     </div>
   );
 }

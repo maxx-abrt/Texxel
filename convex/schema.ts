@@ -67,7 +67,7 @@ export default defineSchema({
     icon: v.optional(v.string()),
     isPublished: v.boolean(),
     order: v.optional(v.number()),
-    workspaceId: v.optional(v.id("workspaces")),
+    workspaceId: v.optional(v.id("workspaces")),  
     teamId: v.optional(v.id("teams")),
     projectId: v.optional(v.id("projects")),
     collaborationMode: v.optional(v.union(v.literal("view_only"), v.literal("open"), v.literal("restricted"))),
@@ -92,10 +92,12 @@ export default defineSchema({
     iconGradientTo: v.optional(v.string()),
     coverImage: v.optional(v.string()),
     ownerId: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
     createdAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_slug", ["slug"]),
+    .index("by_slug", ["slug"])
+    .index("by_workspace", ["workspaceId"]),
 
   teamMembers: defineTable({
     teamId: v.id("teams"),
@@ -133,12 +135,14 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("archived"), v.literal("completed")),
     teamId: v.optional(v.id("teams")),
     ownerId: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
     createdAt: v.number(),
     dueDate: v.optional(v.number()),
   })
     .index("by_owner", ["ownerId"])
     .index("by_team", ["teamId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_workspace", ["workspaceId"]),
 
   projectMembers: defineTable({
     projectId: v.id("projects"),
@@ -156,6 +160,7 @@ export default defineSchema({
     priority: v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
     projectId: v.optional(v.id("projects")),
     teamId: v.optional(v.id("teams")),
+    workspaceId: v.optional(v.id("workspaces")),
     createdBy: v.string(),
     assigneeId: v.optional(v.string()),
     dueDate: v.optional(v.number()),
@@ -163,11 +168,15 @@ export default defineSchema({
     order: v.optional(v.number()),
     parentTaskId: v.optional(v.id("tasks")),
     labels: v.optional(v.array(v.string())),
+    estimateMinutes: v.optional(v.number()),
+    blockedBy: v.optional(v.array(v.id("tasks"))),
+    startDate: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_project", ["projectId"])
     .index("by_team", ["teamId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_creator", ["createdBy"])
     .index("by_assignee", ["assigneeId"])
     .index("by_status", ["status"])
@@ -264,11 +273,13 @@ export default defineSchema({
     actionValue: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
     teamId: v.optional(v.id("teams")),
+    workspaceId: v.optional(v.id("workspaces")),
     ownerId: v.string(),
     enabled: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_project", ["projectId"])
     .index("by_team", ["teamId"]),
 
@@ -279,6 +290,7 @@ export default defineSchema({
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
     ownerId: v.string(),
+    workspaceId: v.optional(v.id("workspaces")),
     projectId: v.optional(v.id("projects")),
     teamId: v.optional(v.id("teams")),
     // Columns definition as JSON: [{id, name, type, options?, width?}]
@@ -289,6 +301,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_project", ["projectId"])
     .index("by_team", ["teamId"]),
 

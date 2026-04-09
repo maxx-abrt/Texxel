@@ -142,7 +142,16 @@
     "subtaskPlaceholder": "Subtask title…",
     "noSubtasks": "No subtasks",
     "subtaskOf": "Subtask of",
-    "parentTask": "Parent task"
+    "parentTask": "Parent task",
+    "bulkSelected": "{count} selected",
+    "bulkMarkDone": "Mark done",
+    "bulkCancel": "Cancel tasks",
+    "bulkDelete": "Delete",
+    "bulkClearSelection": "Clear",
+    "bulkUpdated": "{count} tasks updated",
+    "bulkDeleted": "{count} tasks deleted",
+    "estimate": "Estimate",
+    "startDate": "Start date"
   },
   "projects": {
     "title": "Projects",
@@ -206,7 +215,10 @@
     "editColor": "Color",
     "editStatus": "Status",
     "editTeam": "Team",
-    "noTeam": "No team"
+    "noTeam": "No team",
+    "notes": "Notes",
+    "noNotes": "No linked notes",
+    "noNotesDesc": "Notes linked to this project will appear here"
   },
   "inbox": {
     "title": "Inbox",
@@ -428,6 +440,15 @@
     "backToTeams": "Back to teams",
     "tasks": "Tasks",
     "moreTasks": "more tasks",
+    "open": "open",
+    "done": "done",
+    "seeAll": "See all",
+    "statsMembers": "Members",
+    "statsProjects": "Projects",
+    "statsTasks": "Open tasks",
+    "workspaceBanner": "{count, plural, one {# workspace member} other {# workspace members}}",
+    "roleDescAdmin": "Can manage members, projects and settings",
+    "roleDescMember": "Can view and collaborate on projects and tasks",
     "you": "you",
     "acceptInvite": "Accept Invitation",
     "inviteJoin": "You've been invited to join",
@@ -440,7 +461,12 @@
     "empty": {
       "title": "No teams yet",
       "description": "Create a team to collaborate with others on projects, tasks, and notes."
-    }
+    },
+    "limitReached": "Team limit reached (5 max)",
+    "limitReachedDesc": "You can own up to 5 teams. Delete a team to create a new one.",
+    "teamsOwned": "teams",
+    "teamSlots": "Team slots",
+    "slugHint": "Only lowercase letters, numbers and hyphens"
   },
   "editor": {
     "addIcon": "Add icon",
@@ -846,7 +872,11 @@
     "createNote": "Create note",
     "noProjects": "No projects yet",
     "noTeams": "No teams yet",
-    "templates": "Templates"
+    "templates": "Templates",
+    "todayFocus": "Today's Focus",
+    "overdueSpotlight": "Overdue",
+    "taskOverdue": "overdue task",
+    "tasksOverdue": "overdue tasks"
   },
   "retroPlanning": {
     "title": "Retro-planning",
@@ -854,16 +884,28 @@
     "deadline": "Deadline",
     "milestones": "Milestones",
     "addMilestone": "Add milestone",
-    "milestoneName": "Milestone name",
-    "daysBefore": "Days before deadline",
+    "milestoneName": "Milestone name…",
+    "daysBefore": "Days before",
     "durationDays": "Duration (days)",
     "generate": "Generate tasks",
+    "generating": "Generating…",
     "generated": "Tasks generated from retro-planning!",
     "generateFailed": "Failed to generate tasks",
     "noDeadline": "Set a project deadline first",
+    "setDeadlineHint": "Add a due date to this project to enable retro-planning",
+    "summaryTitle": "{count} task(s) will be created",
     "remove": "Remove",
     "startDate": "Start date",
-    "endDate": "End date"
+    "endDate": "End date",
+    "daysLeft": "days left",
+    "timeline": "Timeline preview",
+    "named": "named",
+    "priority": {
+      "urgent": "Urgent",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    }
   },
   "chips": {
     "cancel": "Cancel",

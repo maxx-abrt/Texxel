@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, use, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, MessageCircle, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, MessageCircle, Sparkles, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 
@@ -65,6 +65,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const { getUIConfig, isEnabled: extEnabled } = useExtensions();
   const uiCfg = getUIConfig();
   const [showAi, setShowAi] = useState(false);
+  const [aiCollapsed, setAiCollapsed] = useState(false);
   const [wordCount, setWordCount] = useState({ words: 0, chars: 0, readingTime: 0 });
   const [wordCountExpanded, setWordCountExpanded] = useState(false);
 
@@ -313,33 +314,57 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
         />
       )}
 
-      {/* AI Assistant sidebar */}
+      {/* AI Assistant sidebar — collapsible */}
       {extEnabled("aiAssistant") && showAi && !focusMode && (
-        <div className="hidden sm:flex h-full w-80 shrink-0 flex-col border-l bg-background">
-          <AiAssistantPanel
-            onClose={() => setShowAi(false)}
-            documentContext={{
-              id: documentId,
-              title: document.title,
-              content: document.content,
-            }}
-            onDocumentContentReplace={(newContent) => {
-              update({ id: documentId, content: newContent });
-              if (editor) {
-                try {
-                  const blocks = JSON.parse(newContent);
-                  editor.replaceBlocks(editor.document, blocks);
-                } catch {}
-              }
-            }}
-          />
+        <div className={`hidden sm:flex h-full shrink-0 flex-col border-l bg-background transition-all duration-200 ease-out relative ${
+          aiCollapsed ? "w-10" : "w-80"
+        }`}>
+          {/* Collapse toggle tab */}
+          <button
+            onClick={() => setAiCollapsed((v) => !v)}
+            className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border/60 bg-background shadow-sm text-muted-foreground/50 hover:text-foreground hover:border-border transition-all"
+            title={aiCollapsed ? "Expand AI" : "Collapse AI"}
+          >
+            {aiCollapsed ? <ChevronLeft className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+          </button>
+
+          {aiCollapsed ? (
+            /* Collapsed state — just a narrow strip with icon */
+            <div className="flex flex-col items-center pt-4 gap-3">
+              <button
+                onClick={() => setAiCollapsed(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-colors"
+                title="Expand AI"
+              >
+                <Sparkles className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <AiAssistantPanel
+              onClose={() => setShowAi(false)}
+              documentContext={{
+                id: documentId,
+                title: document.title,
+                content: document.content,
+              }}
+              onDocumentContentReplace={(newContent) => {
+                update({ id: documentId, content: newContent });
+                if (editor) {
+                  try {
+                    const blocks = JSON.parse(newContent);
+                    editor.replaceBlocks(editor.document, blocks);
+                  } catch {}
+                }
+              }}
+            />
+          )}
         </div>
       )}
 
       {/* AI Assistant floating toggle */}
       {extEnabled("aiAssistant") && !showAi && !focusMode && (
         <button
-          onClick={() => setShowAi(true)}
+          onClick={() => { setShowAi(true); setAiCollapsed(false); }}
           className="fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:hidden md:flex"
           title="A2E AI"
         >

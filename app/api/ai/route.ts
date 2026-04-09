@@ -3,8 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 // ─── Google Gemini — sole AI provider ────────────────────────────────────────
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
-const MODEL_FLASH = "gemini-2.0-flash";
-const MODEL_PRO = "gemini-2.5-pro-preview-05-06";
+const MODEL_FLASH = "gemini-2.5-flash-lite"; // Cheapest available on this key
+const MODEL_PRO   = "gemini-2.5-pro";        // Suite only
+const MAX_TOKENS_FREE  = 2048; // Keep costs low for free/standard users
+const MAX_TOKENS_SUITE = 4096; // Suite users get longer responses
 
 export const maxDuration = 60;
 
@@ -164,8 +166,16 @@ async function callGemini(
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("[Gemini API] Error:", response.status, errText);
-    throw new Error(`Gemini API error: ${response.status}`);
+    console.error(`[Gemini API] Error: ${response.status}`, errText);
+    let errBody: any = {};
+    try { errBody = JSON.parse(errText); } catch {}
+    if (response.status === 429) {
+      // Extract retry delay if present
+      const retryDelay = errBody?.error?.details?.find?.((d: any) => d["@type"]?.includes("RetryInfo"))?.retryDelay ?? "30s";
+      throw new Error(`rate_limit:${retryDelay}`);
+    }
+    const detail = errBody?.error?.message ?? "";
+    throw new Error(detail || `Gemini API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -195,11 +205,11 @@ export async function POST(req: NextRequest) {
     const {
       messages,
       temperature,
-      max_tokens = 4096,
       action = "chat",
       plan = "free",
       model: requestedModel,
     } = body;
+    const max_tokens = plan === "suite" ? MAX_TOKENS_SUITE : MAX_TOKENS_FREE;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json(
@@ -219,11 +229,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine model — suite users can request Pro
-    let model = MODEL_FLASH;
-    if (plan === "suite" && requestedModel === MODEL_PRO) {
-      model = MODEL_PRO;
-    }
+    // Determine model — suite users can request Pro, everyone else gets Flash
+    const model = (plan === "suite" && requestedModel === MODEL_PRO) ? MODEL_PRO : MODEL_FLASH;
 
     // Prepend action system prompt if present
     const finalMessages = actionConfig.system

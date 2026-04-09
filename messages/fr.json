@@ -142,7 +142,16 @@
     "subtaskPlaceholder": "Titre de la sous-tâche…",
     "noSubtasks": "Aucune sous-tâche",
     "subtaskOf": "Sous-tâche de",
-    "parentTask": "Tâche parente"
+    "parentTask": "Tâche parente",
+    "bulkSelected": "{count} sélectionnée(s)",
+    "bulkMarkDone": "Marquer terminé",
+    "bulkCancel": "Annuler les tâches",
+    "bulkDelete": "Supprimer",
+    "bulkClearSelection": "Effacer",
+    "bulkUpdated": "{count} tâches mises à jour",
+    "bulkDeleted": "{count} tâches supprimées",
+    "estimate": "Estimation",
+    "startDate": "Date de début"
   },
   "projects": {
     "title": "Projets",
@@ -206,7 +215,10 @@
     "editColor": "Couleur",
     "editStatus": "Statut",
     "editTeam": "Équipe",
-    "noTeam": "Aucune équipe"
+    "noTeam": "Aucune équipe",
+    "notes": "Notes",
+    "noNotes": "Aucune note liée",
+    "noNotesDesc": "Les notes liées à ce projet apparaîtront ici"
   },
   "teams": {
     "title": "Équipes",
@@ -268,9 +280,18 @@
     "backToTeams": "Retour aux \u00e9quipes",
     "tasks": "T\u00e2ches",
     "moreTasks": "t\u00e2ches de plus",
+    "open": "ouvertes",
+    "done": "termin\u00e9es",
+    "seeAll": "Voir tout",
+    "statsMembers": "Membres",
+    "statsProjects": "Projets",
+    "statsTasks": "T\u00e2ches ouvertes",
+    "workspaceBanner": "{count, plural, one {# membre de l'espace de travail} other {# membres de l'espace de travail}}",
+    "roleDescAdmin": "Peut g\u00e9rer les membres, projets et param\u00e8tres",
+    "roleDescMember": "Peut consulter et collaborer sur les projets et t\u00e2ches",
     "you": "vous",
     "acceptInvite": "Accepter l'invitation",
-    "inviteJoin": "Vous avez été invité à rejoindre",
+    "inviteJoin": "Vous avez \u00e9t\u00e9 invité \u00e0 rejoindre",
     "inviteRole": "en tant que",
     "inviteAccepted": "Invitation acceptée ! Bienvenue dans l'équipe.",
     "inviteAcceptFailed": "Échec de l'acceptation de l'invitation",
@@ -280,7 +301,12 @@
     "empty": {
       "title": "Aucune équipe",
       "description": "Créez une équipe pour collaborer sur des projets, tâches et notes."
-    }
+    },
+    "limitReached": "Limite d'équipes atteinte (5 max)",
+    "limitReachedDesc": "Vous pouvez posséder jusqu'à 5 équipes. Supprimez une équipe pour en créer une nouvelle.",
+    "teamsOwned": "équipes",
+    "teamSlots": "Créneaux d'équipes",
+    "slugHint": "Uniquement lettres minuscules, chiffres et tirets"
   },
   "inbox": {
     "title": "Boîte de réception",
@@ -795,16 +821,28 @@
     "deadline": "Date limite",
     "milestones": "Jalons",
     "addMilestone": "Ajouter un jalon",
-    "milestoneName": "Nom du jalon",
-    "daysBefore": "Jours avant la date limite",
+    "milestoneName": "Nom du jalon…",
+    "daysBefore": "Jours avant",
     "durationDays": "Durée (jours)",
     "generate": "Générer les tâches",
+    "generating": "Génération…",
     "generated": "Tâches générées depuis le rétro-planning !",
     "generateFailed": "Échec de la génération des tâches",
     "noDeadline": "Définissez d'abord une date limite de projet",
+    "setDeadlineHint": "Ajoutez une date d'échéance au projet pour activer le rétro-planning",
+    "summaryTitle": "{count} tâche(s) seront créées",
     "remove": "Supprimer",
     "startDate": "Date de début",
-    "endDate": "Date de fin"
+    "endDate": "Date de fin",
+    "daysLeft": "jours restants",
+    "timeline": "Aperçu de la frise",
+    "named": "nommés",
+    "priority": {
+      "urgent": "Urgent",
+      "high": "Haute",
+      "medium": "Moyenne",
+      "low": "Faible"
+    }
   },
   "calendar": {
     "title": "Calendrier",
@@ -863,7 +901,11 @@
     "createNote": "Créer une note",
     "noProjects": "Aucun projet",
     "noTeams": "Aucune équipe",
-    "templates": "Modèles"
+    "templates": "Modèles",
+    "todayFocus": "Focus d'aujourd'hui",
+    "overdueSpotlight": "En retard",
+    "taskOverdue": "tâche en retard",
+    "tasksOverdue": "tâches en retard"
   },
   "chips": {
     "cancel": "Annuler",

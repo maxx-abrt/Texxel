@@ -43,6 +43,7 @@ import {
   type AppContext,
 } from "@/lib/ai";
 import { useExtensions } from "@/hooks/useExtensions";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { Crown, Globe, BookOpen, Code2, MessageSquareText } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -265,6 +266,38 @@ function ActionCard({
   );
 }
 
+// ─── Block normalizer — fixes tableCell wrapper objects the model sometimes emits ──
+function normalizeCells(cells: any[]): any[][] {
+  return cells.map((cell: any) => {
+    // Correct format: cell is already an array of inline content
+    if (Array.isArray(cell)) return cell;
+    // Wrong format: cell is a tableCell object with a content array
+    if (cell && typeof cell === "object" && cell.type === "tableCell" && Array.isArray(cell.content)) {
+      return cell.content;
+    }
+    // Fallback: wrap as text
+    return [{ type: "text", text: String(cell ?? "") }];
+  });
+}
+
+function normalizeBlocks(blocks: any[]): any[] {
+  return blocks.map((block: any) => {
+    if (block?.type === "table" && block.content?.rows) {
+      return {
+        ...block,
+        content: {
+          ...block.content,
+          rows: block.content.rows.map((row: any) => ({
+            ...row,
+            cells: normalizeCells(row.cells ?? []),
+          })),
+        },
+      };
+    }
+    return block;
+  });
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export function AiAssistantPanel({
@@ -295,10 +328,12 @@ export function AiAssistantPanel({
   const dailyRemaining = dailyLimit === -1 ? Infinity : Math.max(0, dailyLimit - dailyUsed);
 
   // Convex queries
-  const myTasks = useQuery(api.tasks.getMyTasks, {});
-  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
-  const myProjects = useQuery(api.projects.getMyProjects, {});
-  const myTeams = useQuery(api.teams.getMyTeams);
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
+  const myTasks = useQuery(api.tasks.getMyTasks, { workspaceId: wsId });
+  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined, workspaceId: wsId });
+  const myProjects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
+  const myTeams = useQuery(api.teams.getMyTeams, { workspaceId: wsId });
 
   // Convex mutations
   const createTask = useMutation(api.tasks.create);
@@ -416,6 +451,7 @@ export function AiAssistantPanel({
             priority: d.priority ?? "none",
             status: d.status ?? "todo",
             dueDate,
+            workspaceId: wsId,
           });
           return t("actionCreatedTask");
         }
@@ -438,6 +474,7 @@ export function AiAssistantPanel({
             title: d.title ?? "Subtask",
             parentTaskId: d.parentTaskId as Id<"tasks">,
             priority: "none",
+            workspaceId: wsId,
           });
           return t("actionCreatedSubtask");
         }
@@ -445,17 +482,17 @@ export function AiAssistantPanel({
           const d = action.data;
           let content: string | undefined;
           if (d.blocks && Array.isArray(d.blocks)) {
-            content = JSON.stringify(d.blocks);
+            content = JSON.stringify(normalizeBlocks(d.blocks));
           } else if (d.content) {
             content = JSON.stringify([{ type: "paragraph", content: [{ type: "text", text: d.content }] }]);
           }
-          await createDoc({ title: d.title ?? "Untitled", content });
+          await createDoc({ title: d.title ?? "Untitled", content, icon: d.icon ?? undefined, workspaceId: wsId });
           return t("actionCreatedNote");
         }
         case "edit_document_blocks": {
           const d = action.data;
           if (!d.documentId || !d.blocks) return t("actionFailed");
-          const content = JSON.stringify(d.blocks);
+          const content = JSON.stringify(normalizeBlocks(d.blocks));
           if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
             onDocumentContentReplace(content);
           } else {
@@ -525,7 +562,7 @@ export function AiAssistantPanel({
       const systemPrompt = buildSystemPrompt(buildCtx());
       const apiMessages: AiMessage[] = [
         { role: "developer", content: systemPrompt },
-        ...messages.slice(-12).map((m) => ({
+        ...messages.slice(-20).map((m) => ({
           role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
           content: m.text,
         })),
@@ -591,9 +628,15 @@ export function AiAssistantPanel({
       setMessages((prev) => [...prev, aiMsg]);
       setCurrentAction(undefined);
     } catch (err: any) {
-      const errMsg = err.message === "suite_required"
-        ? t("suiteRequired")
-        : `${t("errorPrefix")}: ${err.message ?? t("unknownError")}`;
+      let errMsg: string;
+      if (err.message === "suite_required") {
+        errMsg = t("suiteRequired");
+      } else if (err.message?.startsWith("rate_limit:")) {
+        const delay = err.message.replace("rate_limit:", "");
+        errMsg = `⏳ ${locale === "fr" ? `Limite de requêtes atteinte. Réessayez dans ${delay}.` : `Rate limit reached. Please retry in ${delay}.`}`;
+      } else {
+        errMsg = `${t("errorPrefix")}: ${err.message ?? t("unknownError")}`;
+      }
       setMessages((prev) => [
         ...prev,
         { role: "ai", text: errMsg },

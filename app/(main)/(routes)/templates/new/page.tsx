@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslations } from "next-intl";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import {
   ArrowLeft,
   BookOpen,
@@ -46,10 +47,12 @@ export default function NewTemplatePage() {
   const t = useTranslations("templates");
   const tc = useTranslations("common");
 
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
   const createTemplate = useMutation(api.templates.create);
-  const myTasks = useQuery(api.tasks.getMyTasks, {});
-  const myDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
-  const myProjects = useQuery(api.projects.getMyProjects, {});
+  const myTasks = useQuery(api.tasks.getMyTasks, { workspaceId: wsId });
+  const myDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined, workspaceId: wsId });
+  const myProjects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

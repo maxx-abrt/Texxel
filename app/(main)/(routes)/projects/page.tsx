@@ -27,6 +27,7 @@ import { ArrowRight, Calendar, FolderKanban, Plus, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const PROJECT_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#ef4444",
@@ -44,8 +45,10 @@ export default function ProjectsPage() {
   const t = useTranslations("projects");
   const tc = useTranslations("common");
   const tt = useTranslations("teams");
-  const projects = useQuery(api.projects.getMyProjects, {});
-  const myTeams = useQuery(api.teams.getMyTeams);
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
+  const projects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
+  const myTeams = useQuery(api.teams.getMyTeams, { workspaceId: wsId });
   const taskStats = useQuery(api.tasks.getTaskStatsByProject, {});
   const createProject = useMutation(api.projects.create);
   const router = useRouter();
@@ -68,6 +71,7 @@ export default function ProjectsPage() {
         color,
         teamId: selectedTeamId ? (selectedTeamId as Id<"teams">) : undefined,
         dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
+        workspaceId: wsId,
       });
       toast.success(t("created"));
       setShowNew(false);

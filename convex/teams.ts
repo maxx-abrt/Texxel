@@ -16,9 +16,18 @@ export const create = mutation({
     ownerEmail: v.optional(v.string()),
     ownerName: v.optional(v.string()),
     ownerImage: v.optional(v.string()),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
+
+    // Enforce 5-team ownership limit per user
+    const ownedTeams = await ctx.db
+      .query("teams")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+    if (ownedTeams.length >= 5) throw new Error("Team limit reached");
+
     const existing = await ctx.db
       .query("teams")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -31,6 +40,7 @@ export const create = mutation({
       description: args.description,
       icon: args.icon,
       ownerId: userId,
+      workspaceId: args.workspaceId,
       createdAt: Date.now(),
     });
 
@@ -95,7 +105,8 @@ export const remove = mutation({
 });
 
 export const getMyTeams = query({
-  handler: async (ctx) => {
+  args: { workspaceId: v.optional(v.id("workspaces")) },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
     const userId = identity.subject;
@@ -111,7 +122,9 @@ export const getMyTeams = query({
         return team ? { ...team, role: m.role } : null;
       }),
     );
-    return teams.filter(Boolean);
+    const all = teams.filter(Boolean) as any[];
+    if (!args.workspaceId) return all;
+    return all.filter((t) => t.workspaceId === args.workspaceId);
   },
 });
 

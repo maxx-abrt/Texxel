@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  AlertCircle, ArrowUpDown, CalendarClock, CheckCircle2, ChevronRight,
-  GripVertical, LayoutGrid, List, Plus, Search, Sparkles,
+  AlertCircle, ArrowUpDown, CheckCircle2, ChevronRight,
+  GripVertical, LayoutGrid, List, Plus, Search, Sparkles, Trash2, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -21,10 +21,11 @@ import {
   PointerSensor, useSensor, useSensors, closestCenter, useDroppable,
 } from "@dnd-kit/core";
 import {
-  SortableContext, useSortable, verticalListSortingStrategy,
+  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useExtensions } from "@/hooks/useExtensions";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const STATUS_GROUP_KEYS = [
   { key: "todo", color: "text-slate-500", dot: "bg-slate-400" },
@@ -94,12 +95,14 @@ function SortableTaskCard({ task, onToggleDone }: { task: any; onToggleDone: (id
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 };
   return (
-    <div ref={setNodeRef} style={style} className="group/drag relative">
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute left-1 top-1/2 -translate-y-1/2 z-10 cursor-grab active:cursor-grabbing p-1 rounded text-muted-foreground/30 opacity-0 group-hover/drag:opacity-100 transition-opacity touch-none"
-      >
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="group/drag relative cursor-grab active:cursor-grabbing touch-none"
+    >
+      <div className="absolute left-1.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground/20 opacity-0 group-hover/drag:opacity-100 transition-opacity pointer-events-none">
         <GripVertical className="h-3 w-3" />
       </div>
       <div className="pl-5">
@@ -154,14 +157,49 @@ function DroppableColumn({ col, children, isOver, taskCount, onAddTask }: {
   );
 }
 
+/* ── Sortable list item ──────────────────────────────────────────────── */
+function SortableListItem({ task, onToggleDone, selected, onSelect, showStatus }: {
+  task: any;
+  onToggleDone: (id: Id<"tasks">, current: string) => void;
+  selected?: boolean;
+  onSelect?: (id: Id<"tasks">, checked: boolean) => void;
+  showStatus?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="group/listitem relative flex items-center">
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-full cursor-grab active:cursor-grabbing items-center px-1 opacity-0 group-hover/listitem:opacity-100 transition-opacity touch-none"
+      >
+        <GripVertical className="h-3 w-3 text-muted-foreground/40" />
+      </div>
+      <div className="flex-1 pl-5">
+        <TaskCard
+          task={task}
+          onToggleDone={onToggleDone}
+          selected={selected}
+          onSelect={onSelect}
+          showStatus={showStatus}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ── Main page ───────────────────────────────────────────────────────── */
 export default function TasksPage() {
   const t = useTranslations("tasks");
   const tc = useTranslations("common");
   const router = useRouter();
-  const tasks = useQuery(api.tasks.getMyTasks, {});
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
+  const tasks = useQuery(api.tasks.getMyTasks, { workspaceId: wsId });
   const updateTask = useMutation(api.tasks.update);
   const createTask = useMutation(api.tasks.create);
+  const removeTask = useMutation(api.tasks.remove);
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState<"todo" | "in_progress" | "in_review" | "done" | "cancelled">("todo");
   const [filter, setFilter] = useState<SmartFilter>("all");
@@ -174,6 +212,31 @@ export default function TasksPage() {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [activeTask, setActiveTask] = useState<any>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [listOrder, setListOrder] = useState<string[]>([]);
+
+  const toggleSelect = (id: Id<"tasks">, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkStatus = async (status: string) => {
+    const ids = Array.from(selectedIds) as Id<"tasks">[];
+    await Promise.all(ids.map((id) => updateTask({ id, status: status as any })));
+    toast.success(t("bulkUpdated", { count: ids.length }));
+    clearSelection();
+  };
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds) as Id<"tasks">[];
+    await Promise.all(ids.map((id) => removeTask({ id }).catch(() => {})));
+    toast.success(t("bulkDeleted", { count: ids.length }));
+    clearSelection();
+  };
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -192,9 +255,11 @@ export default function TasksPage() {
   };
 
   const handleInlineAdd = async (title: string, status?: string) => {
-    await createTask({ title, priority: "none", status: (status as any) ?? "todo" });
+    await createTask({ title, priority: "none", status: (status as any) ?? "todo", workspaceId: wsId });
     toast.success(t("created"));
   };
+
+  const bulkCount = selectedIds.size;
 
   const allTasks = tasks ?? [];
   const openCount = allTasks.filter((t) => t.status !== "done" && t.status !== "cancelled").length;
@@ -247,7 +312,16 @@ export default function TasksPage() {
 
   const isGroupedView = filter === "all";
 
-  /* ── Board DnD handlers ─────────────────────────────────────────── */
+  /* Flat list with drag order applied */
+  const filteredForList = useMemo(() => {
+    if (!listOrder.length) return filtered;
+    const idToTask = new Map(filtered.map((t) => [t._id, t]));
+    const ordered = listOrder.map((id) => idToTask.get(id)).filter(Boolean) as typeof filtered;
+    const rest = filtered.filter((t) => !listOrder.includes(t._id));
+    return [...ordered, ...rest];
+  }, [filtered, listOrder]);
+
+  /* ── Board DnD handlers ─────────────────────────────────────── */
   const handleDragStart = (event: DragStartEvent) => {
     const task = allTasks.find((t) => t._id === event.active.id);
     setActiveTask(task ?? null);
@@ -275,6 +349,24 @@ export default function TasksPage() {
       try { await updateTask({ id: draggedTask._id, status: targetStatus as any }); }
       catch { toast.error(t("updateFailed")); }
     }
+  };
+
+  /* ── List DnD handlers (reorder only) ───────────────────────── */
+  const handleListDragStart = (event: DragStartEvent) => {
+    const task = allTasks.find((t) => t._id === event.active.id);
+    setActiveTask(task ?? null);
+  };
+  const handleListDragEnd = (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setListOrder((prev) => {
+      const base = prev.length ? prev : filteredForList.map((t: any) => t._id);
+      const oldIdx = base.indexOf(active.id as string);
+      const newIdx = base.indexOf(over.id as string);
+      if (oldIdx === -1 || newIdx === -1) return prev;
+      return arrayMove(base, oldIdx, newIdx);
+    });
   };
 
   return (
@@ -322,7 +414,27 @@ export default function TasksPage() {
             </div>
           </div>
 
-          {/* Smart filter pills + search + sort */}
+          {/* Bulk action toolbar */}
+        {bulkCount > 0 && (
+          <div className="mb-3 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5">
+            <span className="text-xs font-semibold text-primary">{t("bulkSelected", { count: bulkCount })}</span>
+            <div className="ml-2 h-4 w-px bg-border" />
+            <button onClick={() => handleBulkStatus("done")} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> {t("bulkMarkDone")}
+            </button>
+            <button onClick={() => handleBulkStatus("cancelled")} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+              {t("bulkCancel")}
+            </button>
+            <button onClick={handleBulkDelete} className="text-xs text-destructive/70 hover:text-destructive transition-colors flex items-center gap-1">
+              <Trash2 className="h-3 w-3" /> {t("bulkDelete")}
+            </button>
+            <button onClick={clearSelection} className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <X className="h-3 w-3" /> {t("bulkClearSelection")}
+            </button>
+          </div>
+        )}
+
+        {/* Smart filter pills + search + sort */}
           <div className="flex flex-wrap items-center gap-1.5">
             {smartFilters.map(({ key, label, count, accent }) => (
               <button
@@ -445,7 +557,13 @@ export default function TasksPage() {
                       {!collapsedGroups[g.key] && (
                         <div className="space-y-0.5 pb-2 pl-1">
                           {g.tasks.map((task) => (
-                            <TaskCard key={task._id} task={task} onToggleDone={handleToggleDone} />
+                            <TaskCard
+                              key={task._id}
+                              task={task}
+                              onToggleDone={handleToggleDone}
+                              selected={selectedIds.has(task._id)}
+                              onSelect={toggleSelect}
+                            />
                           ))}
                           {g.key !== "done" && g.key !== "cancelled" && (
                             <InlineTaskAdd onAdd={(title) => handleInlineAdd(title, g.key)} />
@@ -473,18 +591,44 @@ export default function TasksPage() {
                 )}
               </div>
             ) : (
-              <div className="space-y-0.5">
-                {filtered.map((task) => (
-                  <TaskCard key={task._id} task={task} onToggleDone={handleToggleDone} />
-                ))}
-                {filtered.length === 0 && (
-                  <div className="text-center py-16">
-                    <p className="text-sm text-muted-foreground">
-                      {filter === "overdue" ? t("noOverdue") : filter === "today" ? t("noDueToday") : t("empty.title")}
-                    </p>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleListDragStart}
+                onDragEnd={handleListDragEnd}
+              >
+                <SortableContext
+                  items={filteredForList.map((t) => t._id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-0.5">
+                    {filteredForList.map((task) => (
+                      <SortableListItem
+                        key={task._id}
+                        task={task}
+                        onToggleDone={handleToggleDone}
+                        selected={selectedIds.has(task._id)}
+                        onSelect={toggleSelect}
+                        showStatus
+                      />
+                    ))}
+                    {filteredForList.length === 0 && (
+                      <div className="text-center py-16">
+                        <p className="text-sm text-muted-foreground">
+                          {filter === "overdue" ? t("noOverdue") : filter === "today" ? t("noDueToday") : t("empty.title")}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </SortableContext>
+                <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
+                  {activeTask ? (
+                    <div className="opacity-95 shadow-xl rotate-1 scale-[1.02] pointer-events-none">
+                      <TaskCard task={activeTask} onToggleDone={() => {}} showStatus />
+                    </div>
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
             )}
           </div>
         </div>

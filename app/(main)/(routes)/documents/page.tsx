@@ -19,15 +19,21 @@ import {
   Plus,
   ArrowRight,
   AlertCircle,
+  Calendar,
+  CheckCircle2,
   Circle,
+  Clock,
   Sparkles,
   Trophy,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
 import { AiAssistantPanel } from "@/components/ai-assistant";
 import { useTranslations } from "next-intl";
 import { useExtensions } from "@/hooks/useExtensions";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 function useTimeAgo() {
   const tc = useTranslations("common");
@@ -59,16 +65,18 @@ const DocumentsPage = () => {
   const td = useTranslations("dashboard");
   const tc = useTranslations("common");
   const timeAgo = useTimeAgo();
+  const { isEnabled: extEnabled } = useExtensions();
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
   const create = useMutation(api.documents.create);
-  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
-  const myTasks = useQuery(api.tasks.getMyTasks, {});
-  const myTeams = useQuery(api.teams.getMyTeams);
-  const myProjects = useQuery(api.projects.getMyProjects, {});
+  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined, workspaceId: wsId });
+  const myTasks = useQuery(api.tasks.getMyTasks, { workspaceId: wsId });
+  const myTeams = useQuery(api.teams.getMyTeams, { workspaceId: wsId });
+  const myProjects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
   const notifications = useQuery(api.notifications.getMyNotifications);
   const unreadCount = useQuery(api.notifications.getUnreadCount) ?? 0;
   const [showNewTask, setShowNewTask] = useState(false);
   const [showAi, setShowAi] = useState(false);
-  const { isEnabled: extEnabled } = useExtensions();
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
@@ -81,18 +89,25 @@ const DocumentsPage = () => {
 
   const onCreateDoc = () => {
     toast.promise(
-      create({ title: tc("untitled") }).then((id) => router.push(`/documents/${id}`)),
+      create({ title: tc("untitled"), workspaceId: wsId }).then((id) => router.push(`/documents/${id}`)),
       { loading: td("creating"), success: td("created"), error: td("createFailed") },
     );
   };
 
+  const now = Date.now();
+  const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+  const todayEnd = todayStart + 86_400_000;
+
   const activeTasks = (myTasks ?? []).filter((t) => t.status !== "done" && t.status !== "cancelled");
-  const overdueTaskCount = activeTasks.filter((t) => t.dueDate && t.dueDate < Date.now()).length;
+  const overdueTasks = activeTasks.filter((t) => t.dueDate && t.dueDate < now);
+  const overdueTaskCount = overdueTasks.length;
+  const todayTasks = activeTasks.filter((t) => t.dueDate && t.dueDate >= todayStart && t.dueDate < todayEnd);
   const doneTodayCount = (myTasks ?? []).filter((t) => {
     if (t.status !== "done" || !t.completedAt) return false;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    return t.completedAt >= today.getTime();
+    return t.completedAt >= todayStart;
   }).length;
+  const totalTasksToday = todayTasks.length + doneTodayCount;
+  const todayProgress = totalTasksToday > 0 ? Math.round((doneTodayCount / totalTasksToday) * 100) : 0;
 
   return (
     <div className="h-full overflow-y-auto">
@@ -106,6 +121,82 @@ const DocumentsPage = () => {
             {td("overview")}
           </p>
         </div>
+
+        {/* ── Overdue spotlight ─────────────────────────────────────── */}
+        {overdueTaskCount > 0 && myTasks !== undefined && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 px-4 py-3">
+            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                {overdueTaskCount} overdue {overdueTaskCount === 1 ? "task" : "tasks"}
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {overdueTasks.slice(0, 3).map((t) => (
+                  <button
+                    key={t._id}
+                    onClick={() => router.push(`/tasks/${t._id}`)}
+                    className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                  >
+                    {t.title.length > 28 ? t.title.slice(0, 28) + "…" : t.title}
+                  </button>
+                ))}
+                {overdueTaskCount > 3 && (
+                  <button onClick={() => router.push("/tasks")} className="text-[11px] text-red-500 hover:underline">
+                    +{overdueTaskCount - 3} more
+                  </button>
+                )}
+              </div>
+            </div>
+            <button onClick={() => router.push("/tasks")} className="shrink-0 text-[11px] text-red-500 hover:underline font-medium">
+              View all →
+            </button>
+          </div>
+        )}
+
+        {/* ── Today's Focus ─────────────────────────────────────────── */}
+        {(todayTasks.length > 0 || doneTodayCount > 0) && myTasks !== undefined && (
+          <div className="mb-8 rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-900/10 px-5 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-500" />
+                <h2 className="text-sm font-semibold">{td("todayFocus") ?? "Today's Focus"}</h2>
+                <span className="text-[10px] text-muted-foreground bg-background border rounded-full px-2 py-0.5">
+                  {doneTodayCount}/{totalTasksToday} done
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="flex items-center gap-2">
+                <div className="w-20 h-1.5 rounded-full bg-amber-200 dark:bg-amber-800/60 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                    style={{ width: `${todayProgress}%` }}
+                  />
+                </div>
+                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">{todayProgress}%</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              {todayTasks.slice(0, 4).map((task) => (
+                <div
+                  key={task._id}
+                  onClick={() => router.push(`/tasks/${task._id}`)}
+                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/20 cursor-pointer transition-colors group"
+                >
+                  <Circle className="h-3.5 w-3.5 shrink-0 text-amber-400 group-hover:text-amber-600 transition-colors" />
+                  <span className="flex-1 text-[13px] truncate">{task.title}</span>
+                  <span className="text-[10px] text-amber-500/70 shrink-0 flex items-center gap-0.5">
+                    <Clock className="h-2.5 w-2.5" /> Today
+                  </span>
+                </div>
+              ))}
+              {todayTasks.length > 4 && (
+                <button onClick={() => router.push("/tasks")} className="text-[11px] text-amber-500 hover:underline pl-2 mt-1">
+                  +{todayTasks.length - 4} more today
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Stats row */}
         {myTasks === undefined ? (
@@ -330,26 +421,34 @@ const DocumentsPage = () => {
                   </button>
                 </div>
                 <div className="space-y-1.5">
-                  {(myProjects ?? []).filter(Boolean).slice(0, 4).map((project) => (
+                  {(myProjects ?? []).filter(Boolean).slice(0, 4).map((project) => {
+                    const statusColor = project!.status === "completed" ? "bg-emerald-500" : project!.status === "archived" ? "bg-slate-400" : "bg-primary";
+                    return (
                     <div
                       key={project!._id}
                       onClick={() => router.push(`/projects/${project!._id}`)}
-                      className="flex items-center gap-3 rounded-lg border border-border/40 px-3.5 py-2.5 cursor-pointer hover:border-border hover:bg-accent/30 transition-all duration-200 group"
+                      className="flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all duration-200 group"
                     >
                       <div
-                        className="h-6 w-6 shrink-0 rounded-md flex items-center justify-center text-white text-[10px] font-semibold"
+                        className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
                         style={{ backgroundColor: project!.color ?? "#6366f1" }}
                       >
                         {project!.icon ?? project!.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium truncate group-hover:text-foreground transition-colors duration-200">
+                        <p className="text-[13px] font-medium truncate group-hover:text-primary transition-colors duration-200">
                           {project!.name}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/50 capitalize">{project!.status}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                            <div className={cn("h-full rounded-full transition-all", statusColor)} style={{ width: project!.status === "completed" ? "100%" : "30%" }} />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground/60 capitalize shrink-0">{project!.status}</span>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}

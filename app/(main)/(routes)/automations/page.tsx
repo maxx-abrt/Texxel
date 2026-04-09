@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, Zap, ChevronRight, Power } from "lucide-react";
 
@@ -40,11 +41,13 @@ const TRIGGER_COLORS: Record<string, string> = {
 export default function AutomationsPage() {
   const t = useTranslations("automations");
   const tt = useTranslations("tasks");
-  const automations = useQuery(api.automations.getMyAutomations);
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
+  const automations = useQuery(api.automations.getMyAutomations, { workspaceId: wsId });
   const createAuto = useMutation(api.automations.create);
   const removeAuto = useMutation(api.automations.remove);
   const toggleAuto = useMutation(api.automations.toggle);
-  const myProjects = useQuery(api.projects.getMyProjects, {});
+  const myProjects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
 
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState("");
@@ -76,6 +79,7 @@ export default function AutomationsPage() {
         triggerValue: triggerValue || undefined,
         actionValue: actionValue || undefined,
         projectId: projectId ? (projectId as Id<"projects">) : undefined,
+        workspaceId: wsId,
       });
       toast.success(t("created"));
       reset();

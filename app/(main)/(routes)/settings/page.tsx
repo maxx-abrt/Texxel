@@ -43,6 +43,7 @@ import { ImportModal } from "@/components/modals/ImportModal";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useSearchParams } from "next/navigation";
 import { useExtensions } from "@/hooks/useExtensions";
+import { useWorkspace } from "@/hooks/useWorkspace";
 import { useTranslations } from "next-intl";
 
 const TABS = [
@@ -399,8 +400,10 @@ function AiSettingsPanel() {
   const ts = useTranslations("settings");
   const { getAiAccess, updateAiAccess, isEnabled: extEnabled } = useExtensions();
   const aiAccess = getAiAccess();
-  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined });
-  const myProjects = useQuery(api.projects.getMyProjects, {});
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
+  const recentDocs = useQuery(api.documents.getSidebar, { parentDocument: undefined, workspaceId: wsId });
+  const myProjects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
 
   const isRestricted = aiAccess.scope === "restricted";
   const allowedDocs = new Set(aiAccess.allowedDocumentIds);

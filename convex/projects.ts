@@ -37,6 +37,7 @@ export const create = mutation({
     color: v.optional(v.string()),
     teamId: v.optional(v.id("teams")),
     dueDate: v.optional(v.number()),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);
@@ -57,6 +58,7 @@ export const create = mutation({
       status: "active",
       teamId: args.teamId,
       ownerId: userId,
+      workspaceId: args.workspaceId,
       createdAt: Date.now(),
       dueDate: args.dueDate,
     });
@@ -111,7 +113,10 @@ export const remove = mutation({
 });
 
 export const getMyProjects = query({
-  args: { teamId: v.optional(v.id("teams")) },
+  args: {
+    teamId: v.optional(v.id("teams")),
+    workspaceId: v.optional(v.id("workspaces")),
+  },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
@@ -131,7 +136,9 @@ export const getMyProjects = query({
       .collect();
 
     const projects = await Promise.all(memberships.map((m) => ctx.db.get(m.projectId)));
-    return projects.filter((p) => p && p.status !== "archived" && !p.teamId);
+    const filtered = projects.filter((p) => p && p.status !== "archived" && !p.teamId) as any[];
+    if (!args.workspaceId) return filtered;
+    return filtered.filter((p) => p.workspaceId === args.workspaceId);
   },
 });
 

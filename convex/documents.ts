@@ -53,6 +53,7 @@ export const archive = mutation({
 export const getSidebar = query({
   args: {
     parentDocument: v.optional(v.id("documents")),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -63,7 +64,7 @@ export const getSidebar = query({
 
     const userId = identity.subject;
 
-    const documents = await ctx.db
+    const allDocs = await ctx.db
       .query("documents")
       .withIndex("by_user_parent", (q) =>
         q.eq("userId", userId).eq("parentDocument", args.parentDocument),
@@ -71,6 +72,10 @@ export const getSidebar = query({
       .filter((q) => q.eq(q.field("isArchived"), false))
       .order("desc")
       .collect();
+
+    const documents = args.workspaceId
+      ? allDocs.filter((d) => d.workspaceId === args.workspaceId)
+      : allDocs;
 
     documents.sort((a, b) => {
       if (a.order === undefined && b.order === undefined) {
@@ -90,6 +95,7 @@ export const create = mutation({
   args: {
     title: v.string(),
     parentDocument: v.optional(v.id("documents")),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -103,6 +109,7 @@ export const create = mutation({
     const document = await ctx.db.insert("documents", {
       title: args.title,
       parentDocument: args.parentDocument,
+      workspaceId: args.workspaceId,
       userId,
       isArchived: false,
       isPublished: false,
@@ -118,6 +125,7 @@ export const createWithContent = mutation({
     content: v.optional(v.string()),
     icon: v.optional(v.string()),
     parentDocument: v.optional(v.id("documents")),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -133,6 +141,7 @@ export const createWithContent = mutation({
       content: args.content,
       icon: args.icon,
       parentDocument: args.parentDocument,
+      workspaceId: args.workspaceId,
       userId,
       isArchived: false,
       isPublished: false,

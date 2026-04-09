@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { Calendar, Flag, FolderKanban, UserCircle, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const priorityColors: Record<string, string> = {
   none: "text-muted-foreground",
@@ -39,6 +40,7 @@ interface NewTaskDialogProps {
   projectId?: Id<"projects">;
   teamId?: Id<"teams">;
   initialStatus?: "todo" | "in_progress" | "in_review" | "done" | "cancelled";
+  initialDueDate?: string;
 }
 
 export function NewTaskDialog({
@@ -47,18 +49,25 @@ export function NewTaskDialog({
   projectId: initialProjectId,
   teamId: initialTeamId,
   initialStatus,
+  initialDueDate,
 }: NewTaskDialogProps) {
   const t = useTranslations("tasks");
   const tc = useTranslations("common");
 
+  const { activeWorkspaceId } = useWorkspace();
+  const wsId = activeWorkspaceId as any;
   const create = useMutation(api.tasks.create);
-  const myTeams = useQuery(api.teams.getMyTeams);
-  const myProjects = useQuery(api.projects.getMyProjects, {});
+  const myTeams = useQuery(api.teams.getMyTeams, { workspaceId: wsId });
+  const myProjects = useQuery(api.projects.getMyProjects, { workspaceId: wsId });
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"none" | "low" | "medium" | "high" | "urgent">("none");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState(initialDueDate ?? "");
+
+  useEffect(() => {
+    if (initialDueDate !== undefined) setDueDate(initialDueDate);
+  }, [initialDueDate]);
   const [selectedTeamId, setSelectedTeamId] = useState<string>(initialTeamId ?? "");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(initialProjectId ?? "");
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
@@ -83,7 +92,7 @@ export function NewTaskDialog({
     setTitle("");
     setDescription("");
     setPriority("none");
-    setDueDate("");
+    setDueDate(initialDueDate ?? "");
     if (!initialTeamId) setSelectedTeamId("");
     if (!initialProjectId) setSelectedProjectId("");
     setSelectedAssigneeId("");
@@ -103,6 +112,7 @@ export function NewTaskDialog({
         teamId: selectedTeamId ? (selectedTeamId as Id<"teams">) : undefined,
         assigneeId: selectedAssigneeId || undefined,
         dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
+        workspaceId: wsId,
       });
       toast.success(t("created"));
       reset();

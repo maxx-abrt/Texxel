@@ -190,6 +190,65 @@
   .bn-color-picker-dropdown {
     top: -110px !important;
   }
+
+  /* ── BlockNote: suppress all blue outlines / focus rings on click ── */
+  .bn-editor *:focus,
+  .bn-editor *:focus-visible,
+  .bn-editor *:focus-within,
+  .bn-block-outer:focus,
+  .bn-block-outer:focus-visible,
+  .bn-block-content:focus,
+  .bn-block-content:focus-visible,
+  .bn-inline-content:focus,
+  .bn-inline-content:focus-visible,
+  [data-node-type]:focus,
+  [data-node-type]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+  }
+
+  /* Also suppress the ring on block selection highlight */
+  .bn-block-outer[data-selected="true"],
+  .bn-block-outer.selected {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ── BlockNote: suppress blue ring on table block selection ── */
+  .bn-editor .bn-table-wrapper,
+  .bn-editor .bn-table-wrapper:focus,
+  .bn-editor .bn-table-wrapper:focus-visible,
+  .bn-editor .bn-table-wrapper:focus-within,
+  .bn-editor table,
+  .bn-editor table:focus,
+  .bn-editor table:focus-visible,
+  .bn-editor .tableWrapper,
+  .bn-editor .tableWrapper:focus,
+  .bn-editor [class*="table"]:focus,
+  .bn-editor [class*="table"]:focus-visible,
+  .bn-editor [class*="table"]:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: var(--tx-border) !important;
+  }
+
+  /* Mantine/BlockNote selected state uses a blue box-shadow */
+  .bn-editor .bn-block-outer[data-node-type],
+  .bn-editor .bn-block-outer[data-node-type]:focus,
+  .bn-editor .bn-block-outer[data-node-type]:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* ProseMirror selection on table nodes */
+  .ProseMirror-selectednode {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .ProseMirror-gapcursor {
+    outline: none !important;
+  }
 }
 
 /* ── Yjs collaboration cursors ──────────────────────────────────────────── */

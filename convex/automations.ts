@@ -8,15 +8,17 @@ const requireAuth = async (ctx: any) => {
 };
 
 export const getMyAutomations = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { workspaceId: v.optional(v.id("workspaces")) },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
     const userId = identity.subject;
-    return ctx.db
+    const all = await ctx.db
       .query("automations")
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
       .collect();
+    if (!args.workspaceId) return all;
+    return all.filter((a) => a.workspaceId === args.workspaceId);
   },
 });
 
@@ -42,6 +44,7 @@ export const create = mutation({
     actionValue: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
     teamId: v.optional(v.id("teams")),
+    workspaceId: v.optional(v.id("workspaces")),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);

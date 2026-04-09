@@ -421,7 +421,7 @@ const Editor = ({
         {documentId && showCommentsSidebar && (
           commentsSidebarContainer
             ? createPortal(
-                <div className="min-w-0 h-full overflow-x-hidden overflow-y-auto [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:max-w-full!">
+                <div className="min-w-0 h-full overflow-x-hidden overflow-y-auto px-3 py-3 space-y-2 [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:rounded-xl! [&_.bn-thread]:border! [&_.bn-thread]:border-border/50! [&_.bn-thread]:bg-card! [&_.bn-thread]:p-3! [&_.bn-thread]:shadow-none! [&_.bn-thread-comment]:text-sm! [&_.bn-thread-comment]:leading-relaxed!">
                   <ThreadsSidebar filter="open" sort="position" />
                 </div>,
                 commentsSidebarContainer,
@@ -441,7 +441,7 @@ const Editor = ({
                     </button>
                   )}
                 </div>
-                <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:max-w-full!">
+                <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-3 space-y-2 [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:rounded-xl! [&_.bn-thread]:border! [&_.bn-thread]:border-border/50! [&_.bn-thread]:bg-card! [&_.bn-thread]:p-3! [&_.bn-thread]:shadow-none! [&_.bn-thread-comment]:text-sm! [&_.bn-thread-comment]:leading-relaxed!">
                   <ThreadsSidebar filter="open" sort="position" />
                 </div>
               </div>

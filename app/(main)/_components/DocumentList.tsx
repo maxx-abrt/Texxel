@@ -157,12 +157,10 @@ export const DocumentList = ({
   const lastOverRef = useRef<string | null>(null);
 
   const { activeWorkspaceId } = useWorkspace();
-  const documents = useQuery(
-    api.documents.getSidebar,
-    activeWorkspaceId
-      ? { parentDocument: parentDocumentId, workspaceId: activeWorkspaceId as any }
-      : "skip",
-  );
+  const documents = useQuery(api.documents.getSidebar, {
+    parentDocument: parentDocumentId,
+    ...(activeWorkspaceId ? { workspaceId: activeWorkspaceId as any } : {}),
+  });
 
   useEffect(() => {
     if (!isDragging && documents) {

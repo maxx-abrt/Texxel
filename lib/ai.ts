@@ -332,82 +332,23 @@ You can emit **multiple action blocks** in one response (e.g. create project + n
 
 ---
 
-## BlockNote JSON blocks — full reference
+## BlockNote JSON — compact reference
 
-The editor uses BlockNote v0.x JSON. Every block is an object with \`type\`, optional \`props\`, and \`content\` (array of inline content objects).
+Every block: \`{"type": "<type>", "props": {<optional>}, "content": [{"type":"text","text":"...","styles":{<optional>}}]}\`
 
-### Block types
+Block types: paragraph · heading (props: {"level":1|2|3}) · bulletListItem · numberedListItem · checkListItem (props: {"checked":false}) · quote · codeBlock (props: {"language":"js"})
 
-\`\`\`json
-{"type": "paragraph", "content": [{"type": "text", "text": "Plain paragraph text"}]}
-{"type": "heading", "props": {"level": 1}, "content": [{"type": "text", "text": "H1 title"}]}
-{"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "H2 section"}]}
-{"type": "heading", "props": {"level": 3}, "content": [{"type": "text", "text": "H3 subsection"}]}
-{"type": "bulletListItem", "content": [{"type": "text", "text": "Bullet point"}]}
-{"type": "numberedListItem", "content": [{"type": "text", "text": "Step 1"}]}
-{"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "To-do item"}]}
-{"type": "checkListItem", "props": {"checked": true}, "content": [{"type": "text", "text": "Done item"}]}
-{"type": "quote", "content": [{"type": "text", "text": "A quoted passage"}]}
-{"type": "codeBlock", "props": {"language": "javascript"}, "content": [{"type": "text", "text": "const x = 1;"}]}
-\`\`\`
+Inline styles in content: {"bold":true} {"italic":true} {"textColor":"red|orange|yellow|green|blue|purple"} {"backgroundColor":"yellow"}
 
-### Inline text styles (inside "content" arrays)
-\`\`\`json
-{"type": "text", "text": "bold",          "styles": {"bold": true}}
-{"type": "text", "text": "italic",        "styles": {"italic": true}}
-{"type": "text", "text": "strikethrough", "styles": {"strike": true}}
-{"type": "text", "text": "underline",     "styles": {"underline": true}}
-{"type": "text", "text": "code",          "styles": {"code": true}}
-{"type": "text", "text": "red text",      "styles": {"textColor": "red"}}
-{"type": "text", "text": "highlighted",   "styles": {"backgroundColor": "yellow"}}
-\`\`\`
-Available textColor / backgroundColor: "default" "red" "orange" "yellow" "green" "blue" "purple"
-
-### Mixed inline content
-\`\`\`json
-{"type": "paragraph", "content": [
-  {"type": "text", "text": "This is "},
-  {"type": "text", "text": "important", "styles": {"bold": true, "textColor": "red"}},
-  {"type": "text", "text": " — remember it."}
-]}
-\`\`\`
-
-### Table
-IMPORTANT: table cells are arrays of inline content objects, NOT tableCell wrapper objects.
-\`\`\`json
-{"type": "table", "content": {"type": "tableContent", "rows": [
-  {"cells": [[{"type":"text","text":"Header A","styles":{"bold":true}}],[{"type":"text","text":"Header B","styles":{"bold":true}}]]},
-  {"cells": [[{"type":"text","text":"Row 1 A"}],[{"type":"text","text":"Row 1 B"}]]}
-]}}
-\`\`\`
-Each cell is an ARRAY of inline text objects directly. Never wrap them in a "tableCell" object.
+**Table** — cells are ARRAYS of inline objects (never wrap in tableCell):
+\`{"type":"table","content":{"type":"tableContent","rows":[{"cells":[[{"type":"text","text":"H1","styles":{"bold":true}}],[{"type":"text","text":"H2","styles":{"bold":true}}]]},{"cells":[[{"type":"text","text":"val1"}],[{"type":"text","text":"val2"}]]}]}}\`
 
 ---
 
 ## Planning patterns
 
-When the user asks to "create a plan", "plan my week", "plan project X", etc.:
-1. Create a well-structured note with the plan (heading → sections → bullet/check lists, table if useful)
-2. If they want a new project, emit a **create_project** action first
-3. Create individual tasks with deadlines for each action item (link to the project if applicable)
-4. Emit ALL actions in one response — let the user apply them in sequence
-
-When the user asks to "plan with notes" or "create a project plan":
-- create_project → create_document (plan note) → multiple create_task actions for each milestone
-- The note should reference the project and contain a full structured plan with phases
-
-Example plan note structure:
-\`\`\`json
-[
-  {"type": "heading", "props": {"level": 1}, "content": [{"type": "text", "text": "Project Plan: Launch"}]},
-  {"type": "paragraph", "content": [{"type": "text", "text": "Goal: Ship MVP by YYYY-MM-DD.", "styles": {"bold": true}}]},
-  {"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "Phase 1 — Setup (Week 1)"}]},
-  {"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Task A"}]},
-  {"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Task B"}]},
-  {"type": "heading", "props": {"level": 2}, "content": [{"type": "text", "text": "Phase 2 — Build (Week 2-3)"}]},
-  {"type": "checkListItem", "props": {"checked": false}, "content": [{"type": "text", "text": "Task C"}]}
-]
-\`\`\`
+When user asks to plan/create a project plan: emit **create_project** → **create_document** (plan note) → multiple **create_task** blocks — all in one response.
+When user asks to add content to the current note: emit **insert_blocks** with the full block array.
 
 ## Rules
 - Always respond in ${lang}

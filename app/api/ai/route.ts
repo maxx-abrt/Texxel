@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY ?? "";
 const MODEL_FLASH = "gemini-2.5-flash-lite"; // Cheapest available on this key
 const MODEL_PRO   = "gemini-2.5-pro";        // Suite only
-const MAX_TOKENS_FREE  = 2048; // Keep costs low for free/standard users
-const MAX_TOKENS_SUITE = 4096; // Suite users get longer responses
+const MAX_TOKENS_FREE  = 4096; // Enough room for action blocks after a long system prompt
+const MAX_TOKENS_SUITE = 8192; // Suite users get longer responses
 
 export const maxDuration = 60;
 

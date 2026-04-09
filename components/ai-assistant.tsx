@@ -606,13 +606,16 @@ export function AiAssistantPanel({
 
     try {
       const systemPrompt = buildSystemPrompt(buildCtx());
+      const actionReminder = documentContext
+        ? `\n\n[SYSTEM REMINDER: If proposing any content for the note, you MUST emit a \`\`\`action block with type insert_blocks or edit_document_blocks. Do NOT describe the action — output it as a JSON action block.]`
+        : `\n\n[SYSTEM REMINDER: If creating tasks, notes, or projects, you MUST output them as \`\`\`action JSON blocks. Do NOT describe what you would do — emit the actual action blocks so the user can apply them.]`;
       const apiMessages: AiMessage[] = [
         { role: "developer", content: systemPrompt },
         ...messages.slice(-20).map((m) => ({
           role: (m.role === "user" ? "user" : "assistant") as "user" | "assistant",
           content: m.text,
         })),
-        { role: "user", content: msg },
+        { role: "user", content: msg + actionReminder },
       ];
 
       // Check daily limit for free tier

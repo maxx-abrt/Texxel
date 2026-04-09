@@ -70,7 +70,7 @@ export const ScrollableList = ({
         ref={scrollRef}
         onScroll={checkForScroll}
         className={cn(
-          "max-h-[calc(100vh-224px)] overflow-y-auto",
+          "h-full overflow-y-auto",
           "no-scrollbar",
           className,
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth/client";
@@ -44,6 +44,7 @@ import { ConfirmModal } from "@/components/modals/ConfirmModal";
 import { AiAssistantPanel } from "@/components/ai-assistant";
 import { useTranslations, useLocale } from "next-intl";
 import { useExtensions } from "@/hooks/useExtensions";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const STATUS_COLORS: Record<string, { color: string; dot: string }> = {
   todo: { color: "text-slate-500", dot: "bg-slate-400" },
@@ -75,6 +76,11 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const removeTask = useMutation(api.tasks.remove);
   const addComment = useMutation(api.tasks.addComment);
   const subtasks = useQuery(api.tasks.getSubtasks, { parentTaskId: taskId as Id<"tasks"> });
+  const { activeWorkspaceId } = useWorkspace();
+  const workspaceMembers = useQuery(
+    api.workspaces.getMembers,
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId as any } : "skip",
+  );
 
   const [commentText, setCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -85,7 +91,26 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
   const subtaskRef = useRef(false);
   const [showAi, setShowAi] = useState(false);
   const [aiCollapsed, setAiCollapsed] = useState(false);
+  const [showAssigneePicker, setShowAssigneePicker] = useState(false);
+  const [assigneeSearch, setAssigneeSearch] = useState("");
+  const assigneePickerRef = useRef<HTMLDivElement>(null);
   const { isEnabled: extEnabled } = useExtensions();
+
+  useEffect(() => {
+    if (!showAssigneePicker) return;
+    const handle = (e: MouseEvent) => {
+      if (assigneePickerRef.current && !assigneePickerRef.current.contains(e.target as Node)) {
+        setShowAssigneePicker(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowAssigneePicker(false); };
+    document.addEventListener("mousedown", handle);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handle);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showAssigneePicker]);
 
   const selectProps = (key: string) => ({
     open: openSelect === key,
@@ -541,23 +566,86 @@ export default function TaskDetailPage({ params }: { params: Promise<{ taskId: s
               {/* Assignee */}
               <div className="space-y-1.5">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">{tt("assignee")}</p>
-                {task.assigneeId ? (
-                  <div className="flex items-center gap-2">
-                    {task.assigneeImage ? (
-                      <img src={task.assigneeImage} alt="" className="h-5 w-5 rounded-full object-cover" />
+                <div className="relative" ref={assigneePickerRef}>
+                  <button
+                    onClick={() => { setShowAssigneePicker((v) => !v); setAssigneeSearch(""); }}
+                    className="flex w-full items-center gap-2 rounded-lg border border-border/40 bg-background px-2 py-1.5 text-xs transition-colors hover:border-border/70 hover:bg-accent/40"
+                  >
+                    {task.assigneeId ? (
+                      <>
+                        {task.assigneeImage ? (
+                          <img src={task.assigneeImage} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-semibold text-primary shrink-0">
+                            {task.assigneeName?.[0]?.toUpperCase() ?? "?"}
+                          </div>
+                        )}
+                        <span className="flex-1 text-left truncate">{task.assigneeName ?? tt("assigned")}</span>
+                      </>
                     ) : (
-                      <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-semibold text-primary">
-                        {task.assigneeName?.[0]?.toUpperCase() ?? "?"}
-                      </div>
+                      <>
+                        <UserCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                        <span className="flex-1 text-left text-muted-foreground/60">{tt("unassigned")}</span>
+                      </>
                     )}
-                    <span className="text-xs">{task.assigneeName ?? tt("assigned")}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <UserCircle className="h-3.5 w-3.5" />
-                    {tt("unassigned")}
-                  </div>
-                )}
+                  </button>
+
+                  {showAssigneePicker && (workspaceMembers ?? []).length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-border/50 bg-popover shadow-lg overflow-hidden">
+                      <div className="px-2 pt-2 pb-1">
+                        <input
+                          autoFocus
+                          value={assigneeSearch}
+                          onChange={(e) => setAssigneeSearch(e.target.value)}
+                          placeholder={tt("assignMember")}
+                          className="w-full rounded-lg border border-border/40 bg-background px-2.5 py-1.5 text-xs outline-none placeholder:text-muted-foreground/40 focus:border-primary/40"
+                        />
+                      </div>
+                      <div className="max-h-40 overflow-y-auto py-1">
+                        {task.assigneeId && (
+                          <button
+                            onClick={() => { handleUpdate({ assigneeId: undefined }); setShowAssigneePicker(false); }}
+                            className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground/70 hover:bg-accent/60 transition-colors"
+                          >
+                            <UserCircle className="h-4 w-4 shrink-0" />
+                            {tt("unassign")}
+                          </button>
+                        )}
+                        {(workspaceMembers ?? [])
+                          .filter((m) =>
+                            !assigneeSearch ||
+                            m.userName.toLowerCase().includes(assigneeSearch.toLowerCase()) ||
+                            m.userEmail.toLowerCase().includes(assigneeSearch.toLowerCase())
+                          )
+                          .map((member) => (
+                            <button
+                              key={member.userId}
+                              onClick={() => {
+                                handleUpdate({ assigneeId: member.userId });
+                                setShowAssigneePicker(false);
+                              }}
+                              className={cn(
+                                "flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-accent/60",
+                                task.assigneeId === member.userId && "bg-primary/5 text-primary font-medium",
+                              )}
+                            >
+                              {member.userImage ? (
+                                <img src={member.userImage} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                              ) : (
+                                <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
+                                  {member.userName?.[0]?.toUpperCase() ?? "?"}
+                                </div>
+                              )}
+                              <div className="flex flex-col items-start min-w-0">
+                                <span className="truncate font-medium">{member.userName}</span>
+                                <span className="truncate text-[10px] text-muted-foreground/50">{member.userEmail}</span>
+                              </div>
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Created */}

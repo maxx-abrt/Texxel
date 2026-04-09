@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
 import { AlertCircle, Calendar, CheckCircle2, Circle, Clock, CheckSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const PRIORITY_CONFIG: Record<string, { label: string; color: string; bg: string; border: string; dot: string }> = {
   none:   { label: "None",   color: "text-slate-400",                bg: "bg-slate-100 dark:bg-slate-800/50",       border: "border-l-slate-200 dark:border-l-slate-700",   dot: "bg-slate-300 dark:bg-slate-600" },
@@ -38,14 +39,14 @@ function labelPalette(label: string) {
   return LABEL_PALETTES[h % LABEL_PALETTES.length];
 }
 
-function formatDue(ts: number) {
+function formatDue(ts: number, t: (k: string, v?: any) => string) {
   const now = Date.now();
   const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
   const todayEnd = todayStart + 86_400_000;
-  if (ts >= todayStart && ts < todayEnd) return { label: "Today", overdue: false, today: true, soon: false };
+  if (ts >= todayStart && ts < todayEnd) return { label: t("dueDate"), overdue: false, today: true, soon: false };
   if (ts < now) {
     const days = Math.ceil((now - ts) / 86_400_000);
-    return { label: days === 1 ? "Yesterday" : `${days}d ago`, overdue: true, today: false, soon: false };
+    return { label: days === 1 ? t("yesterday") : t("daysAgo", { n: days }), overdue: true, today: false, soon: false };
   }
   const soon = ts - now < 3 * 86_400_000;
   return {
@@ -83,11 +84,12 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onToggleDone, compact, selected, onSelect, showStatus, kanban }: TaskCardProps) {
   const router = useRouter();
+  const tt = useTranslations("tasks");
   const isDone = task.status === "done";
   const isCancelled = task.status === "cancelled";
   const pCfg = PRIORITY_CONFIG[task.priority] ?? PRIORITY_CONFIG.none;
   const sCfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.todo;
-  const dueInfo = task.dueDate ? formatDue(task.dueDate) : null;
+  const dueInfo = task.dueDate ? formatDue(task.dueDate, tt) : null;
   const hasSubtasks = (task.subtaskCount ?? 0) > 0;
 
   /* ── Kanban card (rich, screenshot-style) ────────────────────────── */
@@ -171,7 +173,7 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
           <div className="flex items-center gap-2">
             {task.priority !== "none" && (
               <span className={cn("text-[11px] font-medium", pCfg.color)}>
-                Priority: {pCfg.label}
+                {tt("priorityLabel")}: {tt(`priorities.${task.priority}` as any)}
               </span>
             )}
           </div>
@@ -187,9 +189,14 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
                 )}
               </span>
             )}
+            {task.assigneeName && !task.assigneeImage && (
+              <span className="text-[11px] text-muted-foreground/60 truncate max-w-[80px]">
+                {task.assigneeName}
+              </span>
+            )}
             {!task.assigneeId && task.estimateMinutes && task.estimateMinutes > 0 && !dueInfo && (
               <span className="text-[11px] text-muted-foreground/60">
-                Estimated Hours: {Math.round(task.estimateMinutes / 60 * 10) / 10}
+                {tt("estimatedHours")}: {Math.round(task.estimateMinutes / 60 * 10) / 10}
               </span>
             )}
           </div>

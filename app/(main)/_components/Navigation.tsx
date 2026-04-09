@@ -53,6 +53,7 @@ import { useTranslations } from "next-intl";
 import { useDocumentUI } from "@/hooks/useDocumentUI";
 import { useBulkSelect } from "@/hooks/useBulkSelect";
 import { useExtensions } from "@/hooks/useExtensions";
+import { useSidebarState } from "@/hooks/useSidebarState";
 
 const Navigation = () => {
   const search = useSearch();
@@ -76,7 +77,7 @@ const Navigation = () => {
   const sidebarRef = useRef<ComponentRef<"aside">>(null);
   const navbarRef = useRef<ComponentRef<"div">>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(isMobile);
+  const { isCollapsed, setCollapsed } = useSidebarState();
 
   // Collapsible section states
   const [sectionsCollapsed, setSectionsCollapsed] = useState<Record<string, boolean>>({});
@@ -86,7 +87,9 @@ const Navigation = () => {
 
   useEffect(() => {
     if (isMobile) collapse();
+    else if (isCollapsed) collapse();
     else resetWidth();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
   useEffect(() => {
@@ -130,7 +133,7 @@ const Navigation = () => {
 
   const resetWidth = () => {
     if (sidebarRef.current && navbarRef.current) {
-      setIsCollapsed(false);
+      setCollapsed(false);
       setIsResetting(true);
       sidebarRef.current.style.width = isMobile ? "100%" : sidebarPx;
       navbarRef.current.style.setProperty("width", isMobile ? "0" : `calc(100% - ${sidebarPx})`);
@@ -141,7 +144,7 @@ const Navigation = () => {
 
   const collapse = () => {
     if (sidebarRef.current && navbarRef.current) {
-      setIsCollapsed(true);
+      setCollapsed(true);
       setIsResetting(true);
       sidebarRef.current.style.width = "0";
       navbarRef.current.style.setProperty("width", "100%");
@@ -399,7 +402,7 @@ const Navigation = () => {
               </button>
             </div>
           </div>
-          <div className="min-h-0 flex-1">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <ScrollableList>
               <DocumentList />
             </ScrollableList>

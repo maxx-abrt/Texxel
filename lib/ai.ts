@@ -4,7 +4,7 @@ export interface AiMessage {
   role: "developer" | "user" | "assistant";
   content: string;
 }
-
+ 
 export type AiActionType =
   | "create_task"
   | "edit_task"

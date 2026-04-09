@@ -15,9 +15,12 @@ import {
   ClipboardList,
   Eye,
   FileText,
+  FolderPlus,
+  History,
   Lightbulb,
   ListTodo,
   Loader2,
+  MessageSquare,
   Minimize2,
   Maximize2,
   Palette,
@@ -66,7 +69,10 @@ interface ChatMessage {
   role: "user" | "ai";
   text: string;
   pendingActions?: PendingAction[];
+  timestamp?: number;
 }
+
+type SidebarTab = "chat" | "history";
 
 // ─── Icons map ───────────────────────────────────────────────────────────────
 
@@ -120,6 +126,8 @@ const ACTION_TYPE_ICONS: Record<string, React.ElementType> = {
   create_document: FileText,
   replace_content: Pencil,
   edit_document_blocks: Wand2,
+  insert_blocks: Plus,
+  create_project: FolderPlus,
 };
 
 // ─── A2E AI cute avatar ──────────────────────────────────────────────────────
@@ -313,6 +321,13 @@ export function AiAssistantPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [totalTokensUsed, setTotalTokensUsed] = useState(0);
   const [currentAction, setCurrentAction] = useState<string | undefined>();
+  const [activeTab, setActiveTab] = useState<SidebarTab>("chat");
+  const [sessionHistory, setSessionHistory] = useState<{ id: string; preview: string; messages: ChatMessage[]; date: number }[]>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("a2e_ai_history") : null;
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const aiAccess = useExtensions().getAiAccess();
@@ -340,6 +355,7 @@ export function AiAssistantPanel({
   const updateTask = useMutation(api.tasks.update);
   const createDoc = useMutation(api.documents.createWithContent);
   const updateDoc = useMutation(api.documents.update);
+  const createProject = useMutation(api.projects.create);
 
   const activeTasks = (myTasks ?? []).filter(
     (tk) => tk.status !== "done" && tk.status !== "cancelled",
@@ -488,6 +504,18 @@ export function AiAssistantPanel({
           }
           await createDoc({ title: d.title ?? "Untitled", content, icon: d.icon ?? undefined, workspaceId: wsId });
           return t("actionCreatedNote");
+        }
+        case "create_project": {
+          const d = action.data;
+          const dueDate = d.dueDate && d.dueDate !== "null" ? new Date(d.dueDate).getTime() : undefined;
+          await createProject({
+            name: d.name ?? "Untitled Project",
+            description: d.description ?? undefined,
+            color: d.color ?? "#6366f1",
+            dueDate,
+            workspaceId: wsId,
+          });
+          return `Project "${d.name ?? "Untitled"}" created`;
         }
         case "insert_blocks": {
           const d = action.data;
@@ -681,10 +709,51 @@ export function AiAssistantPanel({
     handleSend(t(key as any));
   };
 
+  const saveToHistory = useCallback((msgs: ChatMessage[]) => {
+    if (msgs.length < 2) return;
+    const entry = {
+      id: Date.now().toString(),
+      preview: msgs.find((m) => m.role === "user")?.text?.slice(0, 80) ?? "Conversation",
+      messages: msgs,
+      date: Date.now(),
+    };
+    setSessionHistory((prev) => {
+      const updated = [entry, ...prev].slice(0, 20);
+      try { localStorage.setItem("a2e_ai_history", JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, []);
+
   const handleReset = () => {
+    if (messages.length >= 2) saveToHistory(messages);
     setMessages([]);
     setInput("");
     inputRef.current?.focus();
+  };
+
+  const handleLoadHistory = (msgs: ChatMessage[]) => {
+    setMessages(msgs);
+    setActiveTab("chat");
+    setTimeout(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }, 50);
+  };
+
+  const handleApplyAll = async (msgIdx: number) => {
+    const msg = messages[msgIdx];
+    if (!msg?.pendingActions) return;
+    for (let j = 0; j < msg.pendingActions.length; j++) {
+      if (msg.pendingActions[j].status === "pending") {
+        await handleApplyAction(msgIdx, j);
+      }
+    }
+  };
+
+  const handleRejectAll = (msgIdx: number) => {
+    setMessages((prev) => prev.map((m, i) => {
+      if (i !== msgIdx || !m.pendingActions) return m;
+      return { ...m, pendingActions: m.pendingActions.map((pa) => pa.status === "pending" ? { ...pa, status: "rejected" as ActionStatus } : pa) };
+    }));
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -692,7 +761,7 @@ export function AiAssistantPanel({
   return (
     <div className="flex h-full flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-3 shrink-0 bg-gradient-to-r from-violet-500/5 via-transparent to-blue-500/5">
+      <div className="flex items-center justify-between border-b px-4 py-2.5 shrink-0 bg-gradient-to-r from-violet-500/5 via-transparent to-blue-500/5">
         <div className="flex items-center gap-2.5">
           <A2EAvatar size="md" />
           <div>
@@ -729,9 +798,87 @@ export function AiAssistantPanel({
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex shrink-0 border-b">
+        <button
+          onClick={() => setActiveTab("chat")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-semibold transition-colors border-b-2",
+            activeTab === "chat"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground/50 hover:text-muted-foreground",
+          )}
+        >
+          <MessageSquare className="h-3 w-3" /> Chat
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 py-2 text-[11px] font-semibold transition-colors border-b-2",
+            activeTab === "history"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground/50 hover:text-muted-foreground",
+          )}
+        >
+          <History className="h-3 w-3" /> History
+          {sessionHistory.length > 0 && (
+            <span className="ml-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+              {sessionHistory.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* History tab */}
+      {activeTab === "history" && (
+        <div className="flex-1 overflow-y-auto">
+          {sessionHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <History className="h-8 w-8 text-muted-foreground/20 mb-3" />
+              <p className="text-xs font-medium text-muted-foreground/60">No history yet</p>
+              <p className="text-[11px] text-muted-foreground/40 mt-1">Past conversations will appear here</p>
+            </div>
+          ) : (
+            <div className="divide-y">
+              {sessionHistory.map((entry) => (
+                <button
+                  key={entry.id}
+                  onClick={() => handleLoadHistory(entry.messages)}
+                  className="w-full flex flex-col gap-0.5 px-4 py-3 text-left hover:bg-accent/30 transition-colors group"
+                >
+                  <p className="text-[12px] font-medium truncate text-foreground/80 group-hover:text-foreground">
+                    {entry.preview}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/40">
+                    {new Date(entry.date).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {" · "}{entry.messages.length} messages
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
+          {sessionHistory.length > 0 && (
+            <div className="px-4 py-3 border-t">
+              <button
+                onClick={() => {
+                  setSessionHistory([]);
+                  try { localStorage.removeItem("a2e_ai_history"); } catch {}
+                }}
+                className="text-[11px] text-muted-foreground/40 hover:text-destructive transition-colors"
+              >
+                Clear history
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chat tab */}
+      {activeTab === "chat" && (
+        <>
       {/* Context banner */}
       {contextSummary && (
-        <div className="border-b bg-muted/20 px-4 py-1.5">
+        <div className="border-b bg-muted/20 px-4 py-1.5 shrink-0">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50 mb-0.5">
             {t("contextLabel")}
           </p>
@@ -780,6 +927,22 @@ export function AiAssistantPanel({
               {/* Action cards (pending approval) */}
               {msg.pendingActions && msg.pendingActions.length > 0 && (
                 <div className="space-y-1.5">
+                  {msg.pendingActions.length > 1 && msg.pendingActions.some((pa) => pa.status === "pending") && (
+                    <div className="flex items-center gap-1.5 pb-0.5">
+                      <button
+                        onClick={() => handleApplyAll(i)}
+                        className="flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        <Check className="h-2.5 w-2.5" /> Apply all
+                      </button>
+                      <button
+                        onClick={() => handleRejectAll(i)}
+                        className="flex items-center gap-1 rounded-md bg-red-400/10 px-2 py-1 text-[10px] font-semibold text-red-400 hover:bg-red-400/20 transition-colors"
+                      >
+                        <X className="h-2.5 w-2.5" /> Reject all
+                      </button>
+                    </div>
+                  )}
                   {msg.pendingActions.map((pa, j) => (
                     <ActionCard
                       key={j}
@@ -883,6 +1046,8 @@ export function AiAssistantPanel({
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

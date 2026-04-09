@@ -170,7 +170,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ projec
   const project = useQuery(api.projects.getById, { id: projectId as Id<"projects"> });
   const tasks = useQuery(api.tasks.getByProject, { projectId: projectId as Id<"projects"> });
   const projectDocs = useQuery(api.documents.getByProject, { projectId: projectId as Id<"projects"> });
-  const myTeams = useQuery(api.teams.getMyTeams);
+  const myTeams = useQuery(api.teams.getMyTeams, {});
   const updateTask = useMutation(api.tasks.update);
   const updateProject = useMutation(api.projects.update);
   const removeProject = useMutation(api.projects.remove);

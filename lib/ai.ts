@@ -12,7 +12,8 @@ export type AiActionType =
   | "create_document"
   | "replace_content"
   | "edit_document_blocks"
-  | "insert_blocks";
+  | "insert_blocks"
+  | "create_project";
 
 export interface AiAction {
   type: AiActionType;
@@ -61,6 +62,7 @@ function defaultLabel(a: AiAction): string {
     case "replace_content": return "Replace note content";
     case "edit_document_blocks": return "Edit note (BlockNote)";
     case "insert_blocks": return `Insert into note: ${a.data.title ?? "content"}`;
+    case "create_project": return `Create project: ${a.data.name ?? "Untitled"}`;
     default: return "Action";
   }
 }
@@ -264,12 +266,13 @@ ${currentCtx}
 ## Your role & capabilities
 
 You help the user:
-1. **Manage tasks** — create, edit, prioritize, set deadlines, create subtasks, build plans
-2. **Write and edit notes** — create rich structured notes, update existing ones with full BlockNote formatting
-3. **Plan projects** — break goals into tasks with deadlines, suggest priorities, create action plans
-4. **Analyse the workspace** — surface insights, flag overdue work, suggest daily focus
+1. **Manage tasks** — create, edit, prioritize, set deadlines, create subtasks, bulk plan
+2. **Manage projects** — create new projects with color/description, build project plans with linked tasks and notes
+3. **Write and edit notes** — create rich structured notes, update existing ones with full BlockNote formatting, link plans to projects
+4. **Plan & organize** — break goals into phases, create tasks with deadlines, generate project plans as note + tasks + project in one shot
+5. **Analyse the workspace** — surface insights, flag overdue work, suggest daily focus, identify bottlenecks
 
-You PROPOSE actions — the user sees each as an approval card and clicks "Apply". Never claim you've done something directly.
+You PROPOSE actions — the user sees each as an approval card and clicks "Apply" or rejects it. Never claim you've done something directly. For multi-step plans, emit all actions together so the user can review and apply them in order.
 
 ---
 
@@ -319,7 +322,13 @@ Use this ONLY when user explicitly asks to rewrite/replace the whole note.
 {"type": "create_document", "label": "New note: <title>", "data": {"title": "Note title", "icon": "📝", "blocks": [<array of BlockNote blocks>]}}
 \`\`\`
 
-You can emit **multiple action blocks** in one response (e.g. create note + tasks at once).
+### Create a project
+\`\`\`action
+{"type": "create_project", "label": "New project: <name>", "data": {"name": "Project name", "description": "Optional description", "color": "#6366f1", "dueDate": "YYYY-MM-DD"}}
+\`\`\`
+Available colors for projects: #6366f1 (indigo), #8b5cf6 (violet), #ec4899 (pink), #ef4444 (red), #f97316 (orange), #eab308 (yellow), #22c55e (green), #06b6d4 (cyan), #3b82f6 (blue), #64748b (slate)
+
+You can emit **multiple action blocks** in one response (e.g. create project + note + tasks all at once for a full plan).
 
 ---
 
@@ -379,8 +388,13 @@ Each cell is an ARRAY of inline text objects directly. Never wrap them in a "tab
 
 When the user asks to "create a plan", "plan my week", "plan project X", etc.:
 1. Create a well-structured note with the plan (heading → sections → bullet/check lists, table if useful)
-2. Create individual tasks with deadlines for each action item
-3. Emit all actions in one response
+2. If they want a new project, emit a **create_project** action first
+3. Create individual tasks with deadlines for each action item (link to the project if applicable)
+4. Emit ALL actions in one response — let the user apply them in sequence
+
+When the user asks to "plan with notes" or "create a project plan":
+- create_project → create_document (plan note) → multiple create_task actions for each milestone
+- The note should reference the project and contain a full structured plan with phases
 
 Example plan note structure:
 \`\`\`json

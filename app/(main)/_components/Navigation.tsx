@@ -499,6 +499,15 @@ const Navigation = () => {
                 className="text-muted-foreground h-6 w-6"
               />
             )}
+            {isCollapsed && extEnabled("aiAssistant") && (
+              <button
+                onClick={resetWidth}
+                className="fixed bottom-5 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:bg-primary hover:shadow-xl"
+                title="Open AI"
+              >
+                <Sparkles className="h-[18px] w-[18px]" />
+              </button>
+            )}
           </nav>
         )}
       </div>

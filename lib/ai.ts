@@ -11,7 +11,8 @@ export type AiActionType =
   | "create_subtask"
   | "create_document"
   | "replace_content"
-  | "edit_document_blocks";
+  | "edit_document_blocks"
+  | "insert_blocks";
 
 export interface AiAction {
   type: AiActionType;
@@ -59,6 +60,7 @@ function defaultLabel(a: AiAction): string {
     case "create_document": return `Create note: ${a.data.title ?? "Untitled"}`;
     case "replace_content": return "Replace note content";
     case "edit_document_blocks": return "Edit note (BlockNote)";
+    case "insert_blocks": return `Insert into note: ${a.data.title ?? "content"}`;
     default: return "Action";
   }
 }
@@ -273,7 +275,17 @@ You PROPOSE actions — the user sees each as an approval card and clicks "Apply
 
 ## Action blocks
 
-Embed actions in your response using \`\`\`action\`\`\` JSON blocks. Always include a short human-readable "label".
+Embed actions using \`\`\`action\`\`\` JSON blocks. Always include a short "label".
+
+### DECISION TREE — which action to use for notes:
+${ctx.currentDocument
+  ? `**YOU ARE ON NOTE "${ctx.currentDocument.title}" [ID: ${ctx.currentDocument.id}]**
+- User asks to ADD/GENERATE content (table, text, list, summary…) → use **insert_blocks** with documentId: "${ctx.currentDocument.id}"
+- User asks to REWRITE/REPLACE the whole note → use **edit_document_blocks** with documentId: "${ctx.currentDocument.id}"
+- User asks to CREATE A NEW separate note → use **create_document**`
+  : `- No active note open → use **create_document** for any note creation`}
+
+---
 
 ### Create a task
 \`\`\`action
@@ -285,22 +297,29 @@ Embed actions in your response using \`\`\`action\`\`\` JSON blocks. Always incl
 {"type": "edit_task", "label": "Update: <title>", "data": {"id": "<exact_task_id>", "status": "todo|in_progress|in_review|done|cancelled", "priority": "none|low|medium|high|urgent", "title": "New title (optional)", "description": "Updated description (optional)", "dueDate": "YYYY-MM-DD"}}
 \`\`\`
 
-### Create a subtask (use exact parent task ID)
+### Create a subtask
 \`\`\`action
 {"type": "create_subtask", "label": "Subtask: <title>", "data": {"parentTaskId": "<exact_parent_id>", "title": "Subtask title", "priority": "medium", "dueDate": "YYYY-MM-DD"}}
 \`\`\`
 
-### Create a new note (with rich BlockNote content)
+### Insert blocks into the CURRENT note (APPEND content — does NOT erase existing content)
+Use this when the user asks to add a table, section, list, or any content to the open note.
+\`\`\`action
+{"type": "insert_blocks", "label": "Insert: <description>", "data": {"documentId": "<exact_doc_id>", "blocks": [<array of BlockNote blocks>]}}
+\`\`\`
+
+### Replace full content of an existing note
+Use this ONLY when user explicitly asks to rewrite/replace the whole note.
+\`\`\`action
+{"type": "edit_document_blocks", "label": "Rewrite note: <title>", "data": {"documentId": "<exact_doc_id>", "blocks": [<array of BlockNote blocks>]}}
+\`\`\`
+
+### Create a brand new note
 \`\`\`action
 {"type": "create_document", "label": "New note: <title>", "data": {"title": "Note title", "icon": "📝", "blocks": [<array of BlockNote blocks>]}}
 \`\`\`
 
-### Edit an existing note (full content replacement — use exact doc ID)
-\`\`\`action
-{"type": "edit_document_blocks", "label": "Update note: <title>", "data": {"documentId": "<exact_doc_id>", "blocks": [<array of BlockNote blocks>]}}
-\`\`\`
-
-You can emit **multiple action blocks** in one response for batch operations (e.g., create a plan = create note + create multiple tasks).
+You can emit **multiple action blocks** in one response (e.g. create note + tasks at once).
 
 ---
 
@@ -381,8 +400,7 @@ Example plan note structure:
 - Today is ${today} — use this for any relative date calculations ("next Monday", "in 3 days", etc.)
 - NEVER say "I did X" — always say "I'm proposing X, click Apply to confirm"
 - Always include "label" in every action block
-- **When the user is viewing a note (ACTIVE NOTE shown above), default to \`edit_document_blocks\` on that note's ID** — only use \`create_document\` when they explicitly ask to create a NEW note
-- When editing an existing note, use \`edit_document_blocks\` with the exact \`documentId\` — never guess IDs
+- **Follow the DECISION TREE above strictly** — when on a note, default to \`insert_blocks\` for additions, \`edit_document_blocks\` only for full rewrites, never guess IDs
 - When creating plans, emit the note + all tasks in the same response
 - Deadlines: always use ISO YYYY-MM-DD format, compute from today's date (${today})
 - Proactively flag overdue/high-priority items when relevant

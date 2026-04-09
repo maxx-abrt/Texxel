@@ -489,6 +489,24 @@ export function AiAssistantPanel({
           await createDoc({ title: d.title ?? "Untitled", content, icon: d.icon ?? undefined, workspaceId: wsId });
           return t("actionCreatedNote");
         }
+        case "insert_blocks": {
+          const d = action.data;
+          if (!d.documentId || !d.blocks) return t("actionFailed");
+          const newBlocks = normalizeBlocks(d.blocks);
+          // Append to existing content
+          let existingBlocks: any[] = [];
+          if (documentContext && d.documentId === documentContext.id && documentContext.content) {
+            try { existingBlocks = JSON.parse(documentContext.content); } catch {}
+          }
+          const merged = [...existingBlocks, ...newBlocks];
+          const content = JSON.stringify(merged);
+          if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
+            onDocumentContentReplace(content);
+          } else {
+            await updateDoc({ id: d.documentId as Id<"documents">, content });
+          }
+          return t("actionReplacedContent");
+        }
         case "edit_document_blocks": {
           const d = action.data;
           if (!d.documentId || !d.blocks) return t("actionFailed");

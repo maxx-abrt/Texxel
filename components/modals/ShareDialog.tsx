@@ -60,7 +60,7 @@ export function ShareDialog({ open, onClose, documentId, document }: ShareDialog
   const updateSharing = useMutation(api.documents.updateSharing);
   const generateToken = useMutation(api.documents.generateShareToken);
   const revokeToken = useMutation(api.documents.revokeShareToken);
-  const myTeams = useQuery(api.teams.getMyTeams);
+  const myTeams = useQuery(api.teams.getMyTeams, {});
 
   const [isPublished, setIsPublished] = useState(document.isPublished);
   const [collabMode, setCollabMode] = useState<CollabMode | "none">(

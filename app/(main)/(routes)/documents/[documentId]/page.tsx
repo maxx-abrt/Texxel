@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { useMemo, use, useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronLeft, ChevronRight, MessageCircle, Sparkles, X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, MessageCircle, RotateCcw, Sparkles, X } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import { toast } from "sonner";
 
 import { Cover } from "@/components/cover";
@@ -58,6 +58,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const { documentId } = use(params);
   const router = useRouter();
   const t = useTranslations("editor");
+  const locale = useLocale();
   const [editor, setEditor] = useState<any | null>(null);
   const [commentsSidebarEl, setCommentsSidebarEl] = useState<HTMLElement | null>(null);
 
@@ -66,6 +67,8 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
   const uiCfg = getUIConfig();
   const [showAi, setShowAi] = useState(false);
   const [aiCollapsed, setAiCollapsed] = useState(false);
+  const [previewContent, setPreviewContent] = useState<string | null>(null);
+  const originalContentRef = useRef<string | undefined>(undefined);
   const [wordCount, setWordCount] = useState({ words: 0, chars: 0, readingTime: 0 });
   const [wordCountExpanded, setWordCountExpanded] = useState(false);
 
@@ -114,16 +117,54 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
 
   const onChange = useCallback(
     (content: string) => {
+      // Don't auto-save while a preview is active
+      if (previewContent !== null) return;
       clearTimeout(debounceRef.current);
-      // Save to Convex every 800 ms (Yjs handles real-time; Convex is for persistence)
       debounceRef.current = setTimeout(() => {
         update({ id: documentId, content });
       }, 800);
-      // Update word count on each change
       if (editor) setWordCount(computeWordStats(editor));
     },
-    [update, documentId, editor],
+    [update, documentId, editor, previewContent],
   );
+
+  const handlePreviewContent = useCallback((newContent: string | null) => {
+    if (newContent === null) {
+      // Clear preview — revert to original
+      if (originalContentRef.current !== undefined && editor) {
+        try {
+          const blocks = JSON.parse(originalContentRef.current ?? "[]");
+          editor.replaceBlocks(editor.document, blocks);
+        } catch {}
+      }
+      setPreviewContent(null);
+      originalContentRef.current = undefined;
+    } else {
+      // Start preview — save original first
+      if (originalContentRef.current === undefined) {
+        originalContentRef.current = document?.content ?? undefined;
+      }
+      setPreviewContent(newContent);
+      if (editor) {
+        try {
+          const blocks = JSON.parse(newContent);
+          editor.replaceBlocks(editor.document, blocks);
+        } catch {}
+      }
+    }
+  }, [editor, document?.content]);
+
+  const handleAcceptPreview = useCallback(() => {
+    if (previewContent === null) return;
+    update({ id: documentId, content: previewContent });
+    setPreviewContent(null);
+    originalContentRef.current = undefined;
+    toast.success(locale === "fr" ? "Modifications appliquées ✓" : "Changes applied ✓");
+  }, [previewContent, update, documentId]);
+
+  const handleRevertPreview = useCallback(() => {
+    handlePreviewContent(null);
+  }, [handlePreviewContent]);
 
   // Register native BlockNote export handlers
   useEffect(() => {
@@ -238,6 +279,33 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
     <div className="flex h-full min-h-0">
       {/* Main content */}
       <div className="flex-1 overflow-y-auto pb-40 min-w-0 relative">
+        {/* AI preview banner */}
+        {previewContent !== null && (
+          <div className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2.5 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span className="text-[12px] font-medium text-primary/80">
+                {locale === "fr" ? "Aperçu de la suggestion IA — acceptez ou annulez" : "AI suggestion preview — accept or cancel"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={handleRevertPreview}
+                className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+                {locale === "fr" ? "Annuler" : "Revert"}
+              </button>
+              <button
+                onClick={handleAcceptPreview}
+                className="flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Check className="h-3 w-3" />
+                {locale === "fr" ? "Accepter" : "Accept"}
+              </button>
+            </div>
+          </div>
+        )}
         <Cover url={document.coverImage} />
         <div className={`relative mx-auto transition-all duration-300 ${
           focusMode ? "max-w-2xl px-8" : (EDITOR_WIDTH_CLASS[uiCfg.editorWidth] ?? EDITOR_WIDTH_CLASS.default)
@@ -341,7 +409,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
             </div>
           ) : (
             <AiAssistantPanel
-              onClose={() => setShowAi(false)}
+              onClose={() => { setShowAi(false); if (previewContent !== null) handleRevertPreview(); }}
               documentContext={{
                 id: documentId,
                 title: document.title,
@@ -356,6 +424,7 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
                   } catch {}
                 }
               }}
+              onPreviewContent={handlePreviewContent}
             />
           )}
         </div>

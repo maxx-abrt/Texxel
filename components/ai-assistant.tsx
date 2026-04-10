@@ -49,6 +49,8 @@ import {
 import { useExtensions } from "@/hooks/useExtensions";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { Crown, Globe, BookOpen, Code2, MessageSquareText } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,6 +59,8 @@ interface AiAssistantPanelProps {
   documentContext?: { id: string; title: string; content?: string };
   taskContext?: { id: string; title: string; description?: string; status?: string; priority?: string; assigneeName?: string; projectName?: string };
   onDocumentContentReplace?: (newContent: string) => void;
+  /** Called immediately when a doc-change action is parsed — shows a live preview in the editor */
+  onPreviewContent?: (newContent: string | null) => void;
 }
 
 type ActionStatus = "pending" | "applied" | "rejected";
@@ -315,6 +319,7 @@ export function AiAssistantPanel({
   documentContext,
   taskContext,
   onDocumentContentReplace,
+  onPreviewContent,
 }: AiAssistantPanelProps) {
   const t = useTranslations("ai");
   const locale = useLocale();
@@ -324,6 +329,7 @@ export function AiAssistantPanel({
   const [totalTokensUsed, setTotalTokensUsed] = useState(0);
   const [currentAction, setCurrentAction] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState<SidebarTab>("chat");
+  const currentSessionId = useRef<string>(Date.now().toString());
   const [sessionHistory, setSessionHistory] = useState<{ id: string; preview: string; messages: ChatMessage[]; date: number }[]>(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem("a2e_ai_history") : null;
@@ -523,14 +529,17 @@ export function AiAssistantPanel({
           const d = action.data;
           if (!d.documentId || !d.blocks) return t("actionFailed");
           const newBlocks = normalizeBlocks(d.blocks);
-          // Append to existing content
           let existingBlocks: any[] = [];
           if (documentContext && d.documentId === documentContext.id && documentContext.content) {
             try { existingBlocks = JSON.parse(documentContext.content); } catch {}
           }
           const merged = [...existingBlocks, ...newBlocks];
           const content = JSON.stringify(merged);
-          if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
+          // If already previewed live, just persist to DB
+          if (onPreviewContent && documentContext && d.documentId === documentContext.id) {
+            onPreviewContent(null); // clear preview state (now committed)
+            await updateDoc({ id: d.documentId as Id<"documents">, content });
+          } else if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
             onDocumentContentReplace(content);
           } else {
             await updateDoc({ id: d.documentId as Id<"documents">, content });
@@ -541,7 +550,10 @@ export function AiAssistantPanel({
           const d = action.data;
           if (!d.documentId || !d.blocks) return t("actionFailed");
           const content = JSON.stringify(normalizeBlocks(d.blocks));
-          if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
+          if (onPreviewContent && documentContext && d.documentId === documentContext.id) {
+            onPreviewContent(null);
+            await updateDoc({ id: d.documentId as Id<"documents">, content });
+          } else if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
             onDocumentContentReplace(content);
           } else {
             await updateDoc({ id: d.documentId as Id<"documents">, content });
@@ -554,7 +566,10 @@ export function AiAssistantPanel({
           const content = JSON.stringify([
             { type: "paragraph", content: [{ type: "text", text: d.newContent }] },
           ]);
-          if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
+          if (onPreviewContent && documentContext && d.documentId === documentContext.id) {
+            onPreviewContent(null);
+            await updateDoc({ id: d.documentId as Id<"documents">, content });
+          } else if (onDocumentContentReplace && documentContext && d.documentId === documentContext.id) {
             onDocumentContentReplace(content);
           } else {
             await updateDoc({ id: d.documentId as Id<"documents">, content });
@@ -595,6 +610,11 @@ export function AiAssistantPanel({
       updated[actionIdx] = { ...updated[actionIdx], status: "rejected" };
       return { ...m, pendingActions: updated };
     }));
+    // Revert live preview if this was a doc-change action
+    const action = messages[msgIdx]?.pendingActions?.[actionIdx]?.action;
+    if (onPreviewContent && action && (action.type === "insert_blocks" || action.type === "edit_document_blocks" || action.type === "replace_content")) {
+      onPreviewContent(null);
+    }
   };
 
   // ── Send message ───────────────────────────────────────────────────────────
@@ -672,6 +692,28 @@ export function AiAssistantPanel({
         status: "pending" as ActionStatus,
       }));
 
+      // ── Live preview: push doc-change actions straight into the editor ──────
+      if (onPreviewContent && documentContext) {
+        for (const pa of pendingActions) {
+          const d = pa.action.data;
+          if (!d.documentId || d.documentId !== documentContext.id) continue;
+          if (pa.action.type === "insert_blocks" && d.blocks) {
+            let existing: any[] = [];
+            if (documentContext.content) try { existing = JSON.parse(documentContext.content); } catch {}
+            onPreviewContent(JSON.stringify([...existing, ...normalizeBlocks(d.blocks)]));
+            break;
+          }
+          if (pa.action.type === "edit_document_blocks" && d.blocks) {
+            onPreviewContent(JSON.stringify(normalizeBlocks(d.blocks)));
+            break;
+          }
+          if (pa.action.type === "replace_content" && d.newContent) {
+            onPreviewContent(JSON.stringify([{ type: "paragraph", content: [{ type: "text", text: d.newContent }] }]));
+            break;
+          }
+        }
+      }
+
       const aiMsg: ChatMessage = {
         role: "ai",
         text: response.text || (pendingActions.length > 0 ? "" : t("noResponse")),
@@ -723,30 +765,56 @@ export function AiAssistantPanel({
     handleSend(t(key as any));
   };
 
-  const saveToHistory = useCallback((msgs: ChatMessage[]) => {
+  const saveToHistory = useCallback((msgs: ChatMessage[], existingId?: string) => {
     if (msgs.length < 2) return;
+    const id = existingId ?? Date.now().toString();
     const entry = {
-      id: Date.now().toString(),
+      id,
       preview: msgs.find((m) => m.role === "user")?.text?.slice(0, 80) ?? "Conversation",
       messages: msgs,
       date: Date.now(),
     };
     setSessionHistory((prev) => {
-      const updated = [entry, ...prev].slice(0, 20);
+      // Replace existing entry with same id, or prepend
+      const filtered = prev.filter((e) => e.id !== id);
+      const updated = [entry, ...filtered].slice(0, 30);
       try { localStorage.setItem("a2e_ai_history", JSON.stringify(updated)); } catch {}
       return updated;
     });
+    return id;
+  }, []);
+
+  // Auto-save on every AI reply
+  useEffect(() => {
+    if (messages.length >= 2) {
+      saveToHistory(messages, currentSessionId.current);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  // Auto-save on unmount
+  useEffect(() => {
+    return () => {
+      setMessages((prev) => {
+        if (prev.length >= 2) saveToHistory(prev, currentSessionId.current);
+        return prev;
+      });
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleReset = () => {
-    if (messages.length >= 2) saveToHistory(messages);
+    if (messages.length >= 2) saveToHistory(messages, currentSessionId.current);
+    currentSessionId.current = Date.now().toString();
     setMessages([]);
     setInput("");
     inputRef.current?.focus();
   };
 
-  const handleLoadHistory = (msgs: ChatMessage[]) => {
-    setMessages(msgs);
+  const handleLoadHistory = (entry: { id: string; messages: ChatMessage[] }) => {
+    if (messages.length >= 2) saveToHistory(messages, currentSessionId.current);
+    currentSessionId.current = entry.id;
+    setMessages(entry.messages);
     setActiveTab("chat");
     setTimeout(() => {
       if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -853,22 +921,47 @@ export function AiAssistantPanel({
               <p className="text-[11px] text-muted-foreground/40 mt-1">Past conversations will appear here</p>
             </div>
           ) : (
-            <div className="divide-y">
-              {sessionHistory.map((entry) => (
-                <button
-                  key={entry.id}
-                  onClick={() => handleLoadHistory(entry.messages)}
-                  className="w-full flex flex-col gap-0.5 px-4 py-3 text-left hover:bg-accent/30 transition-colors group"
-                >
-                  <p className="text-[12px] font-medium truncate text-foreground/80 group-hover:text-foreground">
-                    {entry.preview}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/40">
-                    {new Date(entry.date).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    {" · "}{entry.messages.length} messages
-                  </p>
-                </button>
-              ))}
+            <div className="divide-y divide-border/40">
+              {sessionHistory.map((entry) => {
+                const aiPreview = entry.messages.find((m) => m.role === "ai")?.text?.replace(/```[\s\S]*?```/g, "").trim().slice(0, 90);
+                return (
+                  <div key={entry.id} className="group relative flex items-start gap-0 hover:bg-accent/30 transition-colors">
+                    <button
+                      onClick={() => handleLoadHistory(entry)}
+                      className="flex-1 flex flex-col gap-0.5 px-4 py-3 text-left min-w-0"
+                    >
+                      <div className="flex items-center gap-2">
+                        <p className="text-[12px] font-semibold truncate text-foreground/80 group-hover:text-foreground flex-1">
+                          {entry.preview}
+                        </p>
+                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                          {entry.messages.length}
+                        </span>
+                      </div>
+                      {aiPreview && (
+                        <p className="text-[11px] text-muted-foreground/50 line-clamp-1 mt-0.5">{aiPreview}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/35 mt-0.5">
+                        {new Date(entry.date).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSessionHistory((prev) => {
+                          const updated = prev.filter((h) => h.id !== entry.id);
+                          try { localStorage.setItem("a2e_ai_history", JSON.stringify(updated)); } catch {}
+                          return updated;
+                        });
+                      }}
+                      className="shrink-0 mr-2 mt-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition-all"
+                      title="Delete"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
           {sessionHistory.length > 0 && (
@@ -928,28 +1021,45 @@ export function AiAssistantPanel({
               {msg.text && (
                 <div
                   className={cn(
-                    "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap",
+                    "rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed",
                     msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      ? "bg-primary text-primary-foreground rounded-br-md whitespace-pre-wrap"
                       : "bg-muted/60 text-foreground rounded-bl-md",
                   )}
                 >
-                  {msg.text}
+                  {msg.role === "user" ? msg.text : (
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <p className="my-1 leading-relaxed text-[13px]">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
+                        em: ({ children }) => <em className="italic">{children}</em>,
+                        h1: ({ children }) => <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>,
+                        h2: ({ children }) => <h2 className="text-[14px] font-bold mt-2 mb-1">{children}</h2>,
+                        h3: ({ children }) => <h3 className="text-[13px] font-semibold mt-1.5 mb-0.5">{children}</h3>,
+                        ul: ({ children }) => <ul className="my-1 ml-4 list-disc space-y-0.5">{children}</ul>,
+                        ol: ({ children }) => <ol className="my-1 ml-4 list-decimal space-y-0.5">{children}</ol>,
+                        li: ({ children }) => <li className="text-[13px] leading-relaxed">{children}</li>,
+                        code: ({ children, className }) => {
+                          const isBlock = className?.includes("language-");
+                          return isBlock
+                            ? <code className="block rounded-lg bg-muted/80 px-3 py-2 text-[11px] font-mono overflow-x-auto my-1.5 whitespace-pre">{children}</code>
+                            : <code className="rounded bg-muted px-1 py-0.5 text-[11px] font-mono">{children}</code>;
+                        },
+                        pre: ({ children }) => <pre className="my-1.5 overflow-x-auto">{children}</pre>,
+                        blockquote: ({ children }) => <blockquote className="border-l-2 border-primary/40 pl-3 my-1.5 text-muted-foreground italic">{children}</blockquote>,
+                        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:opacity-80">{children}</a>,
+                        table: ({ children }) => <div className="overflow-x-auto my-1.5"><table className="w-full text-[11px] border-collapse">{children}</table></div>,
+                        thead: ({ children }) => <thead className="bg-muted/60">{children}</thead>,
+                        th: ({ children }) => <th className="border border-border/40 px-2 py-1 text-left font-semibold">{children}</th>,
+                        td: ({ children }) => <td className="border border-border/40 px-2 py-1">{children}</td>,
+                        hr: () => <hr className="my-2 border-border/40" />,
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
+                  )}
                 </div>
-              )}
-
-              {/* Fallback: AI replied with prose but no action block while on a document — offer to force re-apply */}
-              {msg.role === "ai" && documentContext && (!msg.pendingActions || msg.pendingActions.length === 0) && msg.text && i === messages.length - 1 && !isLoading && (
-                <button
-                  onClick={() => {
-                    const forceMsg = `[FORCE ACTION] The previous response did not include an action block. You MUST now re-emit the exact same content but as a \`\`\`action block with type insert_blocks, documentId "${documentContext.id}", and the correct BlockNote blocks. Output ONLY the action block, no prose.`;
-                    handleSend(forceMsg);
-                  }}
-                  className="flex items-center gap-1.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-1.5 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors mt-0.5"
-                >
-                  <Plus className="h-3 w-3" />
-                  {locale === "fr" ? "Appliquer dans la note" : "Apply to note"}
-                </button>
               )}
 
               {/* Action cards (pending approval) */}

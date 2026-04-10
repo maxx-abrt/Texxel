@@ -54,6 +54,7 @@ import { useDocumentUI } from "@/hooks/useDocumentUI";
 import { useBulkSelect } from "@/hooks/useBulkSelect";
 import { useExtensions } from "@/hooks/useExtensions";
 import { useSidebarState } from "@/hooks/useSidebarState";
+import { useWorkspace } from "@/hooks/useWorkspace";
 
 const Navigation = () => {
   const search = useSearch();
@@ -69,6 +70,7 @@ const Navigation = () => {
   const bulkArchive = useMutation(api.documents.bulkArchive);
   const bulkDuplicate = useMutation(api.documents.bulkDuplicate);
   const tb = useTranslations("bulk");
+  const { activeWorkspaceId } = useWorkspace();
   const { isEnabled: extEnabled, getUIConfig } = useExtensions();
   const sidebarW = getUIConfig().sidebarWidth ?? 252;
   const sidebarPx = `${sidebarW}px`;
@@ -156,7 +158,7 @@ const Navigation = () => {
   const td = useTranslations("dashboard");
 
   const handleCreate = () => {
-    const promise = create({ title: "Untitled" }).then((documentId) =>
+    const promise = create({ title: "Untitled", workspaceId: activeWorkspaceId as any }).then((documentId) =>
       router.push(`/documents/${documentId}`),
     );
     toast.promise(promise, {

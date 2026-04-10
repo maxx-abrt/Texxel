@@ -369,6 +369,31 @@ export function AiAssistantPanel({
     (tk) => tk.status !== "done" && tk.status !== "cancelled",
   );
 
+  // ── Helper: Parse markdown table from AI prose → BlockNote blocks ─────────
+  const parseMarkdownTable = (text: string): any[] | null => {
+    // Match markdown table: | col1 | col2 | col3 |
+    const tableRegex = /\|([^\n]+)\|\n\|[-:\|\s]+\|\n((?:\|[^\n]+\|\n?)+)/;
+    const match = text.match(tableRegex);
+    if (!match) return null;
+    const headerLine = match[1].trim();
+    const bodyLines = match[2].trim().split("\n").filter(Boolean);
+    const parseRow = (line: string) =>
+      line
+        .split("|")
+        .filter((_, i, arr) => i > 0 && i < arr.length - 1) // trim empty first/last
+        .map((cell) => ({ type: "text", text: cell.trim() }));
+    const rows = [
+      { cells: parseRow(headerLine).map((c) => [c]) },
+      ...bodyLines.map((line) => ({ cells: parseRow(line).map((c) => [c]) })),
+    ];
+    return [
+      {
+        type: "table",
+        content: { type: "tableContent", rows },
+      },
+    ];
+  };
+
   // Auto-scroll on new messages
   useEffect(() => {
     if (scrollRef.current) {
@@ -629,8 +654,8 @@ export function AiAssistantPanel({
     try {
       const systemPrompt = buildSystemPrompt(buildCtx());
       const actionReminder = documentContext
-        ? `CRITICAL INSTRUCTION: The user has asked to add or modify content in the note. You MUST emit a \`\`\`action block (type: insert_blocks or edit_document_blocks) with the actual content. Do NOT describe what you would insert — output the JSON action block directly so the user can click Apply. If you do not emit an action block, the action cannot be applied.`
-        : `CRITICAL INSTRUCTION: If creating tasks, notes, or projects, you MUST output \`\`\`action JSON blocks. Never just describe what you would do — always emit the actual action blocks.`;
+        ? `⚠️ MANDATORY: The user request requires modifying the note. YOU MUST OUTPUT A \`\`\`action CODE BLOCK containing the insert_blocks JSON. If you do not output this code block, THE SYSTEM WILL FAIL and the user will see NOTHING. Do NOT describe the table—OUTPUT THE JSON BLOCK IMMEDIATELY AFTER your sentence. The \`\`\`action block MUST contain: type, label, data.documentId, data.blocks.`
+        : `⚠️ MANDATORY: For any creation request, output \`\`\`action JSON blocks. Descriptions without code blocks cause system failures.`;
       const apiMessages: AiMessage[] = [
         { role: "developer", content: systemPrompt },
         { role: "developer", content: actionReminder },
@@ -1059,6 +1084,41 @@ export function AiAssistantPanel({
                       {msg.text}
                     </ReactMarkdown>
                   )}
+                </div>
+              )}
+
+              {/* Convert prose → live preview when no action block emitted */}
+              {msg.role === "ai" && documentContext && (!msg.pendingActions || msg.pendingActions.length === 0) && msg.text && i === messages.length - 1 && !isLoading && (
+                <div className="flex items-center gap-2 mt-1">
+                  {parseMarkdownTable(msg.text) && (
+                    <button
+                      onClick={() => {
+                        const blocks = parseMarkdownTable(msg.text);
+                        if (blocks && onPreviewContent) {
+                          let existing: any[] = [];
+                          if (documentContext.content) try { existing = JSON.parse(documentContext.content); } catch {}
+                          onPreviewContent(JSON.stringify([...existing, ...blocks]));
+                          // Add visual feedback that conversion happened
+                          toast.success(locale === "fr" ? "Tableau converti — aperçu actif" : "Table converted — preview active");
+                        }
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-colors"
+                    >
+                      <Table className="h-3.5 w-3.5" />
+                      {locale === "fr" ? "Voir le tableau dans la note" : "Preview table in note"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      // Re-send with FORCE suffix that demands action block
+                      const forceMsg = `SYSTEM OVERRIDE: You previously failed to output the required action block. NOW you MUST output ONLY the JSON action block. No prose. No descriptions. Output: \`\`\`action {"type":"insert_blocks","label":"Insert content","data":{"documentId":"${documentContext.id}","blocks":[...]}} \`\`\``;
+                      handleSend(forceMsg);
+                    }}
+                    className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-background px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    {locale === "fr" ? "Forcer l'action" : "Force action"}
+                  </button>
                 </div>
               )}
 

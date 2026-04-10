@@ -93,14 +93,21 @@ function InlineTaskAdd({ onAdd, className }: { onAdd: (title: string) => Promise
 /* ── Sortable task card for board ────────────────────────────────────── */
 function SortableTaskCard({ task, onToggleDone }: { task: any; onToggleDone: (id: Id<"tasks">, current: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.35 : 1 };
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+  };
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing touch-none"
+      className={cn(
+        "cursor-grab active:cursor-grabbing touch-none transition-all duration-150",
+        isDragging && "opacity-60 scale-[1.02] rotate-1"
+      )}
     >
       <TaskCard task={task} onToggleDone={onToggleDone} kanban />
     </div>
@@ -112,13 +119,13 @@ function DroppableColumn({ col, children, isOver, taskCount, onAddTask }: {
   col: (typeof BOARD_COLS)[number]; children: React.ReactNode; isOver: boolean; taskCount: number; onAddTask: () => void;
 }) {
   const t = useTranslations("tasks");
-  const { setNodeRef } = useDroppable({ id: col.key });
+  const { setNodeRef, isOver: isOverColumn } = useDroppable({ id: col.key });
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "flex w-72 shrink-0 flex-col rounded-2xl border transition-all duration-150",
-        isOver ? "border-primary/40 bg-primary/[0.03] shadow-sm" : "border-border/50 bg-muted/20",
+        "flex w-72 shrink-0 flex-col rounded-2xl border transition-all duration-200 ease-out",
+        isOver || isOverColumn ? "border-primary/50 bg-primary/5 shadow-md ring-1 ring-primary/20" : "border-border/50 bg-muted/20",
       )}
     >
       {/* Column header */}
@@ -203,6 +210,7 @@ export default function TasksPage() {
   const updateTask = useMutation(api.tasks.update);
   const createTask = useMutation(api.tasks.create);
   const removeTask = useMutation(api.tasks.remove);
+  const reorderTask = useMutation(api.tasks.reorder);
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState<"todo" | "in_progress" | "in_review" | "done" | "cancelled">("todo");
   const [filter, setFilter] = useState<SmartFilter>("all");
@@ -217,6 +225,7 @@ export default function TasksPage() {
   const [overCol, setOverCol] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [listOrder, setListOrder] = useState<string[]>([]);
+  const [kanbanOrder, setKanbanOrder] = useState<Record<string, string[]>>({});
 
   const toggleSelect = (id: Id<"tasks">, checked: boolean) => {
     setSelectedIds((prev) => {
@@ -308,10 +317,18 @@ export default function TasksPage() {
     tasks: filtered.filter((t) => t.status === g.key),
   }));
 
-  const boardGrouped = BOARD_COLS.map((col) => ({
-    ...col,
-    tasks: filtered.filter((t) => t.status === col.key),
-  }));
+  const boardGrouped = useMemo(() => {
+    return BOARD_COLS.map((col) => {
+      const colTasks = filtered.filter((t) => t.status === col.key);
+      const order = kanbanOrder[col.key];
+      if (!order || order.length === 0) return { ...col, tasks: colTasks };
+      // Apply custom order: ordered tasks first, then any new tasks not in order
+      const idToTask = new Map(colTasks.map((t) => [t._id, t]));
+      const ordered = order.map((id) => idToTask.get(id)).filter(Boolean) as typeof colTasks;
+      const rest = colTasks.filter((t) => !order.includes(t._id));
+      return { ...col, tasks: [...ordered, ...rest] };
+    });
+  }, [filtered, kanbanOrder]);
 
   const isGroupedView = filter === "all";
 
@@ -342,15 +359,44 @@ export default function TasksPage() {
     setActiveTask(null);
     setOverCol(null);
     const { active, over } = event;
-    if (!over || !active) return;
+    if (!over || !active || active.id === over.id) return;
+
     const draggedTask = allTasks.find((t) => t._id === active.id);
     if (!draggedTask) return;
+
     const colKey = BOARD_COLS.find((c) => c.key === over.id)?.key;
     const overTask = allTasks.find((t) => t._id === over.id);
     const targetStatus = colKey ?? overTask?.status;
+
+    // Moving to a different column
     if (targetStatus && targetStatus !== draggedTask.status) {
-      try { await updateTask({ id: draggedTask._id, status: targetStatus as any }); }
-      catch { toast.error(t("updateFailed")); }
+      try {
+        await updateTask({ id: draggedTask._id, status: targetStatus as any });
+        // Update local kanban order for the target column
+        setKanbanOrder((prev) => {
+          const targetCol = prev[targetStatus] ?? boardGrouped.find(g => g.key === targetStatus)?.tasks.map(t => t._id) ?? [];
+          const sourceCol = prev[draggedTask.status] ?? boardGrouped.find(g => g.key === draggedTask.status)?.tasks.map(t => t._id) ?? [];
+          // Remove from source
+          const newSource = sourceCol.filter(id => id !== draggedTask._id);
+          // Add to target at the position of the over task, or at end
+          const overIndex = overTask ? targetCol.indexOf(overTask._id) : targetCol.length;
+          const newTarget = [...targetCol.slice(0, overIndex), draggedTask._id, ...targetCol.slice(overIndex)];
+          return { ...prev, [draggedTask.status]: newSource, [targetStatus]: newTarget };
+        });
+      } catch { toast.error(t("updateFailed")); }
+    }
+    // Reordering within the same column
+    else if (targetStatus === draggedTask.status && overTask && overTask._id !== draggedTask._id) {
+      setKanbanOrder((prev) => {
+        const currentOrder = prev[targetStatus] ?? boardGrouped.find(g => g.key === targetStatus)?.tasks.map(t => t._id) ?? [];
+        const oldIndex = currentOrder.indexOf(draggedTask._id);
+        const newIndex = currentOrder.indexOf(overTask._id);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        const reordered = arrayMove(currentOrder, oldIndex, newIndex);
+        // Persist to backend
+        reorderTask({ id: draggedTask._id, projectId: draggedTask.projectId, newOrder: newIndex }).catch(() => {});
+        return { ...prev, [targetStatus]: reordered };
+      });
     }
   };
 
@@ -524,9 +570,9 @@ export default function TasksPage() {
               ))}
             </div>
           </div>
-          <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
+          <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
             {activeTask ? (
-              <div className="opacity-95 shadow-2xl rotate-1 scale-[1.03] pointer-events-none">
+              <div className="opacity-95 shadow-2xl rotate-2 scale-[1.05] pointer-events-none ring-2 ring-primary/30 rounded-xl">
                 <TaskCard task={activeTask} onToggleDone={() => {}} kanban />
               </div>
             ) : null}
@@ -624,9 +670,9 @@ export default function TasksPage() {
                     )}
                   </div>
                 </SortableContext>
-                <DragOverlay dropAnimation={{ duration: 150, easing: "ease" }}>
+                <DragOverlay dropAnimation={{ duration: 200, easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)" }}>
                   {activeTask ? (
-                    <div className="opacity-95 shadow-xl rotate-1 scale-[1.02] pointer-events-none">
+                    <div className="opacity-95 shadow-xl rotate-1 scale-[1.02] pointer-events-none ring-2 ring-primary/20 rounded-lg">
                       <TaskCard task={activeTask} onToggleDone={() => {}} showStatus />
                     </div>
                   ) : null}

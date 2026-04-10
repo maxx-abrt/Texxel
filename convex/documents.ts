@@ -74,7 +74,7 @@ export const getSidebar = query({
       .collect();
 
     const documents = args.workspaceId
-      ? allDocs.filter((d) => d.workspaceId === args.workspaceId || !d.workspaceId)
+      ? allDocs.filter((d) => d.workspaceId === args.workspaceId)
       : allDocs;
 
     documents.sort((a, b) => {

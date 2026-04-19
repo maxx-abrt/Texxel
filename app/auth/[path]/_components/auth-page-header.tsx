@@ -15,15 +15,13 @@ export function AuthPageHeader({ isSignUp }: AuthPageHeaderProps) {
           <span className="absolute inline-flex h-full w-full rounded-full bg-[#f76c5e] opacity-70 animate-ping" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#f76c5e]" />
         </span>
-        {isSignUp ? "Sign up" : "Sign in"}
+        {isSignUp ? t("signUpBadge") : t("signInBadge")}
       </span>
       <h1 className="text-[28px] md:text-[34px] font-semibold tracking-[-0.025em] leading-[1.05] text-white">
-        {isSignUp ? t("signUp") : t("signIn")}
+        {isSignUp ? t("signUp") : t("welcomeBack")}
       </h1>
       <p className="mt-2.5 text-[13px] text-white/45 max-w-[320px] mx-auto leading-relaxed">
-        {isSignUp
-          ? "Create your free workspace — no credit card, no limits."
-          : "Welcome back. Pick up where you left off."}
+        {isSignUp ? t("signUpSubtitle") : t("signInSubtitle")}
       </p>
     </div>
   );

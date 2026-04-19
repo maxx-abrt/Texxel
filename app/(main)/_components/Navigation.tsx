@@ -107,6 +107,35 @@ const Navigation = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusMode]);
 
+  // Prefetch all top-level workspace routes so sidebar navigation is instant.
+  // This is idempotent and cheap — Next.js caches the RSC payloads.
+  useEffect(() => {
+    const routes = [
+      "/documents",
+      "/inbox",
+      "/settings",
+      "/tasks",
+      "/calendar",
+      "/projects",
+      "/teams",
+      "/templates",
+      "/databases",
+      "/automations",
+    ];
+    const id = (typeof requestIdleCallback !== "undefined"
+      ? requestIdleCallback
+      : (cb: () => void) => setTimeout(cb, 200))(() => {
+        routes.forEach((r) => {
+          try { router.prefetch(r); } catch {}
+        });
+      });
+    return () => {
+      if (typeof cancelIdleCallback !== "undefined" && typeof id === "number") {
+        try { cancelIdleCallback(id); } catch {}
+      }
+    };
+  }, [router]);
+
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     e.preventDefault();
     e.stopPropagation();

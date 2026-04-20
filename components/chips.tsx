@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { JSX } from "react";
 import {
   Palette, Calendar, Tag, BarChart2, MapPin, CheckCircle2, CalendarDays,
-  Bell, ExternalLink, ListTodo, FolderKanban, UserIcon
+  Bell, ExternalLink, ListTodo, FolderKanban, UserIcon, CheckSquare
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery } from "convex/react";
@@ -854,6 +854,60 @@ export const ProgressChipSpec = createReactInlineContentSpec(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CHECKBOX CHIP — simple inline checkbox for table cells and inline use
+// ─────────────────────────────────────────────────────────────────────────────
+
+function CheckboxChipRenderer({ inlineContent }: {
+  inlineContent: { props: { chipId: string; checked: boolean } };
+}) {
+  const { chipId, checked } = inlineContent.props as { chipId: string; checked: boolean };
+  const update = useUpdateChip();
+  const [isChecked, setIsChecked] = useState(checked);
+
+  // Sync local state when props change
+  useEffect(() => {
+    setIsChecked(checked);
+  }, [checked]);
+
+  const toggle = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newChecked = !isChecked;
+    setIsChecked(newChecked);
+    update("checkboxChip", chipId, { checked: newChecked });
+  }, [isChecked, chipId, update]);
+
+  return (
+    <span
+      onMouseDown={toggle}
+      className={cn(
+        "inline-flex cursor-pointer select-none items-center justify-center rounded transition-all duration-150 ease-out",
+        "h-4 w-4 shrink-0 border",
+        isChecked
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-transparent hover:border-primary/50"
+      )}
+      role="checkbox"
+      aria-checked={isChecked}
+    >
+      <Check size={10} strokeWidth={3} />
+    </span>
+  );
+}
+
+export const CheckboxChipSpec = createReactInlineContentSpec(
+  {
+    type: "checkboxChip" as const,
+    propSchema: {
+      chipId: { default: "0" },
+      checked: { default: false },
+    },
+    content: "none",
+  } as const,
+  { render: (p) => <CheckboxChipRenderer inlineContent={p.inlineContent as any} /> },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // REFERENCE CHIP — links a task or project from the user's workspace inline
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1125,6 +1179,15 @@ export function buildChipSlashMenuItems(editor: any, t?: (key: string) => string
       aliases: ["status", "todo", "done", "blocked", "state", "chip"],
       onItemClick: () =>
         editor.insertInlineContent([{ type: "badgeChip", props: { chipId: genChipId(), text: "Todo", bgColor: "#6b7280", emoji: "" } }, " "]),
+    },
+    {
+      title: tr("menu.checkbox", "Checkbox"),
+      subtext: tr("menu.checkboxSubtext", "Inline checkbox — works in tables & text"),
+      icon: <ChipMenuIcon><CheckSquare size={13} /></ChipMenuIcon>,
+      group: tr("menu.group", "Smart Chips"),
+      aliases: ["checkbox", "check", "tick", "box", "table", "cell"],
+      onItemClick: () =>
+        editor.insertInlineContent([{ type: "checkboxChip", props: { chipId: genChipId(), checked: false } }, " "]),
     },
     {
       title: tr("menu.event", "Event"),

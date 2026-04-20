@@ -475,6 +475,9 @@
     }
   },
   "editor": {
+    "checklistTitle": "Liste de tâches",
+    "checklistSubtext": "Case à cocher intelligente — fonctionne dans les tableaux et en liste",
+    "basicBlocksGroup": "Blocs de base",
     "addIcon": "Ajouter une icône",
     "addCover": "Ajouter une couverture",
     "pageNavigation": "Navigation de page",
@@ -1012,6 +1015,8 @@
       "progressSubtext": "Barre de progression avec pourcentage",
       "status": "Statut",
       "statusSubtext": "À faire · En cours · Terminé · Bloqué",
+      "checkbox": "Case à cocher",
+      "checkboxSubtext": "Case à cocher en ligne — fonctionne dans les tableaux et le texte",
       "event": "Événement",
       "eventSubtext": "Événement ou réunion — titre, date, heure & couleur",
       "place": "Lieu",

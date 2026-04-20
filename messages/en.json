@@ -475,6 +475,9 @@
     "slugHint": "Only lowercase letters, numbers and hyphens"
   },
   "editor": {
+    "checklistTitle": "Checklist",
+    "checklistSubtext": "Smart checkbox — works in tables & as list items",
+    "basicBlocksGroup": "Basic blocks",
     "addIcon": "Add icon",
     "addCover": "Add cover",
     "pageNavigation": "Page navigation",
@@ -1012,6 +1015,8 @@
       "progressSubtext": "Inline progress bar with percentage",
       "status": "Status",
       "statusSubtext": "Todo · In Progress · Done · Blocked",
+      "checkbox": "Checkbox",
+      "checkboxSubtext": "Inline checkbox — works in tables & text",
       "event": "Event",
       "eventSubtext": "Event or meeting — title, date, time & colour",
       "place": "Place",

@@ -28,8 +28,9 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { ConvexThreadStore } from "@/lib/ConvexThreadStore";
-import { ColorChipSpec, DateChipSpec, BadgeChipSpec, ProgressChipSpec, EventChipSpec, PlaceChipSpec, RefChipSpec, buildChipMenuItems, buildChipSlashMenuItems } from "@/components/chips";
+import { ColorChipSpec, DateChipSpec, BadgeChipSpec, ProgressChipSpec, EventChipSpec, PlaceChipSpec, RefChipSpec, CheckboxChipSpec, buildChipMenuItems, buildChipSlashMenuItems, genChipId } from "@/components/chips";
 import { ChartBlockSpec, buildChartSlashMenuItems } from "@/components/chart-block";
+import { CheckSquare } from "lucide-react";
 import * as Y from "yjs";
 import YPartyKitProvider from "y-partykit/provider";
 
@@ -100,6 +101,7 @@ const editorSchema = BlockNoteSchema.create({
     eventChip: EventChipSpec,
     placeChip: PlaceChipSpec,
     refChip: RefChipSpec,
+    checkboxChip: CheckboxChipSpec,
   },
 });
 
@@ -114,6 +116,28 @@ function safeParseBlocks(raw?: string): PartialBlock[] | undefined {
     return valid ? (parsed as PartialBlock[]) : undefined;
   } catch {
     return undefined;
+  }
+}
+
+// Detect if the editor cursor is currently inside a table cell (td or th)
+function isInTableCell(editor: any): boolean {
+  try {
+    const pm = editor?._tiptapEditor;
+    if (!pm) return false;
+    const { state } = pm;
+    if (!state?.selection) return false;
+    const $pos = state.selection.$head || state.selection.$anchor;
+    if (!$pos) return false;
+    // Walk up the node tree to find if we're inside a tableCell or tableHeader
+    for (let d = $pos.depth; d >= 0; d--) {
+      const nodeType = $pos.node(d)?.type?.name;
+      if (nodeType === "tableCell" || nodeType === "tableHeader") {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
   }
 }
 
@@ -403,7 +427,51 @@ const Editor = ({
             const chipItems = buildChipSlashMenuItems(editor, (key) => {
               try { return tChips(key as any); } catch { return key; }
             });
-            const all = [...defaults, ...chartItems, ...chipItems];
+
+            // Filter out default check_list and replace with smart version
+            const filteredDefaults = defaults.filter((item: any) => item.key !== "check_list");
+
+            // Create smart check_list item that detects table cells
+            const smartCheckListItem = {
+              key: "check_list",
+              title: t("checklistTitle", { fallback: "Checklist" }),
+              subtext: t("checklistSubtext", { fallback: "Smart checkbox — works in tables & as list items" }),
+              icon: <span className="flex h-6 w-6 items-center justify-center rounded-md bg-muted text-foreground"><CheckSquare size={13} /></span>,
+              group: t("basicBlocksGroup", { fallback: "Basic blocks" }),
+              aliases: ["check", "checkbox", "task", "todo", "list"],
+              badge: "Mod-Shift-9",
+              onItemClick: () => {
+                if (isInTableCell(editor)) {
+                  // In table cell: insert inline checkbox chip
+                  editor.insertInlineContent([
+                    { type: "checkboxChip", props: { chipId: genChipId(), checked: false } },
+                    " ",
+                  ]);
+                } else {
+                  // Outside table: insert native checkListItem block
+                  const currentBlock = editor.getTextCursorPosition().block;
+                  editor.insertBlocks(
+                    [{ type: "checkListItem", content: "" }],
+                    currentBlock,
+                    "after"
+                  );
+                  const nextBlock = editor.getTextCursorPosition().nextBlock;
+                  if (nextBlock) {
+                    editor.setTextCursorPosition(nextBlock, "end");
+                  }
+                }
+              },
+            };
+
+            // Insert smart check_list after bullet_list if it exists, otherwise at start of basic blocks
+            const bulletListIndex = filteredDefaults.findIndex((item: any) => item.key === "bullet_list");
+            if (bulletListIndex >= 0) {
+              filteredDefaults.splice(bulletListIndex + 1, 0, smartCheckListItem);
+            } else {
+              filteredDefaults.unshift(smartCheckListItem);
+            }
+
+            const all = [...filteredDefaults, ...chartItems, ...chipItems];
             if (!query) return all;
             const q = query.toLowerCase();
             return all.filter(

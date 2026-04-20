@@ -1202,7 +1202,7 @@
       "subheading": "Notes, tâches, projets et collaboration en direct — un espace ouvert pour étudiants, équipes et créateurs.",
       "noContextLoss": "En solo ou avec vos camarades. Sans carte bancaire. Sans limites cachées.",
       "openWorkspace": "Ouvrir l'espace →",
-      "startFree": "Commencer gratuitement →",
+      "startFree": "Commencer gratuitement",
       "signIn": "Se connecter",
       "freePlan": "100% gratuit · Sans carte bancaire · Sans limites cachées"
     },
@@ -1294,7 +1294,7 @@
       "headingAccent": "Sans exception.",
       "desc": "Accès complet à toutes les fonctionnalités. Sans carte bancaire. Sans limites cachées. Sans pression.",
       "desc2": "Fait pour les étudiants. Ouvert à tous.",
-      "button": "Commencer gratuitement →",
+      "button": "Commencer gratuitement",
       "noSetup": "Aucune configuration requise"
     },
     "footer": {

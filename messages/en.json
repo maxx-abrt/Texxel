@@ -733,7 +733,27 @@
       "compactMode": "Compact mode",
       "compactModeDesc": "Reduce spacing and element sizes",
       "showWordCount": "Word count",
-      "showWordCountDesc": "Show word count bar in editor"
+      "showWordCountDesc": "Show word count bar in editor",
+      "density": "Density",
+      "densityDesc": "How tightly packed UI elements appear",
+      "densities": {
+        "compact": "Compact",
+        "default": "Default",
+        "spacious": "Spacious"
+      },
+      "corners": "Corner style",
+      "cornersDesc": "Sharper or softer radii across the app",
+      "radii": {
+        "sharp": "Sharp",
+        "default": "Default",
+        "rounded": "Rounded"
+      },
+      "texture": "Texture",
+      "textureDesc": "Subtle paper-grain overlay — adds warmth",
+      "textures": {
+        "flat": "Flat",
+        "paper": "Paper"
+      }
     }
   },
   "automations": {

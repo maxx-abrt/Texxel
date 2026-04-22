@@ -733,7 +733,27 @@
       "compactMode": "Mode compact",
       "compactModeDesc": "Réduire l'espacement et la taille des éléments",
       "showWordCount": "Compteur de mots",
-      "showWordCountDesc": "Afficher le compteur de mots dans l'éditeur"
+      "showWordCountDesc": "Afficher le compteur de mots dans l'éditeur",
+      "density": "Densité",
+      "densityDesc": "Espacement global des éléments d'interface",
+      "densities": {
+        "compact": "Compacte",
+        "default": "Par défaut",
+        "spacious": "Aérée"
+      },
+      "corners": "Coins",
+      "cornersDesc": "Rayons plus francs ou plus doux",
+      "radii": {
+        "sharp": "Net",
+        "default": "Par défaut",
+        "rounded": "Arrondi"
+      },
+      "texture": "Texture",
+      "textureDesc": "Léger grain papier — apporte de la chaleur",
+      "textures": {
+        "flat": "Plate",
+        "paper": "Papier"
+      }
     }
   },
   "automations": {

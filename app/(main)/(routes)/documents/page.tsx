@@ -1,37 +1,31 @@
 "use client";
 
 import { authClient } from "@/lib/auth/client";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  BookOpen,
   CheckSquare,
   FolderKanban,
   FileText,
-  Target,
   Users,
   Plus,
   ArrowRight,
+  ArrowUpRight,
   AlertCircle,
-  Calendar,
-  CheckCircle2,
+  Check,
   Circle,
-  Clock,
   Sparkles,
-  Trophy,
-  TrendingUp,
-  Zap,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NewTaskDialog } from "@/components/tasks/NewTaskDialog";
 import { AiAssistantPanel } from "@/components/ai-assistant";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useExtensions } from "@/hooks/useExtensions";
 import { useWorkspace } from "@/hooks/useWorkspace";
 
@@ -50,13 +44,37 @@ function useTimeAgo() {
   };
 }
 
-const priorityDot: Record<string, string> = {
-  urgent: "bg-red-500",
-  high: "bg-orange-500",
-  medium: "bg-amber-500",
-  low: "bg-sky-500",
-  none: "bg-slate-300 dark:bg-slate-600",
+// Priority → editorial accent tokens (dot + text)
+const PRIORITY_STYLE: Record<string, { dot: string; ring: string }> = {
+  urgent: { dot: "bg-red-500",    ring: "ring-red-500/40" },
+  high:   { dot: "bg-orange-500", ring: "ring-orange-500/40" },
+  medium: { dot: "bg-amber-500",  ring: "ring-amber-500/40" },
+  low:    { dot: "bg-sky-500",    ring: "ring-sky-500/40" },
+  none:   { dot: "bg-foreground/20", ring: "ring-foreground/10" },
 };
+
+// Smart ordering for the "focus" stream:
+// overdue → due today → in_progress → todo-with-priority → todo-rest
+function focusScore(t: any, now: number): number {
+  if (t.status === "done" || t.status === "cancelled") return 9999;
+  const base =
+    t.dueDate && t.dueDate < now ? 0 :
+    t.dueDate && isToday(t.dueDate) ? 100 :
+    t.status === "in_progress" ? 200 :
+    t.status === "in_review" ? 250 :
+    300;
+  const PRIO_WEIGHT: Record<string, number> = { urgent: 0, high: 5, medium: 10, low: 15, none: 20 };
+  const prio = PRIO_WEIGHT[t.priority ?? "none"] ?? 20;
+  return base + prio;
+}
+
+function isToday(ts: number): boolean {
+  const d = new Date(ts);
+  const n = new Date();
+  return d.getFullYear() === n.getFullYear() &&
+         d.getMonth() === n.getMonth() &&
+         d.getDate() === n.getDate();
+}
 
 const DocumentsPage = () => {
   const { data: session } = authClient.useSession();
@@ -77,6 +95,8 @@ const DocumentsPage = () => {
   const unreadCount = useQuery(api.notifications.getUnreadCount) ?? 0;
   const [showNewTask, setShowNewTask] = useState(false);
   const [showAi, setShowAi] = useState(false);
+  const locale = useLocale();
+  const updateTask = useMutation(api.tasks.update);
 
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
@@ -95,7 +115,7 @@ const DocumentsPage = () => {
   };
 
   const now = Date.now();
-  const todayStart = (() => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); })();
+  const todayStart = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }, []);
   const todayEnd = todayStart + 86_400_000;
 
   const activeTasks = (myTasks ?? []).filter((t) => t.status !== "done" && t.status !== "cancelled");
@@ -109,299 +129,296 @@ const DocumentsPage = () => {
   const totalTasksToday = todayTasks.length + doneTodayCount;
   const todayProgress = totalTasksToday > 0 ? Math.round((doneTodayCount / totalTasksToday) * 100) : 0;
 
+  // Unified "focus stream" — smart-sorted list of what needs attention now.
+  const focusStream = useMemo(
+    () => activeTasks.slice().sort((a, b) => focusScore(a, now) - focusScore(b, now)),
+    [activeTasks, now],
+  );
+
+  const todayLabel = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        weekday: "long", day: "numeric", month: "long",
+      }).format(new Date());
+    } catch { return ""; }
+  }, [locale]);
+
+  const handleCompleteTask = async (id: any) => {
+    try {
+      await updateTask({ id, status: "done" });
+    } catch { /* noop */ }
+  };
+
+  // Loading skeleton state
+  const isLoading = myTasks === undefined || recentDocs === undefined;
+
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-5xl px-6 py-8 md:px-10">
-        {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {getGreeting()}, {firstName}
+    <div className="relative h-full overflow-y-auto tx-route-enter">
+      {/* Ambient accent orbs — subtle decoration, paired with paper texture */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[420px] overflow-hidden">
+        <div
+          className="tx-orb"
+          style={{
+            top: "-140px",
+            right: "-80px",
+            width: "460px",
+            height: "460px",
+            background: "radial-gradient(closest-side, color-mix(in oklch, var(--primary), transparent 60%), transparent 70%)",
+          }}
+        />
+        <div
+          className="tx-orb"
+          style={{
+            top: "-80px",
+            right: "280px",
+            width: "260px",
+            height: "260px",
+            background: "radial-gradient(closest-side, color-mix(in oklch, var(--primary), transparent 75%), transparent 70%)",
+            opacity: 0.35,
+          }}
+        />
+      </div>
+
+      <div className="relative mx-auto max-w-[1180px] px-6 py-10 md:px-12 md:py-14">
+        {/* ── Editorial hero ────────────────────────────────────────── */}
+        <header className="mb-12 md:mb-14 tx-stagger">
+          <div className="flex items-center gap-2">
+            <span className="tx-overline">{todayLabel}</span>
+            <span className="tx-hairline mt-0 flex-1 max-w-[140px]" />
+          </div>
+          <h1 className="tx-display mt-4">
+            {getGreeting()},{" "}
+            <span className="tx-text-accent">{firstName}</span>
           </h1>
-          <p className="text-muted-foreground/70 mt-1">
-            {td("overview")}
-          </p>
-        </div>
 
-        {/* ── Overdue spotlight ─────────────────────────────────────── */}
-        {overdueTaskCount > 0 && myTasks !== undefined && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/10 px-4 py-3">
-            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-red-600 dark:text-red-400">
-                {overdueTaskCount} overdue {overdueTaskCount === 1 ? "task" : "tasks"}
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {overdueTasks.slice(0, 3).map((t) => (
-                  <button
-                    key={t._id}
-                    onClick={() => router.push(`/tasks/${t._id}`)}
-                    className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-[11px] font-medium text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                  >
-                    {t.title.length > 28 ? t.title.slice(0, 28) + "…" : t.title}
-                  </button>
-                ))}
-                {overdueTaskCount > 3 && (
-                  <button onClick={() => router.push("/tasks")} className="text-[11px] text-red-500 hover:underline">
-                    +{overdueTaskCount - 3} more
-                  </button>
-                )}
-              </div>
-            </div>
-            <button onClick={() => router.push("/tasks")} className="shrink-0 text-[11px] text-red-500 hover:underline font-medium">
-              View all →
-            </button>
-          </div>
-        )}
-
-        {/* ── Today's Focus ─────────────────────────────────────────── */}
-        {(todayTasks.length > 0 || doneTodayCount > 0) && myTasks !== undefined && (
-          <div className="mb-8 rounded-xl border border-amber-200 dark:border-amber-800/40 bg-amber-50/50 dark:bg-amber-900/10 px-5 py-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-amber-500" />
-                <h2 className="text-sm font-semibold">{td("todayFocus") ?? "Today's Focus"}</h2>
-                <span className="text-[10px] text-muted-foreground bg-background border rounded-full px-2 py-0.5">
-                  {doneTodayCount}/{totalTasksToday} done
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="flex items-center gap-2">
-                <div className="w-20 h-1.5 rounded-full bg-amber-200 dark:bg-amber-800/60 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                    style={{ width: `${todayProgress}%` }}
+          {/* Inline vital-signs strip — replaces the 5-stat cards */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2">
+            {isLoading ? (
+              <>
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-28" />
+              </>
+            ) : (
+              <>
+                <VitalSign
+                  label={td("stats.openTasks")}
+                  value={activeTasks.length}
+                  tone="neutral"
+                  href="/tasks"
+                />
+                {overdueTaskCount > 0 && (
+                  <VitalSign
+                    label={td("stats.overdue")}
+                    value={overdueTaskCount}
+                    tone="danger"
+                    href="/tasks"
                   />
-                </div>
-                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">{todayProgress}%</span>
+                )}
+                {doneTodayCount > 0 && (
+                  <VitalSign
+                    label={td("stats.doneToday")}
+                    value={doneTodayCount}
+                    tone="success"
+                  />
+                )}
+                <VitalSign
+                  label={td("stats.projects")}
+                  value={(myProjects ?? []).length}
+                  tone="neutral"
+                  href="/projects"
+                />
+                {(myTeams ?? []).length > 0 && (
+                  <VitalSign
+                    label={td("stats.teams")}
+                    value={(myTeams ?? []).length}
+                    tone="neutral"
+                    href="/teams"
+                  />
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Subtle progress ring for today */}
+          {!isLoading && totalTasksToday > 0 && (
+            <div className="mt-5 flex items-center gap-3 max-w-md">
+              <span className="tx-overline shrink-0">{td("todayFocus")}</span>
+              <div className="tx-progress flex-1">
+                <span style={{ width: `${todayProgress}%` }} />
               </div>
+              <span className="tx-overline tx-num shrink-0 text-[var(--tx-text-muted)]">
+                {doneTodayCount}/{totalTasksToday}
+              </span>
             </div>
-            <div className="space-y-1">
-              {todayTasks.slice(0, 4).map((task) => (
-                <div
-                  key={task._id}
-                  onClick={() => router.push(`/tasks/${task._id}`)}
-                  className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/20 cursor-pointer transition-colors group"
-                >
-                  <Circle className="h-3.5 w-3.5 shrink-0 text-amber-400 group-hover:text-amber-600 transition-colors" />
-                  <span className="flex-1 text-[13px] truncate">{task.title}</span>
-                  <span className="text-[10px] text-amber-500/70 shrink-0 flex items-center gap-0.5">
-                    <Clock className="h-2.5 w-2.5" /> Today
-                  </span>
-                </div>
-              ))}
-              {todayTasks.length > 4 && (
-                <button onClick={() => router.push("/tasks")} className="text-[11px] text-amber-500 hover:underline pl-2 mt-1">
-                  +{todayTasks.length - 4} more today
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+          )}
+        </header>
 
-        {/* Stats row */}
-        {myTasks === undefined ? (
-          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-5">
-            {[1,2,3,4,5].map((i) => (
-              <Skeleton key={i} className="h-24 rounded-xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 mb-10 sm:grid-cols-5">
-            {[
-              { label: td("stats.openTasks"), value: activeTasks.length, icon: CheckSquare, gradient: "from-blue-500/10 to-blue-500/5", iconColor: "text-blue-500", href: "/tasks" },
-              { label: td("stats.overdue"), value: overdueTaskCount, icon: AlertCircle, gradient: overdueTaskCount > 0 ? "from-red-500/10 to-red-500/5" : "from-emerald-500/10 to-emerald-500/5", iconColor: overdueTaskCount > 0 ? "text-red-500" : "text-emerald-500", href: "/tasks" },
-              { label: td("stats.doneToday"), value: doneTodayCount, icon: Trophy, gradient: doneTodayCount > 0 ? "from-emerald-500/10 to-emerald-500/5" : "from-slate-500/10 to-slate-500/5", iconColor: doneTodayCount > 0 ? "text-emerald-500" : "text-slate-400", href: "/tasks" },
-              { label: td("stats.projects"), value: (myProjects ?? []).length, icon: FolderKanban, gradient: "from-violet-500/10 to-violet-500/5", iconColor: "text-violet-500", href: "/projects" },
-              { label: td("stats.teams"), value: (myTeams ?? []).length, icon: Users, gradient: "from-amber-500/10 to-amber-500/5", iconColor: "text-amber-500", href: "/teams" },
-            ].map((stat) => (
-              <Link
-                key={stat.label}
-                href={stat.href}
-                prefetch
-                className="group relative overflow-hidden rounded-xl border border-border/60 p-4 text-left transition-all duration-200 hover:shadow-sm hover:border-border"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
-                  <ArrowRight className="h-3 w-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <p className="text-2xl font-semibold tracking-tight">{stat.value}</p>
-                <p className="text-[11px] font-medium text-muted-foreground/60 mt-0.5">{stat.label}</p>
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Quick actions row */}
-        <div className="flex flex-wrap gap-1.5 mb-10">
-          {[
-            { label: td("newNote"), icon: FileText, action: onCreateDoc },
-            { label: td("newTask"), icon: CheckSquare, action: () => setShowNewTask(true) },
-            { label: td("myProjects"), icon: FolderKanban, action: () => router.push("/projects") },
-            { label: td("myTeams"), icon: Users, action: () => router.push("/teams") },
-            { label: td("templates") ?? "Templates", icon: BookOpen, action: () => router.push("/templates") },
-          ].map((item) => (
+        {/* ── Quick actions — compact, chip-style row ──────────────── */}
+        <div className="mb-10 flex flex-wrap items-center gap-2">
+          <button
+            onClick={onCreateDoc}
+            className="tx-chip tx-pressable tx-focus-ring"
+          >
+            <Plus className="h-3 w-3" />
+            {td("newNote")}
+          </button>
+          <button
+            onClick={() => setShowNewTask(true)}
+            className="tx-chip tx-pressable tx-focus-ring"
+          >
+            <Plus className="h-3 w-3" />
+            {td("newTask")}
+          </button>
+          <button
+            onClick={() => router.push("/projects")}
+            className="tx-chip tx-pressable tx-focus-ring"
+          >
+            <FolderKanban className="h-3 w-3" />
+            {td("myProjects")}
+          </button>
+          {extEnabled("aiAssistant") && (
             <button
-              key={item.label}
-              onClick={item.action}
-              className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:border-border hover:shadow-sm"
+              onClick={() => setShowAi(true)}
+              className="tx-chip tx-pressable tx-focus-ring"
+              data-active="true"
             >
-              <item.icon className="h-3.5 w-3.5" /> {item.label}
+              <Sparkles className="h-3 w-3" />
+              A2E AI
             </button>
-          ))}
+          )}
+          <span className="ml-auto hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground/40">
+            <kbd className="rounded-md border border-border/40 bg-background/60 px-1.5 py-0.5 font-mono text-[10px]">⌘</kbd>
+            <kbd className="rounded-md border border-border/40 bg-background/60 px-1.5 py-0.5 font-mono text-[10px]">K</kbd>
+            <span>{tc("search") ?? "Search anything"}</span>
+          </span>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-5">
-          {/* Left column - Tasks & Activity */}
-          <div className="lg:col-span-3 space-y-8">
-            {/* Active tasks */}
+        {/* ── Main grid: focus stream (left) + aside (right) ────────── */}
+        <div className="grid gap-10 lg:grid-cols-[1fr_320px] lg:gap-12">
+          {/* LEFT — Focus stream */}
+          <div className="space-y-10 min-w-0">
+            {/* Focus stream */}
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[13px] font-medium text-foreground/80">{td("myTasks")}</h2>
-                <button
-                  onClick={() => router.push("/tasks")}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
-                >
-                  {td("viewAll")} <ArrowRight className="h-3 w-3" />
-                </button>
-              </div>
-              {myTasks === undefined ? (
-                <div className="rounded-xl border divide-y">
-                  {[1,2,3].map((i) => (
-                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+              <SectionHeader
+                eyebrow={td("todayFocus")}
+                title={td("myTasks")}
+                action={{ label: td("viewAll"), onClick: () => router.push("/tasks") }}
+              />
+              {isLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-1 py-2">
                       <Skeleton className="h-3.5 w-3.5 rounded-full shrink-0" />
                       <Skeleton className="h-4 flex-1" />
                       <Skeleton className="h-3 w-12" />
                     </div>
                   ))}
                 </div>
-              ) : activeTasks.length === 0 ? (
-                <div className="rounded-xl border border-dashed p-8 text-center">
-                  <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground font-medium">{td("allCaughtUp")}</p>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">{td("noTasksDesc")}</p>
-                  <Button size="sm" variant="outline" onClick={() => setShowNewTask(true)} className="mt-3 gap-1.5 h-7 text-xs">
-                    <Plus className="h-3 w-3" /> {td("addTask")}
-                  </Button>
-                </div>
+              ) : focusStream.length === 0 ? (
+                <EmptyState
+                  icon={Sparkles}
+                  title={td("allCaughtUp")}
+                  description={td("noTasksDesc")}
+                  cta={{ label: td("addTask"), onClick: () => setShowNewTask(true) }}
+                />
               ) : (
-                <div className="rounded-xl border border-border/40 divide-y divide-border/40">
-                  {activeTasks.slice(0, 6).map((task) => (
-                    <Link
+                <div className="tx-stagger -mx-1">
+                  {focusStream.slice(0, 8).map((task) => (
+                    <FocusTaskRow
                       key={task._id}
-                      href={`/tasks/${task._id}`}
-                      prefetch
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/30 transition-all duration-200 group first:rounded-t-xl last:rounded-b-xl"
-                    >
-                      <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/25 group-hover:text-foreground/50 transition-colors duration-200" />
-                      <span className={cn("flex-1 text-[13px] truncate", task.dueDate && task.dueDate < Date.now() && "text-red-500/80")}>{task.title}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {task.priority !== "none" && (
-                          <div className={cn("h-1.5 w-1.5 rounded-full", priorityDot[task.priority])} />
-                        )}
-                        {task.dueDate && task.dueDate < Date.now() ? (
-                          <span className="text-[10px] font-medium text-red-500 flex items-center gap-0.5">
-                            <AlertCircle className="h-2.5 w-2.5" /> {td("overdue")}
-                          </span>
-                        ) : task.dueDate ? (
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                          </span>
-                        ) : null}
-                      </div>
-                    </Link>
+                      task={task}
+                      now={now}
+                      onComplete={handleCompleteTask}
+                      onOpen={() => router.push(`/tasks/${task._id}`)}
+                      locale={locale}
+                      overdueLabel={td("overdue")}
+                    />
                   ))}
-                  {activeTasks.length > 6 && (
+                  {focusStream.length > 8 && (
                     <Link
                       href="/tasks"
                       prefetch
-                      className="block w-full text-center text-[11px] text-muted-foreground/50 hover:text-foreground/70 py-2.5 transition-colors duration-200 rounded-b-xl hover:bg-accent/30"
+                      className="mt-2 flex items-center justify-between px-3 py-2 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors rounded-lg hover:bg-foreground/[0.03]"
                     >
-                      +{activeTasks.length - 6} {td("more")}
+                      <span>+{focusStream.length - 8} {td("more")}</span>
+                      <ArrowRight className="h-3 w-3" />
                     </Link>
                   )}
                 </div>
               )}
             </section>
 
-            {/* Inbox preview */}
+            {/* Inbox stream — only if unread */}
             {unreadCount > 0 && (
               <section>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-[13px] font-medium text-foreground/80">{td("inbox")}</h2>
-                    <div className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-semibold text-background">
-                      {unreadCount}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => router.push("/inbox")}
-                    className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
-                  >
-                    {td("viewAll")} <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-                <div className="rounded-xl border border-border/40 divide-y divide-border/40">
-                  {(notifications ?? []).filter((n) => !n.read).slice(0, 3).map((n) => (
-                    <div
+                <SectionHeader
+                  eyebrow={td("stats.unread")}
+                  title={td("inbox")}
+                  badge={unreadCount}
+                  action={{ label: td("viewAll"), onClick: () => router.push("/inbox") }}
+                />
+                <div className="tx-stagger -mx-1 space-y-0.5">
+                  {(notifications ?? []).filter((n) => !n.read).slice(0, 4).map((n) => (
+                    <button
                       key={n._id}
                       onClick={() => router.push("/inbox")}
-                      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-accent/30 transition-all duration-200 first:rounded-t-xl last:rounded-b-xl"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-foreground/[0.03] group"
                     >
-                      <div className="h-1.5 w-1.5 rounded-full bg-foreground shrink-0" />
-                      <p className="flex-1 text-sm truncate font-medium">{n.title}</p>
-                      <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(n.createdAt)}</span>
-                    </div>
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--primary)] shrink-0 ring-4 ring-[color-mix(in_oklch,var(--primary),transparent_90%)]" />
+                      <span className="flex-1 text-[13px] truncate text-foreground/85 group-hover:text-foreground">
+                        {n.title}
+                      </span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground/45">
+                        {timeAgo(n.createdAt)}
+                      </span>
+                    </button>
                   ))}
                 </div>
               </section>
             )}
           </div>
 
-          {/* Right column - Notes & Projects */}
-          <div className="lg:col-span-2 space-y-8">
+          {/* RIGHT — Aside */}
+          <aside className="space-y-10 lg:sticky lg:top-4 lg:self-start">
             {/* Recent notes */}
             <section>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[13px] font-medium text-foreground/80">{td("recentNotes")}</h2>
-                <button
-                  onClick={onCreateDoc}
-                  className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
-                >
-                  <Plus className="h-3 w-3" /> {tc("add")}
-                </button>
-              </div>
+              <SectionHeader
+                eyebrow={td("stats.notes")}
+                title={td("recentNotes")}
+                action={{ label: tc("add"), onClick: onCreateDoc, icon: Plus }}
+              />
               {recentDocs === undefined ? (
-                <div className="rounded-xl border divide-y">
-                  {[1,2,3].map((i) => (
-                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <div className="space-y-1">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 px-2 py-2">
                       <Skeleton className="h-4 w-4 rounded shrink-0" />
                       <Skeleton className="h-4 flex-1" />
                     </div>
                   ))}
                 </div>
               ) : (recentDocs ?? []).length === 0 ? (
-                <div className="rounded-xl border border-dashed p-8 text-center">
-                  <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground font-medium">{td("noNotes")}</p>
-                  <Button size="sm" variant="outline" onClick={onCreateDoc} className="mt-3 gap-1.5 h-7 text-xs">
-                    <Plus className="h-3 w-3" /> {td("createNote")}
-                  </Button>
-                </div>
+                <EmptyState
+                  icon={FileText}
+                  title={td("noNotes")}
+                  cta={{ label: td("createNote"), onClick: onCreateDoc }}
+                />
               ) : (
-                <div className="rounded-xl border border-border/40 divide-y divide-border/40">
+                <div className="tx-stagger -mx-1">
                   {(recentDocs ?? []).slice(0, 6).map((doc) => (
                     <Link
                       key={doc._id}
                       href={`/documents/${doc._id}`}
                       prefetch
-                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/30 transition-all duration-200 group first:rounded-t-xl last:rounded-b-xl"
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-foreground/[0.03] group"
                     >
-                      <span className="shrink-0 text-sm leading-none">
+                      <span className="shrink-0 text-sm leading-none grayscale opacity-85 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
                         {doc.icon ?? "📄"}
                       </span>
-                      <span className="flex-1 text-[13px] truncate group-hover:text-foreground transition-colors duration-200">
+                      <span className="flex-1 text-[13px] truncate text-foreground/80 group-hover:text-foreground">
                         {doc.title || tc("untitled")}
                       </span>
+                      <ArrowUpRight className="h-3 w-3 shrink-0 text-muted-foreground/30 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </Link>
                   ))}
                 </div>
@@ -411,42 +428,41 @@ const DocumentsPage = () => {
             {/* Projects */}
             {(myProjects ?? []).length > 0 && (
               <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-[13px] font-medium text-foreground/80">{td("myProjects")}</h2>
-                  <button
-                    onClick={() => router.push("/projects")}
-                    className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
-                  >
-                    {td("viewAll")} <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-                <div className="space-y-1.5">
+                <SectionHeader
+                  eyebrow={td("stats.projects")}
+                  title={td("myProjects")}
+                  action={{ label: td("viewAll"), onClick: () => router.push("/projects") }}
+                />
+                <div className="tx-stagger space-y-1.5">
                   {(myProjects ?? []).filter(Boolean).slice(0, 4).map((project) => {
-                    const statusColor = project!.status === "completed" ? "bg-emerald-500" : project!.status === "archived" ? "bg-slate-400" : "bg-primary";
+                    const isDone = project!.status === "completed";
+                    const progressPct = isDone ? 100 : project!.status === "archived" ? 100 : 32;
                     return (
-                    <div
-                      key={project!._id}
-                      onClick={() => router.push(`/projects/${project!._id}`)}
-                      className="flex items-center gap-3 rounded-xl border border-border/40 px-3.5 py-3 cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all duration-200 group"
-                    >
-                      <div
-                        className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm"
-                        style={{ backgroundColor: project!.color ?? "#6366f1" }}
+                      <button
+                        key={project!._id}
+                        onClick={() => router.push(`/projects/${project!._id}`)}
+                        className="w-full flex items-center gap-3 rounded-[var(--tx-radius-md)] px-2.5 py-2 text-left transition-all hover:bg-foreground/[0.03] group"
                       >
-                        {project!.icon ?? project!.name[0].toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium truncate group-hover:text-primary transition-colors duration-200">
-                          {project!.name}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
-                            <div className={cn("h-full rounded-full transition-all", statusColor)} style={{ width: project!.status === "completed" ? "100%" : "30%" }} />
-                          </div>
-                          <span className="text-[10px] text-muted-foreground/60 capitalize shrink-0">{project!.status}</span>
+                        <div
+                          className="h-7 w-7 shrink-0 rounded-[var(--tx-radius-sm)] flex items-center justify-center text-white text-[11px] font-semibold"
+                          style={{ backgroundColor: project!.color ?? "#6366f1" }}
+                        >
+                          {project!.icon ?? project!.name[0].toUpperCase()}
                         </div>
-                      </div>
-                    </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium truncate text-foreground/85 group-hover:text-foreground">
+                            {project!.name}
+                          </p>
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <div className="tx-progress flex-1">
+                              <span style={{ width: `${progressPct}%`, background: isDone ? "var(--tx-text-muted)" : undefined }} />
+                            </div>
+                            <span className="shrink-0 text-[9.5px] uppercase tracking-wider text-muted-foreground/50">
+                              {project!.status}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
@@ -456,37 +472,33 @@ const DocumentsPage = () => {
             {/* Teams */}
             {(myTeams ?? []).length > 0 && (
               <section>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-[13px] font-medium text-foreground/80">{td("myTeams")}</h2>
-                  <button
-                    onClick={() => router.push("/teams")}
-                    className="flex items-center gap-1 text-[11px] text-muted-foreground/50 hover:text-foreground/70 transition-colors duration-200"
-                  >
-                    {td("viewAll")} <ArrowRight className="h-3 w-3" />
-                  </button>
-                </div>
-                <div className="space-y-1.5">
-                  {(myTeams ?? []).filter(Boolean).slice(0, 3).map((team: any) => (
-                    <div
+                <SectionHeader
+                  eyebrow={td("stats.teams")}
+                  title={td("myTeams")}
+                  action={{ label: td("viewAll"), onClick: () => router.push("/teams") }}
+                />
+                <div className="tx-stagger space-y-0.5">
+                  {(myTeams ?? []).filter(Boolean).slice(0, 4).map((team: any) => (
+                    <button
                       key={team._id}
                       onClick={() => router.push(`/teams/${team._id}`)}
-                      className="flex items-center gap-3 rounded-lg border border-border/40 px-3.5 py-2.5 cursor-pointer hover:border-border hover:bg-accent/30 transition-all duration-200 group"
+                      className="w-full flex items-center gap-3 rounded-[var(--tx-radius-md)] px-2.5 py-2 text-left transition-colors hover:bg-foreground/[0.03] group"
                     >
-                      <div className="h-6 w-6 shrink-0 rounded-md bg-foreground/5 flex items-center justify-center text-[10px] font-semibold text-foreground/60">
+                      <div className="h-6 w-6 shrink-0 rounded-[var(--tx-radius-sm)] bg-foreground/[0.06] flex items-center justify-center text-[10px] font-semibold text-foreground/70">
                         {team.icon ?? team.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium truncate group-hover:text-foreground transition-colors duration-200">
+                        <p className="text-[13px] font-medium truncate text-foreground/85 group-hover:text-foreground">
                           {team.name}
                         </p>
-                        <p className="text-[10px] text-muted-foreground/50 capitalize">{team.role}</p>
+                        <p className="text-[10px] text-muted-foreground/50 capitalize mt-0.5">{team.role}</p>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </section>
             )}
-          </div>
+          </aside>
         </div>
       </div>
 
@@ -494,7 +506,7 @@ const DocumentsPage = () => {
 
       {/* AI Assistant floating panel */}
       {extEnabled("aiAssistant") && showAi && (
-        <div className="fixed bottom-6 right-6 z-50 w-96 h-[520px] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div className="fixed bottom-6 right-6 z-50 w-96 h-[520px] rounded-[var(--tx-radius-xl)] border border-border/60 bg-[var(--tx-surface-0)] tx-shadow-xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
           <AiAssistantPanel onClose={() => setShowAi(false)} />
         </div>
       )}
@@ -503,8 +515,9 @@ const DocumentsPage = () => {
       {extEnabled("aiAssistant") && !showAi && (
         <button
           onClick={() => setShowAi(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background shadow-md transition-all duration-200 hover:scale-[1.04] active:scale-[0.97]"
+          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] tx-shadow-lg tx-pressable transition-all hover:scale-[1.06]"
           title="A2E AI"
+          aria-label="Open A2E AI"
         >
           <Sparkles className="h-5 w-5" />
         </button>
@@ -512,4 +525,197 @@ const DocumentsPage = () => {
     </div>
   );
 };
+
+// ─── Subcomponents ────────────────────────────────────────────────────────
+
+interface SectionHeaderProps {
+  eyebrow?: string;
+  title: string;
+  badge?: number;
+  action?: { label: string; onClick: () => void; icon?: React.ElementType };
+}
+
+function SectionHeader({ eyebrow, title, badge, action }: SectionHeaderProps) {
+  return (
+    <div className="mb-4 flex items-end justify-between gap-3">
+      <div className="min-w-0">
+        {eyebrow && <p className="tx-overline mb-1.5">{eyebrow}</p>}
+        <div className="flex items-center gap-2">
+          <h2 className="tx-headline text-[17px] font-medium truncate">{title}</h2>
+          {badge !== undefined && badge > 0 && (
+            <span className="tx-num inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--primary)] px-1.5 text-[10px] font-semibold text-[var(--primary-foreground)]">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
+        </div>
+      </div>
+      {action && (
+        <button
+          onClick={action.onClick}
+          className="group/header flex items-center gap-1 text-[11px] text-muted-foreground/55 hover:text-foreground transition-colors shrink-0 tx-focus-ring rounded-md px-1 -mr-1 py-0.5"
+        >
+          {action.icon && <action.icon className="h-3 w-3" />}
+          {action.label}
+          {!action.icon && <ArrowRight className="h-3 w-3 -translate-x-0.5 group-hover/header:translate-x-0 transition-transform" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+interface VitalSignProps {
+  label: string;
+  value: number | string;
+  tone: "neutral" | "success" | "danger";
+  href?: string;
+}
+
+function VitalSign({ label, value, tone, href }: VitalSignProps) {
+  const toneClass =
+    tone === "danger"  ? "text-red-500 dark:text-red-400" :
+    tone === "success" ? "text-emerald-500 dark:text-emerald-400" :
+    "text-foreground";
+
+  const inner = (
+    <span className="group inline-flex items-baseline gap-1.5 tx-focus-ring rounded-md px-0.5 -mx-0.5">
+      <span className={cn("text-lg font-semibold tracking-tight tx-num", toneClass)}>
+        {value}
+      </span>
+      <span className="text-[11px] text-muted-foreground/55 group-hover:text-muted-foreground transition-colors">
+        {label.toLowerCase()}
+      </span>
+    </span>
+  );
+
+  return href ? (
+    <Link href={href} prefetch className="inline-flex">
+      {inner}
+    </Link>
+  ) : inner;
+}
+
+interface FocusTaskRowProps {
+  task: any;
+  now: number;
+  onComplete: (id: any) => void | Promise<void>;
+  onOpen: () => void;
+  locale: string;
+  overdueLabel: string;
+}
+
+function FocusTaskRow({ task, now, onComplete, onOpen, locale, overdueLabel }: FocusTaskRowProps) {
+  const [completing, setCompleting] = useState(false);
+  const isOverdue = !!(task.dueDate && task.dueDate < now && task.status !== "done");
+  const isTodayTask = !!task.dueDate && isToday(task.dueDate);
+  const prio = PRIORITY_STYLE[task.priority ?? "none"] ?? PRIORITY_STYLE.none;
+
+  const handleCheck = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (completing) return;
+    setCompleting(true);
+    await onComplete(task._id);
+  };
+
+  const dueText = !task.dueDate ? null :
+    isOverdue ? overdueLabel :
+    isTodayTask ? (locale === "fr" ? "Aujourd’hui" : "Today") :
+    new Date(task.dueDate).toLocaleDateString(locale, { month: "short", day: "numeric" });
+
+  return (
+    <div
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter") onOpen(); }}
+      className={cn(
+        "relative flex items-center gap-3 rounded-[var(--tx-radius-md)] px-3 py-2 cursor-pointer transition-all group/row",
+        "hover:bg-foreground/[0.03]",
+        completing && "opacity-40",
+      )}
+    >
+      {/* Completion checkbox */}
+      <button
+        onClick={handleCheck}
+        className={cn(
+          "relative flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all",
+          "border-foreground/20 hover:border-[var(--primary)] hover:bg-[var(--primary)]/10",
+          "focus-visible:outline-none focus-visible:border-[var(--primary)] focus-visible:bg-[var(--primary)]/10",
+        )}
+        aria-label="Complete task"
+      >
+        {completing ? (
+          <Loader2 className="h-2.5 w-2.5 animate-spin text-[var(--primary)]" />
+        ) : (
+          <Check className="h-2.5 w-2.5 text-[var(--primary)] opacity-0 group-hover/row:opacity-100 transition-opacity" />
+        )}
+      </button>
+
+      {/* Priority dot */}
+      {task.priority !== "none" && (
+        <span
+          className={cn("h-1.5 w-1.5 shrink-0 rounded-full ring-2", prio.dot, prio.ring)}
+          aria-hidden
+        />
+      )}
+
+      {/* Title */}
+      <span
+        className={cn(
+          "flex-1 truncate text-[13px] transition-colors",
+          isOverdue ? "text-red-500/85 dark:text-red-400/85" : "text-foreground/85 group-hover/row:text-foreground",
+        )}
+      >
+        {task.title}
+      </span>
+
+      {/* Status / due chip */}
+      <div className="flex items-center gap-2 shrink-0">
+        {task.status === "in_progress" && (
+          <span className="tx-overline text-[var(--primary)]">
+            {locale === "fr" ? "En cours" : "In progress"}
+          </span>
+        )}
+        {dueText && (
+          <span
+            className={cn(
+              "text-[10.5px] tabular-nums font-medium",
+              isOverdue ? "text-red-500" :
+              isTodayTask ? "text-[var(--primary)]" :
+              "text-muted-foreground/60",
+            )}
+          >
+            {dueText}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface EmptyStateProps {
+  icon: React.ElementType;
+  title: string;
+  description?: string;
+  cta?: { label: string; onClick: () => void };
+}
+
+function EmptyState({ icon: Icon, title, description, cta }: EmptyStateProps) {
+  return (
+    <div className="rounded-[var(--tx-radius-lg)] border border-dashed border-border/50 p-8 text-center">
+      <Icon className="mx-auto mb-3 h-7 w-7 text-muted-foreground/25" />
+      <p className="tx-title">{title}</p>
+      {description && <p className="mt-1 text-[12px] text-muted-foreground/55 max-w-[240px] mx-auto">{description}</p>}
+      {cta && (
+        <button
+          onClick={cta.onClick}
+          className="mt-4 inline-flex items-center gap-1.5 tx-chip tx-pressable"
+        >
+          <Plus className="h-3 w-3" />
+          {cta.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default DocumentsPage;

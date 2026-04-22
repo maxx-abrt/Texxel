@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Cover } from "@/components/cover";
 import { Toolbar } from "@/components/toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -279,26 +280,33 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
     <div className="flex h-full min-h-0">
       {/* Main content */}
       <div className="flex-1 overflow-y-auto pb-40 min-w-0 relative">
-        {/* AI preview banner */}
+        {/* AI preview banner — editorial, soft */}
         {previewContent !== null && (
-          <div className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-2.5 animate-in slide-in-from-top-2 duration-200">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary shrink-0" />
-              <span className="text-[12px] font-medium text-primary/80">
-                {locale === "fr" ? "Aperçu de la suggestion IA — acceptez ou annulez" : "AI suggestion preview — accept or cancel"}
+          <div className="sticky top-0 z-40 flex items-center justify-between gap-3 border-b border-[color-mix(in_oklch,var(--primary),transparent_75%)] bg-[color-mix(in_oklch,var(--primary),transparent_92%)] backdrop-blur-md px-5 py-2.5 animate-in slide-in-from-top-2 duration-[var(--tx-dur-base)]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                <span className="absolute inset-0 rounded-full bg-[var(--primary)]/15 animate-ping" />
+                <Sparkles className="relative h-3.5 w-3.5 text-[var(--primary)]" />
+              </div>
+              <span className="tx-overline text-[var(--primary)]">
+                {locale === "fr" ? "Aperçu IA" : "AI preview"}
+              </span>
+              <span className="tx-hairline-v h-4" />
+              <span className="text-[12px] text-foreground/75 truncate">
+                {locale === "fr" ? "Acceptez pour garder les modifications" : "Accept to keep the changes"}
               </span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={handleRevertPreview}
-                className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+                className="tx-chip tx-pressable"
               >
                 <RotateCcw className="h-3 w-3" />
                 {locale === "fr" ? "Annuler" : "Revert"}
               </button>
               <button
                 onClick={handleAcceptPreview}
-                className="flex items-center gap-1.5 rounded-lg bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="tx-chip tx-pressable !text-[var(--primary-foreground)] !bg-[var(--primary)] !border-[var(--primary)]"
               >
                 <Check className="h-3 w-3" />
                 {locale === "fr" ? "Accepter" : "Accept"}
@@ -326,41 +334,53 @@ const DocumentIdPage = ({ params }: DocumentIdPageProps) => {
           />
           {!focusMode && <TableOfContents editor={editor} />}
         </div>
-        {/* Word count footer — hidden on mobile, respects showWordCount setting */}
-        {uiCfg.showWordCount !== false && <div className="hidden md:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
-          <button
-            onClick={() => setWordCountExpanded((v) => !v)}
-            className="flex items-center gap-2 rounded-full border border-border/50 bg-background/85 px-3.5 py-1.5 shadow-sm backdrop-blur-sm text-[11px] text-muted-foreground/60 tabular-nums transition-all hover:text-muted-foreground hover:border-border cursor-pointer select-none"
-          >
-            <span className="font-medium">{wordCount.words.toLocaleString()} {t("words")}</span>
-            {wordCountExpanded && (
-              <>
-                <span className="h-3 w-px bg-border/50" />
-                <span>{wordCount.chars.toLocaleString()} {t("chars")}</span>
-                <span className="h-3 w-px bg-border/50" />
-                <span>~{wordCount.readingTime} {t("minRead")}</span>
-              </>
-            )}
-            <ChevronDown
-              className={`h-3 w-3 shrink-0 transition-transform duration-200 ${
-                wordCountExpanded ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-        </div>}
+        {/* Word count footer — editorial, hidden on mobile */}
+        {uiCfg.showWordCount !== false && (
+          <div className="hidden md:block fixed bottom-4 left-1/2 -translate-x-1/2 z-30">
+            <button
+              onClick={() => setWordCountExpanded((v) => !v)}
+              className={cn(
+                "flex items-center gap-2.5 rounded-full border border-border/40 bg-[color-mix(in_oklch,var(--background),transparent_20%)] px-4 py-1.5",
+                "text-[11px] text-muted-foreground/60 tabular-nums tx-pressable cursor-pointer select-none",
+                "backdrop-blur-md tx-shadow-sm",
+                "transition-[background,color,border-color,transform] duration-[var(--tx-dur-fast)]",
+                "hover:text-foreground hover:border-border hover:bg-[var(--tx-surface-0)]",
+              )}
+            >
+              <span className="tx-num font-medium">{wordCount.words.toLocaleString()}</span>
+              <span className="tx-overline !text-muted-foreground/50">{t("words")}</span>
+              {wordCountExpanded && (
+                <>
+                  <span className="h-3 w-px bg-border/40" />
+                  <span className="tx-num">{wordCount.chars.toLocaleString()}</span>
+                  <span className="tx-overline !text-muted-foreground/50">{t("chars")}</span>
+                  <span className="h-3 w-px bg-border/40" />
+                  <span className="tx-num">~{wordCount.readingTime}</span>
+                  <span className="tx-overline !text-muted-foreground/50">{t("minRead")}</span>
+                </>
+              )}
+              <ChevronDown
+                className={cn(
+                  "h-3 w-3 shrink-0 text-muted-foreground/40 transition-transform duration-[var(--tx-dur-fast)]",
+                  wordCountExpanded && "rotate-180",
+                )}
+              />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Comments sidebar — portal target (hidden in focus mode) */}
       {showComments && !focusMode && (
-        <div className="hidden sm:flex h-full w-72 lg:w-80 shrink-0 flex-col border-l border-border/50 bg-background">
-          <div className="flex shrink-0 items-center justify-between border-b border-border/40 px-4 py-3">
+        <div className="hidden sm:flex h-full w-72 lg:w-80 shrink-0 flex-col border-l border-border/40 bg-[var(--tx-surface-1)] animate-in slide-in-from-right-4 fade-in duration-[var(--tx-dur-base)]">
+          <div className="flex shrink-0 items-center justify-between border-b border-border/30 px-4 py-3">
             <div className="flex items-center gap-2">
-              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground/40" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">{t("commentsTitle")}</span>
+              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground/50" strokeWidth={1.75} />
+              <span className="tx-overline">{t("commentsTitle")}</span>
             </div>
             <button
               onClick={toggleComments}
-              className="flex h-6 w-6 items-center justify-center rounded-lg text-muted-foreground/40 transition-all duration-200 ease-out hover:bg-foreground/[0.06] hover:text-foreground/70"
+              className="flex h-6 w-6 items-center justify-center rounded-[var(--tx-radius-sm)] text-muted-foreground/40 transition-all duration-[var(--tx-dur-fast)] hover:bg-foreground/[0.05] hover:text-foreground/80"
               aria-label="Close"
             >
               <X className="h-3 w-3" />

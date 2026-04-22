@@ -229,189 +229,144 @@ const Navigation = () => {
         <div className="shrink-0 px-3 pt-1 pb-1">
           <button
             onClick={openCommandPalette}
-            className="group flex w-full items-center gap-2.5 rounded-lg px-3 py-[7px] text-[13px] font-medium text-muted-foreground/50 transition-all duration-200 ease-out hover:bg-foreground/[0.04] hover:text-muted-foreground/80"
+            className="group flex w-full items-center gap-2.5 rounded-[var(--tx-radius-md)] px-3 py-[7px] text-[13px] font-medium text-muted-foreground/55 transition-all duration-[var(--tx-dur-fast)] ease-[var(--tx-ease-in-out)] hover:bg-foreground/[0.035] hover:text-muted-foreground"
           >
-            <Search className="h-3.5 w-3.5 shrink-0" />
+            <Search className="h-3.5 w-3.5 shrink-0 opacity-70" strokeWidth={1.75} />
             <span className="flex-1 text-left truncate">{t("search")}</span>
-            <kbd className="ml-auto hidden rounded-md border border-border/30 bg-foreground/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/35 sm:inline-flex">
+            <kbd className="ml-auto hidden items-center gap-0.5 rounded-[var(--tx-radius-xs)] border border-border/30 bg-foreground/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/40 sm:inline-flex">
               ⌘K
             </kbd>
           </button>
         </div>
 
         {/* Quick actions — collapsible */}
-        <div className="shrink-0 px-3 pb-1">
-          <button
-            onClick={() => toggleSection("quick")}
-            className="group/header flex w-full items-center gap-1.5 px-3 pb-1 pt-2.5"
-          >
-            <ChevronDown className={cn(
-              "h-2.5 w-2.5 text-muted-foreground/30 transition-transform duration-200 ease-out group-hover/header:text-muted-foreground/50",
-              sectionsCollapsed.quick && "-rotate-90",
-            )} />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
-              {t("home")}
-            </span>
-          </button>
-          <div
-            className={cn(
-              "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-              sectionsCollapsed.quick ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100",
+        <SidebarSection
+          sectionKey="quick"
+          label={t("home")}
+          collapsed={sectionsCollapsed.quick}
+          onToggle={toggleSection}
+        >
+          <Item
+            label={t("home")}
+            icon={Home}
+            onClick={() => router.push("/documents")}
+            active={pathname === "/documents"}
+          />
+          <div className="relative">
+            <Item
+              label={t("inbox")}
+              icon={Inbox}
+              onClick={() => router.push("/inbox")}
+              active={pathname === "/inbox"}
+            />
+            {unreadCount > 0 && (
+              <div className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[9px] font-semibold text-[var(--primary-foreground)] shadow-sm">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </div>
             )}
-          >
-            <Item
-              label={t("home")}
-              icon={Home}
-              onClick={() => router.push("/documents")}
-              active={pathname === "/documents"}
-            />
-            <div className="relative">
-              <Item
-                label={t("inbox")}
-                icon={Inbox}
-                onClick={() => router.push("/inbox")}
-                active={pathname === "/inbox"}
-              />
-              {unreadCount > 0 && (
-                <div className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 flex h-[17px] min-w-[17px] items-center justify-center rounded-full bg-blue-500/90 px-1 text-[9px] font-semibold text-white shadow-sm shadow-blue-500/20">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </div>
-              )}
-            </div>
-            <Item
-              label={t("settings")}
-              icon={Settings}
-              onClick={() => router.push("/settings")}
-              active={pathname.startsWith("/settings")}
-            />
           </div>
-        </div>
+          <Item
+            label={t("settings")}
+            icon={Settings}
+            onClick={() => router.push("/settings")}
+            active={pathname.startsWith("/settings")}
+          />
+        </SidebarSection>
 
         {/* Workspace section — collapsible */}
-        <div className="shrink-0 px-3 pb-1">
-          <button
-            onClick={() => toggleSection("workspace")}
-            className="group/header flex w-full items-center gap-1.5 px-3 pb-1 pt-2.5"
-          >
-            <ChevronDown className={cn(
-              "h-2.5 w-2.5 text-muted-foreground/30 transition-transform duration-200 ease-out group-hover/header:text-muted-foreground/50",
-              sectionsCollapsed.workspace && "-rotate-90",
-            )} />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
-              {t("workspace")}
-            </span>
-          </button>
-          <div
-            className={cn(
-              "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-              sectionsCollapsed.workspace ? "max-h-0 opacity-0" : "max-h-[300px] opacity-100",
-            )}
-          >
+        <SidebarSection
+          sectionKey="workspace"
+          label={t("workspace")}
+          collapsed={sectionsCollapsed.workspace}
+          onToggle={toggleSection}
+        >
+          <Item
+            label={t("tasks")}
+            icon={CheckSquare}
+            onClick={() => router.push("/tasks")}
+            active={pathname.startsWith("/tasks")}
+          />
+          {extEnabled("calendar") && (
             <Item
-              label={t("tasks")}
-              icon={CheckSquare}
-              onClick={() => router.push("/tasks")}
-              active={pathname.startsWith("/tasks")}
+              label={t("calendar")}
+              icon={CalendarDays}
+              onClick={() => router.push("/calendar")}
+              active={pathname.startsWith("/calendar")}
             />
-            {extEnabled("calendar") && (
-              <Item
-                label={t("calendar")}
-                icon={CalendarDays}
-                onClick={() => router.push("/calendar")}
-                active={pathname.startsWith("/calendar")}
-              />
-            )}
+          )}
+          <Item
+            label={t("projects")}
+            icon={FolderKanban}
+            onClick={() => router.push("/projects")}
+            active={pathname.startsWith("/projects")}
+          />
+          <Item
+            label={t("teams")}
+            icon={Users}
+            onClick={() => router.push("/teams")}
+            active={pathname.startsWith("/teams")}
+          />
+          <Item
+            label={t("templates")}
+            icon={BookOpen}
+            onClick={() => router.push("/templates")}
+            active={pathname.startsWith("/templates")}
+          />
+          {extEnabled("databases") && (
             <Item
-              label={t("projects")}
-              icon={FolderKanban}
-              onClick={() => router.push("/projects")}
-              active={pathname.startsWith("/projects")}
+              label={t("databases")}
+              icon={Database}
+              onClick={() => router.push("/databases")}
+              active={pathname.startsWith("/databases")}
             />
-            <Item
-              label={t("teams")}
-              icon={Users}
-              onClick={() => router.push("/teams")}
-              active={pathname.startsWith("/teams")}
-            />
-            <Item
-              label={t("templates")}
-              icon={BookOpen}
-              onClick={() => router.push("/templates")}
-              active={pathname.startsWith("/templates")}
-            />
-            {extEnabled("databases") && (
-              <Item
-                label={t("databases")}
-                icon={Database}
-                onClick={() => router.push("/databases")}
-                active={pathname.startsWith("/databases")}
-              />
-            )}
-          </div>
-        </div>
+          )}
+        </SidebarSection>
 
         {/* Extension nav items — collapsible */}
         {(extEnabled("aiAssistant") || extEnabled("automations") || extEnabled("focusTimer")) && (
-          <div className="shrink-0 px-3 pb-1">
-            <button
-              onClick={() => toggleSection("extensions")}
-              className="group/header flex w-full items-center gap-1.5 px-3 pb-1 pt-2.5"
-            >
-              <ChevronDown className={cn(
-                "h-2.5 w-2.5 text-muted-foreground/30 transition-transform duration-200 ease-out group-hover/header:text-muted-foreground/50",
-                sectionsCollapsed.extensions && "-rotate-90",
-              )} />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30 transition-colors duration-200 group-hover/header:text-muted-foreground/50">
-                {t("extensions")}
-              </span>
-            </button>
-            <div
-              className={cn(
-                "overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-                sectionsCollapsed.extensions ? "max-h-0 opacity-0" : "max-h-[200px] opacity-100",
-              )}
-            >
-              {extEnabled("aiAssistant") && (
-                <Item
-                  label={t("aiAssistant")}
-                  icon={Sparkles}
-                  onClick={() => router.push("/documents")}
-                />
-              )}
-              {extEnabled("automations") && (
-                <Item
-                  label={t("automations")}
-                  icon={Zap}
-                  onClick={() => router.push("/automations")}
-                  active={pathname === "/automations"}
-                />
-              )}
-              {extEnabled("focusTimer") && (
-                <Item
-                  label={t("focusTimer")}
-                  icon={Clock}
-                  onClick={() => {
-                    const event = new CustomEvent("toggle-pomodoro");
-                    window.dispatchEvent(event);
-                  }}
-                />
-              )}
-            </div>
-          </div>
+          <SidebarSection
+            sectionKey="extensions"
+            label={t("extensions")}
+            collapsed={sectionsCollapsed.extensions}
+            onToggle={toggleSection}
+          >
+            {extEnabled("aiAssistant") && (
+              <Item
+                label={t("aiAssistant")}
+                icon={Sparkles}
+                onClick={() => router.push("/documents")}
+              />
+            )}
+            {extEnabled("automations") && (
+              <Item
+                label={t("automations")}
+                icon={Zap}
+                onClick={() => router.push("/automations")}
+                active={pathname === "/automations"}
+              />
+            )}
+            {extEnabled("focusTimer") && (
+              <Item
+                label={t("focusTimer")}
+                icon={Clock}
+                onClick={() => {
+                  const event = new CustomEvent("toggle-pomodoro");
+                  window.dispatchEvent(event);
+                }}
+              />
+            )}
+          </SidebarSection>
         )}
 
-        {/* Subtle divider before notes */}
-        <div className="mx-5 border-t border-sidebar-border/40" />
+        {/* Dotted divider before notes — editorial feel */}
+        <div className="mx-5 my-2 tx-dotline" />
 
         {/* Notes section — always visible, takes remaining space */}
         <div className="flex min-h-0 flex-1 flex-col px-3 pt-0.5">
           <div className="flex items-center justify-between px-3 pb-1 pt-2.5">
-            <div className="flex items-center gap-1.5">
-              <ChevronDown className="h-2.5 w-2.5 text-muted-foreground/30" />
-              <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/30">
-                {t("notes")}
-              </span>
-            </div>
+            <span className="tx-overline text-muted-foreground/40">
+              {t("notes")}
+            </span>
             <div className="flex items-center gap-0.5">
               <button
                 onClick={bulkSelect.toggleSelecting}
@@ -549,3 +504,49 @@ const Navigation = () => {
   );
 };
 export default Navigation;
+
+// ─── Sidebar section wrapper ─────────────────────────────────────────────
+// Unifies the uppercase-label + chevron-collapse pattern used across sections.
+interface SidebarSectionProps {
+  sectionKey: string;
+  label: string;
+  collapsed?: boolean;
+  onToggle: (key: string) => void;
+  children: React.ReactNode;
+}
+
+function SidebarSection({
+  sectionKey,
+  label,
+  collapsed,
+  onToggle,
+  children,
+}: SidebarSectionProps) {
+  return (
+    <div className="shrink-0 px-3 pb-0.5">
+      <button
+        onClick={() => onToggle(sectionKey)}
+        className="group/header flex w-full items-center gap-1.5 px-3 pt-3 pb-1 -mb-0.5"
+      >
+        <ChevronDown
+          className={cn(
+            "h-2.5 w-2.5 text-muted-foreground/25 transition-transform duration-[var(--tx-dur-fast)] ease-[var(--tx-ease-in-out)]",
+            "group-hover/header:text-muted-foreground/50",
+            collapsed && "-rotate-90",
+          )}
+        />
+        <span className="tx-overline text-muted-foreground/40 group-hover/header:text-muted-foreground/70 transition-colors">
+          {label}
+        </span>
+      </button>
+      <div
+        className={cn(
+          "overflow-hidden transition-all duration-[var(--tx-dur-slow)] ease-[var(--tx-ease-snap)]",
+          collapsed ? "max-h-0 opacity-0 -translate-y-1" : "max-h-[320px] opacity-100 translate-y-0",
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}

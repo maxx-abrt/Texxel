@@ -49,6 +49,26 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     return () => window.removeEventListener("toggle-pomodoro", handler);
   }, []);
 
+  // Apply density / corner / texture to <html> so the whole app responds.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (uiConfig.density && uiConfig.density !== "default") {
+      root.setAttribute("data-density", uiConfig.density);
+    } else {
+      root.removeAttribute("data-density");
+    }
+    if (uiConfig.cornerStyle && uiConfig.cornerStyle !== "default") {
+      root.setAttribute("data-radius", uiConfig.cornerStyle);
+    } else {
+      root.removeAttribute("data-radius");
+    }
+    if (uiConfig.texture && uiConfig.texture !== "flat") {
+      root.setAttribute("data-texture", uiConfig.texture);
+    } else {
+      root.removeAttribute("data-texture");
+    }
+  }, [uiConfig.density, uiConfig.cornerStyle, uiConfig.texture]);
+
   // Auto-create personal workspace on first authenticated load
   useEffect(() => {
     if (wsInitRef.current || !isAuthenticated || convexLoading) return;

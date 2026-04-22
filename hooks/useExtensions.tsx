@@ -18,6 +18,12 @@ export interface UIConfig {
   defaultTaskView: "list" | "board";
   defaultProjectView: "board" | "list" | "gantt";
   editorWidth: "default" | "wide" | "full";
+  /** UI density — applied as [data-density] on <html> */
+  density: "compact" | "default" | "spacious";
+  /** Corner radius scale — applied as [data-radius] on <html> */
+  cornerStyle: "sharp" | "default" | "rounded";
+  /** Ambient texture — applied as [data-texture] on <html> */
+  texture: "flat" | "paper";
 }
 
 export interface AiAccessConfig {
@@ -67,6 +73,9 @@ const DEFAULT_UI: UIConfig = {
   defaultTaskView: "list",
   defaultProjectView: "board",
   editorWidth: "default",
+  density: "default",
+  cornerStyle: "default",
+  texture: "flat",
 };
 
 const DEFAULT_AI_ACCESS: AiAccessConfig = {
@@ -133,7 +142,9 @@ export const useExtensions = create<ExtensionsState>()(
         }),
 
       getExtensions: () => getWsData(get()).extensions,
-      getUIConfig: () => getWsData(get()).uiConfig,
+      // Merge persisted config with defaults so newly-added fields (density,
+      // cornerStyle, texture…) are always populated even for stale stores.
+      getUIConfig: () => ({ ...DEFAULT_UI, ...(getWsData(get()).uiConfig ?? {}) }),
       getAiAccess: () => getWsData(get()).aiAccess ?? DEFAULT_AI_ACCESS,
       updateAiAccess: (patch: Partial<AiAccessConfig>) =>
         set((state) => {

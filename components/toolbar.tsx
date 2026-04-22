@@ -172,9 +172,10 @@ export const Toolbar = ({ initialData, preview }: ToolbarProps) => {
         disabled={preview}
         onChange={(e) => onInput(e.target.value)}
         className={cn(
-          "w-full resize-none bg-transparent text-5xl font-bold wrap-break-word outline-hidden",
-          "text-[#3F3F3F] placeholder:text-gray-300 disabled:cursor-default dark:text-[#CFCFCF]",
-          !isEditing && "cursor-pointer",
+          "w-full resize-none bg-transparent text-[44px] md:text-[52px] leading-[1.03] tracking-[-0.03em] font-semibold wrap-break-word outline-hidden",
+          "text-foreground/92 placeholder:text-foreground/20 disabled:cursor-default",
+          "transition-colors duration-[var(--tx-dur-fast)]",
+          !isEditing && "cursor-pointer hover:text-foreground",
         )}
       />
     </div>

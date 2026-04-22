@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { JSX } from "react";
 import {
   Palette, Calendar, Tag, BarChart2, MapPin, CheckCircle2, CalendarDays,
-  Bell, ExternalLink, ListTodo, FolderKanban, UserIcon, CheckSquare
+  Bell, ExternalLink, ListTodo, FolderKanban, UserIcon, CheckSquare, Check
 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery } from "convex/react";

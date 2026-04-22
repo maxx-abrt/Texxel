@@ -114,41 +114,40 @@ export const Item = ({
       role="button"
       style={{ paddingLeft: level ? `${level * 12 + 12}px` : "12px" }}
       className={cn(
-        "group relative flex min-h-[30px] w-full items-center rounded-lg py-1 pr-3 text-[13px] font-medium",
-        "text-muted-foreground/80 transition-all duration-200 ease-out",
-        "hover:bg-foreground/[0.04] hover:text-foreground",
-        active && "bg-foreground/[0.06] text-foreground",
+        "group relative flex min-h-[28px] w-full items-center py-[var(--tx-row-y)] pr-3 text-[13px] font-medium",
+        "rounded-[var(--tx-radius-sm)] text-muted-foreground/75 transition-[background-color,color,box-shadow]",
+        "duration-[var(--tx-dur-fast)] ease-[var(--tx-ease-in-out)]",
+        "hover:bg-foreground/[0.035] hover:text-foreground/90",
+        active && "tx-active-rail bg-foreground/[0.05] text-foreground",
       )}
     >
-      {/* Active indicator bar */}
-      {active && (
-        <div className="absolute left-0.5 top-1/2 -translate-y-1/2 h-3.5 w-[3px] rounded-full bg-primary/70 transition-all duration-300" />
-      )}
-
       {!!id && (
         <div
           role="button"
-          className="mr-1 flex h-4 w-4 items-center justify-center rounded-[4px] transition-colors duration-200 hover:bg-foreground/10"
+          className="mr-1 flex h-4 w-4 items-center justify-center rounded-[4px] transition-colors duration-[var(--tx-dur-fast)] hover:bg-foreground/10"
           onClick={handleExpand}
         >
           <ChevronIcon className={cn(
-            "h-3 w-3 shrink-0 transition-all duration-200",
-            active ? "text-foreground/50" : "text-muted-foreground/40",
+            "h-3 w-3 shrink-0 transition-transform duration-[var(--tx-dur-fast)] ease-[var(--tx-ease-in-out)]",
+            active ? "text-foreground/55" : "text-muted-foreground/35",
           )} />
         </div>
       )}
       {documentIcon ? (
-        <div className="mr-1.5 shrink-0 text-[1rem] leading-none">
+        <div className="mr-1.5 shrink-0 text-[0.9375rem] leading-none">
           {documentIcon}
         </div>
       ) : (
         <Icon className={cn(
-          "mr-2 h-[16px] w-[16px] shrink-0 transition-colors duration-200",
-          active ? "text-foreground/70" : "text-muted-foreground/60",
-        )} />
+          "mr-2 h-[15px] w-[15px] shrink-0 transition-colors duration-[var(--tx-dur-fast)]",
+          active ? "text-foreground/80" : "text-muted-foreground/55 group-hover:text-foreground/70",
+        )} strokeWidth={active ? 2 : 1.75} />
       )}
 
-      <span className="truncate">{label}</span>
+      <span className={cn(
+        "truncate transition-[letter-spacing]",
+        active && "tracking-[-0.003em]",
+      )}>{label}</span>
       {isSearch && (
         <kbd className="bg-muted/40 text-muted-foreground/50 pointer-events-none ml-auto inline-flex h-5 items-center gap-1 rounded-md border border-border/30 px-1.5 font-mono text-[.6rem] font-medium select-none">
           <span className="text-[10px]">CTRL</span>K

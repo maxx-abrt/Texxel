@@ -305,6 +305,73 @@ function ExtensionsPanel() {
           </div>
         </div>
 
+        {/* ── Density ───────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">{te("uiConfig.density") ?? "Density"}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.densityDesc") ?? "How tightly packed UI elements appear."}</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["compact", "default", "spacious"] as const).map((d) => (
+              <button
+                key={d}
+                onClick={() => updateUIConfig({ density: d })}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-all capitalize",
+                  uiConfig.density === d ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {te(`uiConfig.densities.${d}` as any) ?? d}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Corner style ──────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">{te("uiConfig.corners") ?? "Corners"}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.cornersDesc") ?? "Sharper or softer radii across the app."}</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["sharp", "default", "rounded"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => updateUIConfig({ cornerStyle: r })}
+                className={cn(
+                  "flex items-center justify-center px-2.5 py-1 text-xs font-medium transition-all",
+                  uiConfig.cornerStyle === r ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  r === "sharp" ? "rounded-[2px]" : r === "rounded" ? "rounded-xl" : "rounded-md",
+                )}
+              >
+                <span className="capitalize">{te(`uiConfig.radii.${r}` as any) ?? r}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Texture ───────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">{te("uiConfig.texture") ?? "Texture"}</p>
+            <p className="text-xs text-muted-foreground">{te("uiConfig.textureDesc") ?? "Add a subtle paper-grain overlay."}</p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5">
+            {(["flat", "paper"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => updateUIConfig({ texture: t })}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-all capitalize",
+                  uiConfig.texture === t ? "bg-background shadow-sm" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {te(`uiConfig.textures.${t}` as any) ?? t}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Default views */}
         <div className="flex items-center justify-between">
           <div>

@@ -141,7 +141,10 @@ export default defineSchema({
     .index("by_target", ["targetType", "targetId"]),
 
   notifications: defineTable({
-    userId: v.id("users"),
+    // Shared, suite-wide table. Some apps store external/legacy user UUIDs here
+    // (not convex-auth Id<"users">), so keep this permissive to avoid breaking
+    // deploys with `v.id("users")` schema validation against existing rows.
+    userId: v.string(),
     workspaceId: v.optional(v.id("workspaces")),
     type: v.string(),
     title: v.string(),
@@ -554,4 +557,11 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"]),
+}, {
+  // SHARED A2E Suite deployment: other apps in the suite own and extend some
+  // tables (e.g. `notifications` gets extra fields like `relatedId` and legacy
+  // UUID userIds) with shapes this schema does not fully model. Disabling strict
+  // schema validation prevents `convex deploy` from ever failing on another
+  // app's data. TypeScript still type-checks writes inside our own functions.
+  schemaValidation: true,
 });

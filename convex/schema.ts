@@ -137,10 +137,11 @@ export default defineSchema({
 
   notifications: defineTable({
     userId: v.id("users"),
-    workspaceId: v.id("workspaces"),
+    workspaceId: v.optional(v.id("workspaces")),
     type: v.string(),
     title: v.string(),
-    message: v.string(),
+    message: v.optional(v.string()),
+    body: v.optional(v.string()),
     read: v.boolean(),
     link: v.optional(v.string()),
     metadata: v.optional(v.any()),

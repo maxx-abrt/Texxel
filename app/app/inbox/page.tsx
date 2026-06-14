@@ -46,7 +46,7 @@ export default function InboxPage() {
                 <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground"><Icon variant="Bulk" size={18} /></span>
                 <button onClick={() => { markRead({ id: n._id }); if (n.link) router.push(`/app${n.link}`); }} className="min-w-0 flex-1 text-left">
                   <p className="text-sm font-medium">{n.title}{!n.read && <span className="ml-2 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" />}</p>
-                  <p className="truncate text-sm text-muted-foreground">{n.message}</p>
+                  <p className="truncate text-sm text-muted-foreground">{n.message ?? n.body}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">{timeAgo(n.createdAt)}</p>
                 </button>
                 <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">

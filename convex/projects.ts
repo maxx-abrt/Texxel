@@ -1,180 +1,219 @@
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { assertWorkspaceMember, logActivity, requireUserId } from "./lib/auth";
 
-const requireAuth = async (ctx: any) => {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) throw new Error("Not authenticated");
-  return identity.subject;
-};
+export const list = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    await assertWorkspaceMember(ctx, args.workspaceId);
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .order("desc")
+      .collect();
 
-const canAccessProject = async (ctx: any, projectId: any, userId: string) => {
-  const project = await ctx.db.get(projectId);
-  if (!project) throw new Error("Project not found");
-  if (project.ownerId === userId) return { project, role: "owner" as const };
+    // Compute live `spent` per project by summing linked expenses.
+    const allExpenses = await ctx.db
+      .query("a2e_expenses")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    const allInvoices = await ctx.db
+      .query("a2e_invoices")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
 
-  const member = await ctx.db
-    .query("projectMembers")
-    .withIndex("by_project_user", (q: any) => q.eq("projectId", projectId).eq("userId", userId))
-    .first();
-  if (!member) {
-    if (project.teamId) {
-      const teamMember = await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team_user", (q: any) => q.eq("teamId", project.teamId).eq("userId", userId))
-        .first();
-      if (teamMember) return { project, role: teamMember.role as string };
-    }
-    throw new Error("Not authorized");
-  }
-  return { project, role: member.role };
-};
+    return projects.map((p) => {
+      const spent = allExpenses
+        .filter((e) => e.projectId === p._id && e.type === "expense")
+        .reduce((a, e) => a + e.amount, 0);
+      const income = allExpenses
+        .filter((e) => e.projectId === p._id && e.type === "income")
+        .reduce((a, e) => a + e.amount, 0);
+      const invoiced = allInvoices
+        .filter((i) => i.projectId === p._id)
+        .reduce(
+          (a, i) =>
+            a + (i.items || []).reduce((b, it) => b + it.quantity * it.unitPrice, 0),
+          0,
+        );
+      return { ...p, spent, income, invoiced };
+    });
+  },
+});
+
+export const get = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    const p = await ctx.db.get(args.projectId);
+    if (!p) return null;
+    await assertWorkspaceMember(ctx, p.workspaceId);
+    return p;
+  },
+});
 
 export const create = mutation({
   args: {
+    workspaceId: v.id("workspaces"),
     name: v.string(),
+    client: v.string(),
+    status: v.union(
+      v.literal("planning"),
+      v.literal("active"),
+      v.literal("completed"),
+      v.literal("on_hold"),
+    ),
+    budget: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
     description: v.optional(v.string()),
-    icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    teamId: v.optional(v.id("teams")),
-    dueDate: v.optional(v.number()),
-    workspaceId: v.optional(v.id("workspaces")),
+    autoCreateBudget: v.optional(v.boolean()),
+    autoCreateFiche: v.optional(v.boolean()),
+    currency: v.optional(v.string()),
+    locale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
+    const now = Date.now();
+    const id = await ctx.db.insert("projects", {
+      workspaceId: args.workspaceId,
+      name: args.name,
+      client: args.client,
+      status: args.status,
+      budget: args.budget ?? 0,
+      spent: 0,
+      startDate: args.startDate,
+      endDate: args.endDate,
+      description: args.description,
+      color: args.color,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-    if (args.teamId) {
-      const member = await ctx.db
-        .query("teamMembers")
-        .withIndex("by_team_user", (q) => q.eq("teamId", args.teamId!).eq("userId", userId))
-        .first();
-      if (!member) throw new Error("Not a team member");
+    // Auto-create budget when project has a budget
+    if (args.autoCreateBudget && (args.budget ?? 0) > 0) {
+      await ctx.db.insert("a2e_budgets", {
+        workspaceId: args.workspaceId,
+        name: `${args.name} — Budget`,
+        amount: args.budget!,
+        category: "other",
+        period: "custom",
+        startDate: args.startDate ?? now,
+        endDate: args.endDate,
+        color: args.color ?? "#22c55e",
+        currency: args.currency ?? "EUR",
+        spent: 0,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      });
     }
 
-    const projectId = await ctx.db.insert("projects", {
-      name: args.name,
-      description: args.description,
-      icon: args.icon,
-      color: args.color ?? "#6366f1",
-      status: "active",
-      teamId: args.teamId,
-      ownerId: userId,
+    // Auto-create project sheet (fiche projet)
+    if (args.autoCreateFiche) {
+      await ctx.db.insert("a2e_fiches", {
+        workspaceId: args.workspaceId,
+        projectId: id,
+        template: "blank",
+        title: args.name,
+        subtitle: args.description,
+        data: {},
+        status: "draft",
+        locale: args.locale,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await logActivity(ctx, {
       workspaceId: args.workspaceId,
-      createdAt: Date.now(),
-      dueDate: args.dueDate,
+      actorId: userId,
+      action: "project.created",
+      targetType: "project",
+      targetId: id,
+      metadata: { name: args.name },
     });
-
-    await ctx.db.insert("projectMembers", {
-      projectId,
-      userId,
-      role: "owner",
-    });
-
-    return projectId;
+    return id;
   },
 });
 
 export const update = mutation({
   args: {
-    id: v.id("projects"),
+    projectId: v.id("projects"),
     name: v.optional(v.string()),
+    client: v.optional(v.string()),
+    status: v.optional(
+      v.union(
+        v.literal("planning"),
+        v.literal("active"),
+        v.literal("completed"),
+        v.literal("on_hold"),
+      ),
+    ),
+    budget: v.optional(v.number()),
+    spent: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
     description: v.optional(v.string()),
-    icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("active"), v.literal("archived"), v.literal("completed"))),
-    dueDate: v.optional(v.number()),
-    teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
-    const { project, role } = await canAccessProject(ctx, args.id, userId);
-    if (!["owner", "admin", "editor"].includes(role)) throw new Error("Not authorized");
-    const { id, ...rest } = args;
-    await ctx.db.patch(id, rest);
-    return id;
+    const p = await ctx.db.get(args.projectId);
+    if (!p) throw new Error("Project not found");
+    const { userId } = await assertWorkspaceMember(ctx, p.workspaceId, "member");
+    const { projectId, ...rest } = args as any;
+    const patch: any = { updatedAt: Date.now() };
+    for (const [k, v] of Object.entries(rest)) {
+      if (v !== undefined) patch[k] = v;
+    }
+    await ctx.db.patch(args.projectId, patch);
+    await logActivity(ctx, {
+      workspaceId: p.workspaceId,
+      actorId: userId,
+      action: "project.updated",
+      targetType: "project",
+      targetId: args.projectId,
+    });
+    return args.projectId;
   },
 });
 
 export const remove = mutation({
-  args: { id: v.id("projects") },
-  handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
-    const project = await ctx.db.get(args.id);
-    if (!project) throw new Error("Not found");
-    if (project.ownerId !== userId) throw new Error("Only owner can delete");
-
-    const members = await ctx.db.query("projectMembers").withIndex("by_project", (q) => q.eq("projectId", args.id)).collect();
-    for (const m of members) await ctx.db.delete(m._id);
-
-    const tasks = await ctx.db.query("tasks").withIndex("by_project", (q) => q.eq("projectId", args.id)).collect();
-    for (const t of tasks) await ctx.db.delete(t._id);
-
-    await ctx.db.delete(args.id);
-  },
-});
-
-export const getMyProjects = query({
-  args: {
-    teamId: v.optional(v.id("teams")),
-    workspaceId: v.optional(v.id("workspaces")),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-    const userId = identity.subject;
-
-    if (args.teamId) {
-      return ctx.db
-        .query("projects")
-        .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
-        .filter((q) => q.neq(q.field("status"), "archived"))
-        .collect();
-    }
-
-    const memberships = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-
-    const projects = await Promise.all(memberships.map((m) => ctx.db.get(m.projectId)));
-    const filtered = projects.filter((p) => p && p.status !== "archived" && !p.teamId) as any[];
-    if (!args.workspaceId) return filtered;
-    return filtered.filter((p) => p.workspaceId === args.workspaceId);
-  },
-});
-
-export const getById = query({
-  args: { id: v.id("projects") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const { project, role } = await canAccessProject(ctx, args.id, identity.subject);
-    return { ...project, role };
-  },
-});
-
-export const getMembers = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    await canAccessProject(ctx, args.projectId, identity.subject);
-    return ctx.db.query("projectMembers").withIndex("by_project", (q) => q.eq("projectId", args.projectId)).collect();
+    const p = await ctx.db.get(args.projectId);
+    if (!p) throw new Error("Project not found");
+    const { userId } = await assertWorkspaceMember(ctx, p.workspaceId, "admin");
+    await ctx.db.delete(args.projectId);
+    await logActivity(ctx, {
+      workspaceId: p.workspaceId,
+      actorId: userId,
+      action: "project.deleted",
+      targetType: "project",
+      targetId: args.projectId,
+    });
+    return true;
   },
 });
 
-export const addMember = mutation({
-  args: { projectId: v.id("projects"), targetUserId: v.string(), role: v.union(v.literal("editor"), v.literal("viewer")) },
+/** Recalculate `spent` for a project from linked invoices/expenses. */
+export const recalcSpend = mutation({
+  args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
-    const { role: actorRole } = await canAccessProject(ctx, args.projectId, userId);
-    if (!["owner", "admin"].includes(actorRole)) throw new Error("Not authorized");
-
-    const existing = await ctx.db
-      .query("projectMembers")
-      .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.targetUserId))
-      .first();
-    if (existing) throw new Error("Already a member");
-
-    await ctx.db.insert("projectMembers", { projectId: args.projectId, userId: args.targetUserId, role: args.role });
+    const p = await ctx.db.get(args.projectId);
+    if (!p) throw new Error("Project not found");
+    await assertWorkspaceMember(ctx, p.workspaceId);
+    const exps = await ctx.db
+      .query("a2e_expenses")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    const spent = exps.reduce(
+      (acc, e) => acc + (e.type === "expense" ? e.amount : 0),
+      0,
+    );
+    await ctx.db.patch(args.projectId, { spent, updatedAt: Date.now() });
+    return spent;
   },
 });

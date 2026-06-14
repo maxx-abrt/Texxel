@@ -1,236 +1,101 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@neondatabase/auth/ui/tailwind";
 
 @custom-variant dark (&:is(.dark *));
 
+/* ============================ FLUX DESIGN TOKENS ============================ */
 :root {
-  --radius: 0.625rem;
-  --card: oklch(0.995 0.003 60);
-  --card-foreground: oklch(0.155 0.008 60);
+  --radius: 0.85rem;
+
+  /* Warm, clean canvas (Notion/Makesense-inspired) */
+  --background: oklch(0.994 0.002 70);
+  --foreground: oklch(0.205 0.012 65);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.205 0.012 65);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.155 0.008 60);
-  --primary: oklch(0.655 0.21 22);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.965 0.012 22);
-  --secondary-foreground: oklch(0.25 0 0);
-  --muted: oklch(0.963 0.006 22);
-  --muted-foreground: oklch(0.52 0.015 22);
-  --accent: oklch(0.96 0.01 22);
-  --accent-foreground: oklch(0.25 0 0);
-  --destructive: oklch(58.302% 0.23867 28.465);
-  --border: oklch(0.912 0.006 22);
-  --input: oklch(0.912 0.006 22);
-  --ring: oklch(0.655 0.21 22);
-  --chart-1: oklch(0.655 0.21 22);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.982 0.004 60);
-  --sidebar-foreground: oklch(0.155 0.008 60);
-  --sidebar-primary: oklch(0.655 0.21 22);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.955 0.012 22);
-  --sidebar-accent-foreground: oklch(0.25 0 0);
-  --sidebar-border: oklch(0.912 0.004 60);
-  --sidebar-ring: oklch(0.655 0.21 22);
-  /* Warmer off-white — removes pure-white harshness */
-  --background: oklch(0.993 0.003 60);
-  --foreground: oklch(0.155 0.008 60);
-  --dark: oklch(0.165 0.008 280);
+  --popover-foreground: oklch(0.205 0.012 65);
 
-  /* ── Texxel design tokens — light ──────────────────────────────────────── */
-  /* Surface hierarchy (6 levels from canvas → overlay) */
-  --tx-surface-0: #fdfcfa;   /* page canvas (warm off-white) */
-  --tx-surface-1: #f9f8f5;   /* subtle raised */
-  --tx-surface-2: #f5f4f1;   /* raised */
-  --tx-surface-3: #eeede9;   /* strongly raised / well */
-  --tx-surface-4: #e5e4df;   /* overlay edges */
-  --tx-well:      #f5f4f0;   /* inset / input wells */
+  /* Flux coral/red brand */
+  --primary: oklch(0.645 0.205 25.5);
+  --primary-foreground: oklch(0.995 0.004 60);
 
-  --tx-border: #e6e4df;
-  --tx-border-subtle: #f0efeb;
-  --tx-border-strong: #d6d4cf;
+  --secondary: oklch(0.97 0.012 60);
+  --secondary-foreground: oklch(0.28 0.01 60);
+  --muted: oklch(0.968 0.005 70);
+  --muted-foreground: oklch(0.55 0.012 65);
+  --accent: oklch(0.962 0.018 30);
+  --accent-foreground: oklch(0.3 0.04 28);
+  --destructive: oklch(0.585 0.225 27);
 
-  /* Typography colors — warmer than pure black */
-  --tx-text:        oklch(0.20 0.008 60);
-  --tx-text-muted:  oklch(0.48 0.010 60);
-  --tx-text-dim:    oklch(0.64 0.010 60);
-  --tx-text-faint:  oklch(0.76 0.008 60);
+  --border: oklch(0.922 0.004 70);
+  --input: oklch(0.922 0.004 70);
+  --ring: oklch(0.645 0.205 25.5);
 
-  /* Accent (mirrors --primary so both stay in sync) */
-  --tx-accent: #f76c5e;
-  --tx-accent-hover: #e85d4f;
-  --tx-accent-soft: color-mix(in oklch, var(--tx-accent), transparent 88%);
+  --chart-1: oklch(0.645 0.205 25.5);
+  --chart-2: oklch(0.68 0.15 45);
+  --chart-3: oklch(0.62 0.13 250);
+  --chart-4: oklch(0.7 0.15 160);
+  --chart-5: oklch(0.72 0.16 300);
 
-  /* Texture / grain overlay (applied by [data-texture="grain"]) */
-  --tx-grain-opacity: 0.035;
+  /* Sidebar (clean light) */
+  --sidebar: oklch(0.985 0.003 70);
+  --sidebar-foreground: oklch(0.3 0.01 65);
+  --sidebar-primary: oklch(0.645 0.205 25.5);
+  --sidebar-primary-foreground: oklch(0.995 0.004 60);
+  --sidebar-accent: oklch(0.955 0.012 30);
+  --sidebar-accent-foreground: oklch(0.3 0.03 28);
+  --sidebar-border: oklch(0.93 0.004 70);
+  --sidebar-ring: oklch(0.645 0.205 25.5);
 
-  /* ── Motion tokens ─────────────────────────────────────────────────────── */
-  /* Eases */
-  --tx-ease-out-quint:   cubic-bezier(0.22, 1, 0.36, 1);
-  --tx-ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
-  --tx-ease-in-out:      cubic-bezier(0.4, 0, 0.2, 1);
-  --tx-ease-snap:        cubic-bezier(0.32, 0.72, 0, 1);
-  --tx-ease-overshoot:   cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Flux brand scale */
+  --flux-coral: #fb5648;
+  --flux-coral-600: #ef4836;
+  --flux-coral-soft: #ffe9e6;
+  --flux-ink: #211f1d;
+  --accent-ocean: #2f7ea6;
+  --accent-mint: #2fbf9b;
+  --accent-sand: #f3efe7;
 
-  /* Durations */
-  --tx-dur-instant: 100ms;
-  --tx-dur-fast:    160ms;
-  --tx-dur-base:    220ms;
-  --tx-dur-slow:    340ms;
-  --tx-dur-slower:  560ms;
-
-  --tx-transition-fast: var(--tx-dur-fast) var(--tx-ease-in-out);
-  --tx-transition-base: var(--tx-dur-base) var(--tx-ease-in-out);
-  --tx-transition-slow: var(--tx-dur-slow) var(--tx-ease-in-out);
-
-  /* ── Shadows — tall & soft, not boxy ───────────────────────────────────── */
-  --tx-shadow-sm:
-    0 1px 2px -1px rgba(20, 16, 10, 0.06),
-    0 1px 1px rgba(20, 16, 10, 0.04);
-  --tx-shadow:
-    0 2px 4px -2px rgba(20, 16, 10, 0.05),
-    0 6px 16px -6px rgba(20, 16, 10, 0.08);
-  --tx-shadow-lg:
-    0 4px 8px -4px rgba(20, 16, 10, 0.05),
-    0 12px 36px -10px rgba(20, 16, 10, 0.12);
-  --tx-shadow-xl:
-    0 6px 14px -6px rgba(20, 16, 10, 0.06),
-    0 24px 64px -14px rgba(20, 16, 10, 0.16);
-  --tx-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-
-  /* ── Density tokens (driven by [data-density] on <html>) ──────────────── */
-  --tx-density: 1;              /* multiplier */
-  --tx-row-y:   0.4375rem;      /* list-item vertical padding */
-  --tx-row-x:   0.75rem;        /* list-item horizontal padding */
-  --tx-gap-y:   0.375rem;       /* between list items */
-  --tx-section-gap: 1.75rem;    /* between sections */
-
-  /* ── Radius scale (driven by [data-radius] on <html>) ─────────────────── */
-  --tx-radius-xs: 0.25rem;
-  --tx-radius-sm: 0.4375rem;
-  --tx-radius-md: 0.625rem;
-  --tx-radius-lg: 0.875rem;
-  --tx-radius-xl: 1.125rem;
-  --tx-radius-2xl: 1.5rem;
-  --tx-radius-pill: 9999px;
-}
-
-/* ── Density presets ──────────────────────────────────────────────────── */
-[data-density="compact"] {
-  --tx-density: 0.85;
-  --tx-row-y: 0.3125rem;
-  --tx-row-x: 0.625rem;
-  --tx-gap-y: 0.1875rem;
-  --tx-section-gap: 1.25rem;
-}
-[data-density="spacious"] {
-  --tx-density: 1.15;
-  --tx-row-y: 0.5625rem;
-  --tx-row-x: 0.875rem;
-  --tx-gap-y: 0.5rem;
-  --tx-section-gap: 2.25rem;
-}
-
-/* ── Radius presets ───────────────────────────────────────────────────── */
-[data-radius="sharp"] {
-  --radius: 0.3125rem;
-  --tx-radius-xs: 0.125rem;
-  --tx-radius-sm: 0.25rem;
-  --tx-radius-md: 0.375rem;
-  --tx-radius-lg: 0.5rem;
-  --tx-radius-xl: 0.75rem;
-  --tx-radius-2xl: 1rem;
-}
-[data-radius="rounded"] {
-  --radius: 0.875rem;
-  --tx-radius-xs: 0.4375rem;
-  --tx-radius-sm: 0.625rem;
-  --tx-radius-md: 0.875rem;
-  --tx-radius-lg: 1.25rem;
-  --tx-radius-xl: 1.625rem;
-  --tx-radius-2xl: 2rem;
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 .dark {
-  /* Deep dark grey — not pure black */
-  --background: #131311;
-  --foreground: #f2f1ee;
-  --card: #1b1b19;
-  --card-foreground: #f2f1ee;
-  --popover: #1c1c1a;
-  --popover-foreground: #f2f1ee;
-  --primary: oklch(0.72 0.19 22);
-  --primary-foreground: oklch(0.12 0 0);
-  --secondary: #272725;
-  --secondary-foreground: #eae9e6;
-  --muted: #211f1d;
-  --muted-foreground: #7c7a75;
-  --accent: #252523;
-  --accent-foreground: #eae9e6;
-  --destructive: oklch(62.813% 0.25739 28.782);
-  --border: #2d2c29;
-  --input: #2a2927;
-  --ring: oklch(0.72 0.19 22);
-  --chart-1: oklch(0.72 0.19 22);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: #101010;
-  --sidebar-foreground: #f0efec;
-  --sidebar-primary: oklch(0.72 0.19 22);
-  --sidebar-primary-foreground: oklch(0.12 0 0);
-  --sidebar-accent: #1e1d1b;
-  --sidebar-accent-foreground: #eae9e6;
-  --sidebar-border: #2a2927;
-  --sidebar-ring: oklch(0.72 0.19 22);
-  --dark: #131311;
-
-  /* ── Texxel design tokens — dark ───────────────────────────────────────── */
-  --tx-surface-0: #0e0e0c;
-  --tx-surface-1: #141412;
-  --tx-surface-2: #1b1b19;
-  --tx-surface-3: #242422;
-  --tx-surface-4: #2c2b28;
-  --tx-well:      #18181610;
-
-  --tx-border: #2d2c29;
-  --tx-border-subtle: #201f1d;
-  --tx-border-strong: #3a3936;
-
-  --tx-text:        #f2f1ee;
-  --tx-text-muted:  #8e8c86;
-  --tx-text-dim:    #5d5b56;
-  --tx-text-faint:  #403f3b;
-
-  --tx-accent: #ff8476;
-  --tx-accent-hover: #ff9487;
-  --tx-accent-soft: color-mix(in oklch, var(--tx-accent), transparent 86%);
-
-  --tx-grain-opacity: 0.045;
-
-  /* Darker shadows with warmer tint */
-  --tx-shadow-sm:
-    0 1px 2px -1px rgba(0, 0, 0, 0.45),
-    0 1px 1px rgba(0, 0, 0, 0.30);
-  --tx-shadow:
-    0 2px 4px -2px rgba(0, 0, 0, 0.40),
-    0 6px 16px -6px rgba(0, 0, 0, 0.55);
-  --tx-shadow-lg:
-    0 4px 8px -4px rgba(0, 0, 0, 0.45),
-    0 12px 36px -10px rgba(0, 0, 0, 0.65);
-  --tx-shadow-xl:
-    0 6px 14px -6px rgba(0, 0, 0, 0.50),
-    0 24px 64px -14px rgba(0, 0, 0, 0.75);
-  --tx-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --background: oklch(0.185 0.006 60);
+  --foreground: oklch(0.96 0.004 70);
+  --card: oklch(0.222 0.006 60);
+  --card-foreground: oklch(0.96 0.004 70);
+  --popover: oklch(0.222 0.006 60);
+  --popover-foreground: oklch(0.96 0.004 70);
+  --primary: oklch(0.68 0.2 26);
+  --primary-foreground: oklch(0.16 0.01 40);
+  --secondary: oklch(0.27 0.008 60);
+  --secondary-foreground: oklch(0.95 0.004 70);
+  --muted: oklch(0.27 0.008 60);
+  --muted-foreground: oklch(0.68 0.01 65);
+  --accent: oklch(0.32 0.03 28);
+  --accent-foreground: oklch(0.95 0.01 40);
+  --destructive: oklch(0.62 0.21 25);
+  --border: oklch(0.3 0.006 60);
+  --input: oklch(0.32 0.006 60);
+  --ring: oklch(0.68 0.2 26);
+  --sidebar: oklch(0.205 0.006 60);
+  --sidebar-foreground: oklch(0.9 0.004 70);
+  --sidebar-primary: oklch(0.68 0.2 26);
+  --sidebar-primary-foreground: oklch(0.16 0.01 40);
+  --sidebar-accent: oklch(0.3 0.02 28);
+  --sidebar-accent-foreground: oklch(0.95 0.01 40);
+  --sidebar-border: oklch(0.3 0.006 60);
+  --sidebar-ring: oklch(0.68 0.2 26);
+  --flux-coral: #fb5648;
+  --flux-coral-soft: #3a2420;
+  --accent-ocean: #5fb6d6;
+  --accent-mint: #55d6b6;
+  --accent-sand: #2a2622;
 }
 
 @theme inline {
-  --color-dark: var(--dark);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -246,7 +111,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-foreground: oklch(0.985 0 0);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -255,10 +120,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -267,939 +128,80 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-}
 
-@utility container {
-  margin-inline: auto;
-  padding-inline: 2rem;
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
 
-  @media (width >= --theme(--breakpoint-sm)) {
-    max-width: --theme(--breakpoint-sm);
-  }
-  @media (width >= --theme(--breakpoint-md)) {
-    max-width: --theme(--breakpoint-md);
-  }
-  @media (width >= --theme(--breakpoint-lg)) {
-    max-width: --theme(--breakpoint-lg);
-  }
-  @media (width >= --theme(--breakpoint-xl)) {
-    max-width: --theme(--breakpoint-xl);
-  }
-  @media (width >= --theme(--breakpoint-2xl)) {
-    max-width: 1400px;
-  }
-}
-
-@layer utilities {
-  html,
-  body,
-  :root {
-    height: 100%;
-  }
-}
-
-@layer utilities {
-  .mantine-Popover-dropdown {
-    max-height: 32rem !important;
-  }
-
-  .bn-color-picker-dropdown {
-    top: -110px !important;
-  }
-
-  /* ── BlockNote: suppress all blue outlines / focus rings on click ── */
-  .bn-editor *:focus,
-  .bn-editor *:focus-visible,
-  .bn-editor *:focus-within,
-  .bn-block-outer:focus,
-  .bn-block-outer:focus-visible,
-  .bn-block-content:focus,
-  .bn-block-content:focus-visible,
-  .bn-inline-content:focus,
-  .bn-inline-content:focus-visible,
-  [data-node-type]:focus,
-  [data-node-type]:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    border-color: inherit !important;
-  }
-
-  /* Also suppress the ring on block selection highlight */
-  .bn-block-outer[data-selected="true"],
-  .bn-block-outer.selected {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-
-  /* ── BlockNote: suppress blue ring on table block selection ── */
-  .bn-editor .bn-table-wrapper,
-  .bn-editor .bn-table-wrapper:focus,
-  .bn-editor .bn-table-wrapper:focus-visible,
-  .bn-editor .bn-table-wrapper:focus-within,
-  .bn-editor table,
-  .bn-editor table:focus,
-  .bn-editor table:focus-visible,
-  .bn-editor .tableWrapper,
-  .bn-editor .tableWrapper:focus,
-  .bn-editor [class*="table"]:focus,
-  .bn-editor [class*="table"]:focus-visible,
-  .bn-editor [class*="table"]:focus-within {
-    outline: none !important;
-    box-shadow: none !important;
-    border-color: var(--tx-border) !important;
-  }
-
-  /* Mantine/BlockNote selected state uses a blue box-shadow */
-  .bn-editor .bn-block-outer[data-node-type],
-  .bn-editor .bn-block-outer[data-node-type]:focus,
-  .bn-editor .bn-block-outer[data-node-type]:focus-within {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-
-  /* ProseMirror selection on table nodes */
-  .ProseMirror-selectednode {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-  .ProseMirror-gapcursor {
-    outline: none !important;
-  }
-}
-
-/* ── Yjs collaboration cursors ──────────────────────────────────────────── */
-@layer utilities {
-  /* Remote cursor caret */
-  .collaboration-cursor__caret {
-    position: relative;
-    margin-left: -1px;
-    margin-right: -1px;
-    border-left: 2px solid;
-    border-right: none;
-    word-break: normal;
-    pointer-events: none;
-  }
-
-  /* Floating name label above the cursor */
-  .collaboration-cursor__label {
-    position: absolute;
-    top: -1.5em;
-    left: -2px;
-    font-size: 0.65rem;
-    font-weight: 600;
-    font-style: normal;
-    line-height: normal;
-    user-select: none;
-    color: #fff;
-    padding: 1px 5px 2px;
-    border-radius: 4px 4px 4px 0;
-    white-space: nowrap;
-    pointer-events: none;
-    /* Smooth entrance */
-    animation: cursor-label-in 0.15s ease-out;
-  }
-
-  @keyframes cursor-label-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* Remote text selection highlight */
-  .collaboration-cursor__selection {
-    opacity: 0.2;
-  }
-}
-
-/* ── BlockNote ThreadsSidebar: polished, Apple-like redesign ─────────────── */
-/* Uses stable .mantine-*-root selectors + BlockNote bn-* classes           */
-
-/* Container */
-.bn-threads-sidebar {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0 !important;
-  padding: 0 !important;
-  background: transparent !important;
-}
-
-/* ── Thread card (Mantine Card) ─────────────────────────────────────────── */
-/* Overrides blocknoteStyles.css: .bn-mantine .bn-thread which sets         */
-/* min-width:350px, gap:16px, background, border, border-radius, box-shadow */
-.bn-threads-sidebar .bn-thread {
-  --card-padding: 0px !important;
-  background-color: transparent !important;
-  background: transparent !important;
-  border: none !important;
-  border-bottom: 1px solid color-mix(in oklch, var(--border), transparent 55%) !important;
-  border-radius: 0 !important;
-  padding: 0.75rem 0.875rem !important;
-  box-shadow: none !important;
-  transition: background-color 0.18s ease-out !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  overflow: visible !important;
-  outline: none !important;
-  color: var(--foreground) !important;
-  gap: 0.5rem !important;
-}
-
-.bn-threads-sidebar .bn-thread:hover {
-  background-color: color-mix(in oklch, var(--foreground), transparent 97%) !important;
-  background: color-mix(in oklch, var(--foreground), transparent 97%) !important;
-}
-
-.bn-threads-sidebar .bn-thread:last-child {
-  border-bottom: none !important;
-}
-
-.bn-threads-sidebar .bn-thread.selected {
-  background-color: color-mix(in oklch, var(--primary), transparent 94%) !important;
-  background: color-mix(in oklch, var(--primary), transparent 94%) !important;
-}
-
-/* ── CardSection (Mantine Card.Section) — kill negative margins ─────────── */
-.bn-threads-sidebar .bn-thread .mantine-Card-section,
-.bn-threads-sidebar .bn-thread-comments,
-.bn-threads-sidebar .bn-thread-composer {
-  margin: 0 !important;
-  margin-inline: 0 !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  border: none !important;
-}
-
-/* Reference / header text (the quoted text from the document) */
-.bn-threads-sidebar .bn-header-text {
-  font-size: 0.6875rem !important;
-  font-weight: 600 !important;
-  font-style: normal !important;
-  color: var(--primary) !important;
-  background: color-mix(in oklch, var(--primary), transparent 92%) !important;
-  padding: 0.125rem 0.4375rem !important;
-  border-radius: 0.3125rem !important;
-  display: inline-block !important;
-  margin-bottom: 0.25rem !important;
-  line-height: 1.45 !important;
-  letter-spacing: -0.005em !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-}
-
-/* ── Comments section ───────────────────────────────────────────────────── */
-/* Overrides blocknoteStyles.css gap:1rem */
-.bn-threads-sidebar .bn-thread-comments {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0 !important;
-}
-
-/* ── Individual comment (Mantine Group) ─────────────────────────────────── */
-/* blocknoteStyles.css already sets flex-direction:column, gap:0.25rem      */
-.bn-threads-sidebar .bn-thread-comment {
-  align-items: stretch !important;
-  gap: 0.25rem !important;
-  padding: 0.25rem 0 !important;
-  position: relative !important;
-  flex-wrap: nowrap !important;
-}
-
-.bn-threads-sidebar .bn-thread-comment + .bn-thread-comment {
-  border-top: 1px solid color-mix(in oklch, var(--border), transparent 75%) !important;
-  margin-top: 0.25rem !important;
-  padding-top: 0.375rem !important;
-}
-
-/* AuthorInfo row — the .mantine-Group-root inside .bn-thread-comment       */
-/* Overrides blocknoteStyles.css gap:12px → 0.5rem                          */
-.bn-threads-sidebar .bn-thread-comment > .mantine-Group-root {
-  gap: 0.5rem !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  flex-wrap: nowrap !important;
-}
-
-/* ── Avatar (Mantine Avatar) — compact sizing ───────────────────────────── */
-.bn-threads-sidebar .bn-thread-comment .mantine-Avatar-root {
-  --avatar-size: 1.25rem !important;
-  width: 1.25rem !important;
-  height: 1.25rem !important;
-  min-width: 1.25rem !important;
-  flex-shrink: 0 !important;
-}
-
-/* Avatar image */
-.bn-threads-sidebar .bn-thread-comment .mantine-Avatar-image {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  border-radius: 9999px !important;
-}
-
-/* Avatar placeholder / initials */
-.bn-threads-sidebar .bn-thread-comment .mantine-Avatar-placeholder {
-  --avatar-placeholder-fz: 0.45rem !important;
-  font-size: 0.45rem !important;
-  font-weight: 600 !important;
-  background: color-mix(in oklch, var(--primary), transparent 82%) !important;
-  color: var(--primary) !important;
-  border: none !important;
-}
-
-/* Author name — outer Mantine Text inside AuthorInfo Group */
-.bn-threads-sidebar .bn-thread-comment > .mantine-Group-root > .mantine-Text-root {
-  font-size: 0.75rem !important;
-  font-weight: 600 !important;
-  color: var(--foreground) !important;
-  line-height: 1.3 !important;
-  letter-spacing: -0.01em !important;
-}
-
-/* Date text — nested Mantine Text (span) inside author Text */
-.bn-threads-sidebar .bn-thread-comment > .mantine-Group-root > .mantine-Text-root > .mantine-Text-root {
-  font-size: 0.625rem !important;
-  color: var(--muted-foreground) !important;
-  opacity: 0.55 !important;
-  margin-left: 0.25rem !important;
-  font-weight: 400 !important;
-  font-variant-numeric: tabular-nums !important;
-}
-
-/* Comment body / editor content area */
-.bn-threads-sidebar .bn-thread-comment .bn-editor {
-  font-size: 0.8125rem !important;
-  line-height: 1.5 !important;
-}
-
-.bn-threads-sidebar .bn-thread-comment .bn-block-outer {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.bn-threads-sidebar .bn-thread-comment .bn-block-content {
-  padding: 0 !important;
-}
-
-.bn-threads-sidebar .bn-thread-comment .bn-inline-content {
-  font-size: 0.8125rem !important;
-  line-height: 1.5 !important;
-  color: color-mix(in oklch, var(--foreground), transparent 8%) !important;
-  letter-spacing: -0.006em !important;
-}
-
-.bn-threads-sidebar .bn-thread-comment p {
-  margin: 0 !important;
-  color: var(--foreground) !important;
-}
-
-/* ── Action toolbar (emoji, resolve, more) ──────────────────────────────── */
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions {
-  background: var(--background) !important;
-  border: 1px solid color-mix(in oklch, var(--border), transparent 40%) !important;
-  border-radius: 0.5rem !important;
-  padding: 0.125rem !important;
-  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06) !important;
-  gap: 0.0625rem !important;
-  overflow: hidden !important;
-}
-
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions .mantine-ActionIcon-root,
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions .mantine-Button-root,
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions button {
-  color: var(--muted-foreground) !important;
-  background: transparent !important;
-  border-radius: 0.3125rem !important;
-  padding: 0.1875rem !important;
-  min-width: 1.5rem !important;
-  min-height: 1.5rem !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.15s ease-out !important;
-  cursor: pointer !important;
-  border: none !important;
-}
-
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions .mantine-ActionIcon-root:hover,
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions .mantine-Button-root:hover,
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions button:hover {
-  background: color-mix(in oklch, var(--foreground), transparent 94%) !important;
-  color: var(--foreground) !important;
-}
-
-.bn-threads-sidebar .bn-action-toolbar.bn-comment-actions svg {
-  width: 0.8125rem !important;
-  height: 0.8125rem !important;
-}
-
-/* ── Reply composer section ─────────────────────────────────────────────── */
-.bn-threads-sidebar .bn-thread-composer {
-  margin-top: 0.375rem !important;
-  padding-top: 0.375rem !important;
-  border-top: 1px solid color-mix(in oklch, var(--border), transparent 70%) !important;
-}
-
-.bn-threads-sidebar .bn-thread-composer .bn-editor {
-  border: 1px solid color-mix(in oklch, var(--border), transparent 40%) !important;
-  border-radius: 0.5rem !important;
-  padding: 0.375rem 0.5rem !important;
-  font-size: 0.8125rem !important;
-  background: color-mix(in oklch, var(--foreground), transparent 98%) !important;
-  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out !important;
-}
-
-.bn-threads-sidebar .bn-thread-composer .bn-editor:focus-within {
-  border-color: color-mix(in oklch, var(--primary), transparent 50%) !important;
-  box-shadow: 0 0 0 2px color-mix(in oklch, var(--primary), transparent 88%) !important;
-}
-
-/* Save button in composer */
-.bn-threads-sidebar .bn-thread-composer .bn-action-toolbar .mantine-Button-root,
-.bn-threads-sidebar .bn-thread-composer .bn-action-toolbar button {
-  background: var(--primary) !important;
-  color: var(--primary-foreground) !important;
-  border-radius: 0.375rem !important;
-  font-size: 0.6875rem !important;
-  font-weight: 600 !important;
-  padding: 0.25rem 0.625rem !important;
-  transition: opacity 0.15s ease-out !important;
-  border: none !important;
-  min-height: 1.5rem !important;
-}
-
-.bn-threads-sidebar .bn-thread-composer .bn-action-toolbar .mantine-Button-root:hover,
-.bn-threads-sidebar .bn-thread-composer .bn-action-toolbar button:hover {
-  opacity: 0.85 !important;
-  background: var(--primary) !important;
-}
-
-/* ── Resolved text ──────────────────────────────────────────────────────── */
-.bn-threads-sidebar .bn-resolved-text {
-  font-size: 0.75rem !important;
-  font-style: italic !important;
-  color: var(--muted-foreground) !important;
-  opacity: 0.7 !important;
-}
-
-/* ── Expand prompt (collapsed replies) ──────────────────────────────────── */
-.bn-threads-sidebar .bn-thread-expand-prompt {
-  color: var(--primary) !important;
-  font-size: 0.75rem !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  padding: 0.25rem 0 !important;
-  opacity: 0.8 !important;
-}
-
-.bn-threads-sidebar .bn-thread-expand-prompt:hover {
-  opacity: 1 !important;
-}
-
-/* ── Reaction badges ────────────────────────────────────────────────────── */
-.bn-threads-sidebar .bn-badge-group {
-  gap: 0.25rem !important;
-  margin-top: 0.25rem !important;
-}
-
-.bn-threads-sidebar .bn-badge .mantine-Chip-label {
-  background: color-mix(in oklch, var(--foreground), transparent 95%) !important;
-  border: 1px solid color-mix(in oklch, var(--border), transparent 55%) !important;
-  border-radius: 9999px !important;
-  padding: 0 0.5rem !important;
-  font-size: 0.6875rem !important;
-  cursor: pointer !important;
-  transition: all 0.15s ease-out !important;
-}
-
-.bn-threads-sidebar .bn-badge .mantine-Chip-label:hover {
-  background: color-mix(in oklch, var(--foreground), transparent 92%) !important;
-  border-color: color-mix(in oklch, var(--border), transparent 30%) !important;
-}
-
-/* ── Dropdown menu for comment actions ──────────────────────────────────── */
-.bn-mantine .bn-menu-dropdown {
-  border-radius: 0.625rem !important;
-  border: 1px solid color-mix(in oklch, var(--border), transparent 30%) !important;
-  box-shadow: 0 4px 16px -4px rgba(0,0,0,0.12), 0 2px 4px -2px rgba(0,0,0,0.06) !important;
-  padding: 0.25rem !important;
-  background: var(--background) !important;
-}
-
-.bn-mantine .bn-menu-dropdown .mantine-Menu-item {
-  border-radius: 0.375rem !important;
-  font-size: 0.8125rem !important;
-  padding: 0.375rem 0.5rem !important;
-  transition: background 0.15s ease-out !important;
-}
-
-.bn-mantine .bn-menu-dropdown .mantine-Menu-item:hover {
-  background: color-mix(in oklch, var(--foreground), transparent 95%) !important;
-}
-
-/* ── Comment actions wrapper ────────────────────────────────────────────── */
-.bn-threads-sidebar .bn-comment-actions-wrapper {
-  width: auto !important;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
 }
 
 @layer base {
   * {
-    @apply border-border;
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
-
-  button:not(:disabled),
-  [role="button"]:not(:disabled) {
-    cursor: pointer;
-  }
-
-  /* Unified transition for all interactive elements */
-  a, button, [role="button"], input, select, textarea {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Focus-visible: subtle ring instead of harsh outline */
-  :focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
-    border-radius: var(--radius);
-  }
-
-  ::-webkit-scrollbar {
-    @apply h-1.5 w-1.5;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-foreground/8 rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-foreground/15;
-  }
-  ::-webkit-scrollbar-corner {
-    @apply bg-transparent;
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
   }
 }
 
-/* ── Landing page utilities: noise / gradient / sleek buttons ───────────── */
-@layer utilities {
-  /* Legacy SVG-noise utility kept only as a no-op shim so any stale usages
-     don't break — the real grain is now rendered by <Noise /> (canvas). */
-  .tx-noise { display: none; }
+/* Thin, modern scrollbars */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--foreground) 16%, transparent);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: color-mix(in oklch, var(--foreground) 28%, transparent); background-clip: content-box; }
 
-  /* Subtle radial gradient aura, accent colored */
-  .tx-aura {
-    position: absolute;
-    pointer-events: none;
-    filter: blur(80px);
-    opacity: 0.55;
-    will-change: transform;
-  }
-  .dark .tx-aura { opacity: 0.35; }
-
-  /* Sleek glass panel */
-  .tx-glass {
-    background: color-mix(in oklch, var(--background), transparent 30%);
-    backdrop-filter: saturate(140%) blur(14px);
-    -webkit-backdrop-filter: saturate(140%) blur(14px);
-  }
-
-  /* Primary accent button with subtle gradient + shine */
-  .tx-btn-primary {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    height: 2.625rem;
-    padding: 0 1.25rem;
-    border-radius: 0.75rem;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: #ffffff;
-    letter-spacing: -0.01em;
-    background: linear-gradient(180deg, #ff8476 0%, #f76c5e 55%, #e85d4f 100%);
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.22) inset,
-      0 -1px 0 rgba(0,0,0,0.14) inset,
-      0 1px 2px rgba(247,108,94,0.35),
-      0 4px 18px -4px rgba(247,108,94,0.45);
-    transition: transform 160ms cubic-bezier(0.4,0,0.2,1), box-shadow 160ms, filter 160ms;
-    isolation: isolate;
-    overflow: hidden;
-  }
-  .tx-btn-primary::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.28) 50%, transparent 80%);
-    transform: translateX(-120%);
-    transition: transform 550ms cubic-bezier(0.4,0,0.2,1);
-    pointer-events: none;
-  }
-  .tx-btn-primary:hover { filter: brightness(1.04); }
-  .tx-btn-primary:hover::before { transform: translateX(120%); }
-  .tx-btn-primary:active { transform: scale(0.98); }
-
-  /* Ghost button */
-  .tx-btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    height: 2.625rem;
-    padding: 0 1.1rem;
-    border-radius: 0.75rem;
-    font-size: 13.5px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    color: var(--tx-text);
-    background: color-mix(in oklch, var(--foreground), transparent 94%);
-    border: 1px solid color-mix(in oklch, var(--foreground), transparent 88%);
-    transition: background 160ms, border-color 160ms, transform 160ms;
-  }
-  .tx-btn-ghost:hover {
-    background: color-mix(in oklch, var(--foreground), transparent 90%);
-    border-color: color-mix(in oklch, var(--foreground), transparent 80%);
-  }
-  .tx-btn-ghost:active { transform: scale(0.98); }
-
-  /* Hairline divider that fades at the edges */
-  .tx-hairline {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, color-mix(in oklch, var(--foreground), transparent 88%), transparent);
-  }
-
-  /* Slow drift animation for gradient orbs */
-  @keyframes tx-drift {
-    0%   { transform: translate3d(0,0,0) scale(1); }
-    50%  { transform: translate3d(3%, -2%, 0) scale(1.04); }
-    100% { transform: translate3d(0,0,0) scale(1); }
-  }
-  .tx-animate-drift { animation: tx-drift 14s ease-in-out infinite; }
-
-  @keyframes tx-fade-up {
-    from { opacity: 0; transform: translate3d(0, 12px, 0); }
-    to   { opacity: 1; transform: translate3d(0, 0, 0); }
-  }
-  .tx-animate-in {
-    animation: tx-fade-up 700ms cubic-bezier(0.22,0.61,0.36,1) both;
-  }
-
-  /* Card with ultra-subtle gradient border */
-  .tx-card {
-    position: relative;
-    background: color-mix(in oklch, var(--background), var(--foreground) 1.5%);
-    border: 1px solid color-mix(in oklch, var(--foreground), transparent 92%);
-    border-radius: 1rem;
-    transition: border-color 200ms, background 200ms, transform 200ms;
-  }
-  .tx-card:hover {
-    border-color: color-mix(in oklch, var(--foreground), transparent 85%);
-    background: color-mix(in oklch, var(--background), var(--foreground) 3%);
-  }
-  .dark .tx-card {
-    background: rgba(255,255,255,0.02);
-    border-color: rgba(255,255,255,0.06);
-  }
-  .dark .tx-card:hover {
-    background: rgba(255,255,255,0.035);
-    border-color: rgba(255,255,255,0.11);
-  }
+@utility no-scrollbar {
+  &::-webkit-scrollbar { display: none; }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TEXXEL DESIGN SYSTEM — Editorial utilities (v2)
-   Typography, surfaces, motion, micro-interactions.
-   ═════════════════════════════════════════════════════════════════════════ */
-@layer utilities {
-  /* ── Typography scale ─────────────────────────────────────────────────── */
-  /* Editorial display — used for page heroes, greetings, section heads */
-  .tx-display {
-    font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif);
-    font-size: clamp(2rem, 4.5vw, 3.5rem);
-    line-height: 1.02;
-    letter-spacing: -0.035em;
-    font-weight: 500;
-    color: var(--tx-text);
-    text-wrap: balance;
-  }
+.flux-grid-bg {
+  background-image: radial-gradient(color-mix(in oklch, var(--foreground) 7%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
 
-  .tx-headline {
-    font-size: clamp(1.25rem, 2vw, 1.625rem);
-    line-height: 1.15;
-    letter-spacing: -0.022em;
-    font-weight: 500;
-    color: var(--tx-text);
-    text-wrap: balance;
-  }
+@keyframes flux-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.flux-float { animation: flux-float 6s ease-in-out infinite; }
 
-  .tx-title {
-    font-size: 0.9375rem;
-    line-height: 1.35;
-    letter-spacing: -0.012em;
-    font-weight: 500;
-    color: var(--tx-text);
-  }
+/* ============================ BLOCKNOTE EDITOR ============================ */
+.flux-editor .bn-editor {
+  background: transparent;
+  padding-inline: 0;
+  font-family: var(--font-sans);
+}
+.flux-editor .bn-container,
+.flux-editor .ProseMirror {
+  background: transparent;
+}
+.flux-editor .ProseMirror {
+  min-height: 360px;
+}
+.flux-editor [class*="bn-editor"] {
+  --bn-colors-editor-background: transparent;
+}
 
-  .tx-body {
-    font-size: 0.8125rem;
-    line-height: 1.55;
-    letter-spacing: -0.005em;
-    color: var(--tx-text);
-  }
-
-  /* Overline — small mono caps, for section eyebrows */
-  .tx-overline {
-    font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-    font-size: 0.625rem;
-    line-height: 1;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--tx-text-dim);
-    font-weight: 500;
-  }
-
-  /* Tabular numerics for metrics/counters */
-  .tx-num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
-
-  /* ── Surface utilities ────────────────────────────────────────────────── */
-  .tx-surface-0 { background: var(--tx-surface-0); }
-  .tx-surface-1 { background: var(--tx-surface-1); }
-  .tx-surface-2 { background: var(--tx-surface-2); }
-  .tx-surface-3 { background: var(--tx-surface-3); }
-  .tx-surface-well {
-    background: var(--tx-well);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
-  }
-  .dark .tx-surface-well {
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
-  }
-
-  /* Editorial card — less chrome than .tx-card, more paper-like */
-  .tx-paper {
-    background: var(--tx-surface-0);
-    border: 1px solid var(--tx-border-subtle);
-    border-radius: var(--tx-radius-lg);
-    transition: border-color var(--tx-dur-base) var(--tx-ease-out-quint),
-                transform var(--tx-dur-base) var(--tx-ease-out-quint),
-                box-shadow var(--tx-dur-base) var(--tx-ease-out-quint);
-  }
-  .tx-paper-hover:hover {
-    border-color: var(--tx-border);
-    box-shadow: var(--tx-shadow-sm);
-  }
-
-  /* ── Shadow utilities ────────────────────────────────────────────────── */
-  .tx-shadow-sm  { box-shadow: var(--tx-shadow-sm); }
-  .tx-shadow     { box-shadow: var(--tx-shadow); }
-  .tx-shadow-lg  { box-shadow: var(--tx-shadow-lg); }
-  .tx-shadow-xl  { box-shadow: var(--tx-shadow-xl); }
-
-  /* ── Paper texture (applied when [data-texture="paper"] on <html>) ─── */
-  [data-texture="paper"] body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    opacity: var(--tx-grain-opacity);
-    background-image:
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-    mix-blend-mode: multiply;
-  }
-  .dark[data-texture="paper"] body::before,
-  [data-texture="paper"] .dark body::before {
-    mix-blend-mode: screen;
-    opacity: calc(var(--tx-grain-opacity) * 1.4);
-  }
-
-  /* ── Gradient text accent ─────────────────────────────────────────────── */
-  .tx-text-accent {
-    background: linear-gradient(180deg, var(--tx-accent) 0%, color-mix(in oklch, var(--tx-accent), #000 18%) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-  }
-
-  /* ── Hairline utility (already exists but extend with vertical variant) ─ */
-  .tx-hairline-v {
-    width: 1px;
-    background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--foreground), transparent 88%), transparent);
-  }
-
-  /* ── Motion — stagger-enter children (1..10 children) ─────────────────── */
-  @keyframes tx-fade-up-sm {
-    from { opacity: 0; transform: translate3d(0, 6px, 0); }
-    to   { opacity: 1; transform: translate3d(0, 0, 0); }
-  }
-  .tx-stagger > * {
-    opacity: 0;
-    animation: tx-fade-up-sm 520ms var(--tx-ease-out-quint) both;
-  }
-  .tx-stagger > *:nth-child(1) { animation-delay: 20ms; }
-  .tx-stagger > *:nth-child(2) { animation-delay: 60ms; }
-  .tx-stagger > *:nth-child(3) { animation-delay: 100ms; }
-  .tx-stagger > *:nth-child(4) { animation-delay: 140ms; }
-  .tx-stagger > *:nth-child(5) { animation-delay: 180ms; }
-  .tx-stagger > *:nth-child(6) { animation-delay: 220ms; }
-  .tx-stagger > *:nth-child(7) { animation-delay: 260ms; }
-  .tx-stagger > *:nth-child(8) { animation-delay: 300ms; }
-  .tx-stagger > *:nth-child(9) { animation-delay: 340ms; }
-  .tx-stagger > *:nth-child(10) { animation-delay: 380ms; }
-  .tx-stagger > *:nth-child(n+11) { animation-delay: 420ms; }
-
-  /* ── Shimmer (for loading / highlight hover) ─────────────────────────── */
-  @keyframes tx-shimmer {
-    0%   { background-position: -120% 0; }
-    100% { background-position: 220% 0; }
-  }
-  .tx-shimmer {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      color-mix(in oklch, var(--foreground), transparent 92%) 50%,
-      transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: tx-shimmer 1.6s linear infinite;
-  }
-
-  /* ── Active-rail (sidebar/nav active state) ───────────────────────────── */
-  .tx-active-rail {
-    position: relative;
-  }
-  .tx-active-rail::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 25%;
-    bottom: 25%;
-    width: 2px;
-    border-radius: 0 2px 2px 0;
-    background: var(--primary);
-    opacity: 0.85;
-    transition: opacity var(--tx-dur-fast) var(--tx-ease-in-out);
-  }
-
-  /* ── Interactive chip — subtle, editorial (replaces "pill" look) ──────── */
-  .tx-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    height: 1.625rem;
-    padding: 0 0.625rem;
-    border-radius: var(--tx-radius-pill);
-    font-size: 0.6875rem;
-    font-weight: 500;
-    letter-spacing: -0.003em;
-    color: var(--tx-text-muted);
-    background: color-mix(in oklch, var(--foreground), transparent 96%);
-    border: 1px solid color-mix(in oklch, var(--foreground), transparent 93%);
-    transition:
-      background var(--tx-dur-fast) var(--tx-ease-in-out),
-      border-color var(--tx-dur-fast) var(--tx-ease-in-out),
-      color var(--tx-dur-fast) var(--tx-ease-in-out);
-  }
-  .tx-chip:hover {
-    background: color-mix(in oklch, var(--foreground), transparent 93%);
-    border-color: color-mix(in oklch, var(--foreground), transparent 87%);
-    color: var(--tx-text);
-  }
-  .tx-chip[data-active="true"] {
-    background: color-mix(in oklch, var(--primary), transparent 90%);
-    border-color: color-mix(in oklch, var(--primary), transparent 78%);
-    color: var(--primary);
-  }
-
-  /* ── Pressable — adds tactile scale on click for buttons ──────────────── */
-  .tx-pressable {
-    transition:
-      transform var(--tx-dur-instant) var(--tx-ease-in-out),
-      background-color var(--tx-dur-fast) var(--tx-ease-in-out),
-      border-color var(--tx-dur-fast) var(--tx-ease-in-out),
-      box-shadow var(--tx-dur-fast) var(--tx-ease-in-out);
-  }
-  .tx-pressable:active { transform: scale(0.97); }
-
-  /* ── Focus ring — pinched, editorial version ──────────────────────────── */
-  .tx-focus-ring:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 2px var(--background),
-      0 0 0 3.5px color-mix(in oklch, var(--primary), transparent 45%);
-  }
-
-  /* ── "Ambient orb" — used on empty states / hero decorations ──────────── */
-  .tx-orb {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(48px);
-    opacity: 0.5;
-    pointer-events: none;
-    will-change: transform, opacity;
-  }
-
-  /* ── Soft route-enter (applied at route-level) ───────────────────────── */
-  @keyframes tx-route-enter {
-    from { opacity: 0; transform: translate3d(0, 10px, 0); filter: blur(2px); }
-    to   { opacity: 1; transform: translate3d(0, 0, 0);     filter: blur(0); }
-  }
-  .tx-route-enter {
-    animation: tx-route-enter 480ms var(--tx-ease-out-quint) both;
-  }
-
-  /* ── Dotted divider (editorial "section break") ───────────────────────── */
-  .tx-dotline {
-    height: 1px;
-    background-image: radial-gradient(
-      circle,
-      color-mix(in oklch, var(--foreground), transparent 78%) 1px,
-      transparent 1px
-    );
-    background-size: 6px 1px;
-    background-repeat: repeat-x;
-  }
-
-  /* ── Progress — thin, editorial ───────────────────────────────────────── */
-  .tx-progress {
-    height: 3px;
-    background: color-mix(in oklch, var(--foreground), transparent 92%);
-    border-radius: 9999px;
-    overflow: hidden;
-  }
-  .tx-progress > span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, var(--primary), color-mix(in oklch, var(--primary), #ff9a8f 25%));
-    transition: width var(--tx-dur-slow) var(--tx-ease-out-quint);
-  }
-
-  /* ── Reduce-motion respect ────────────────────────────────────────────── */
-  @media (prefers-reduced-motion: reduce) {
-    .tx-stagger > *,
-    .tx-route-enter,
-    .tx-animate-in,
-    .tx-animate-drift,
-    .tx-shimmer {
-      animation: none !important;
-      opacity: 1 !important;
-      transform: none !important;
-    }
-  }
+@media (prefers-reduced-motion: reduce) {
+  .flux-float { animation: none; }
 }

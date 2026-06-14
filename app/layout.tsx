@@ -1,64 +1,31 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ConvexClientProvider } from "@/components/providers/convex-provider";
-import { ModalProvider } from "@/components/providers/modal-provider";
-import { EdgeStoreProvider } from "@/lib/edgestore";
-import { ToasterProvider } from "@/components/providers/toaster-provider";
-import { LocaleProvider } from "@/components/providers/locale-provider";
-import { PaletteProvider } from "@/components/providers/palette-provider";
-
-const inter = Inter({ subsets: ["latin"] });
+import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Texxel",
+  title: "Flux — your second brain",
   description:
-    "The free, open workspace for students and creators. Notes, tasks, projects and live collaboration — all in one place.",
-  icons: {
-    icon: [
-      {
-        media: "(prefers-color-scheme: light)",
-        url: "/logo.svg",
-        href: "/logo.svg",
-      },
-      {
-        media: "(prefers-color-scheme: dark)",
-        url: "/logo-dark.svg",
-        href: "/logo-dark.svg",
-      },
-    ],
-  },
+    "Flux is your second brain — docs, tasks, calendar and projects in one calm, connected workspace.",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ConvexClientProvider>
-          <EdgeStoreProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem
-              disableTransitionOnChange
-              storageKey="texxel-theme"
-            >
-              <LocaleProvider>
-                <PaletteProvider>
-                  <ToasterProvider />
-                  <ModalProvider />
-                  {children}
-                </PaletteProvider>
-              </LocaleProvider>
-            </ThemeProvider>
-          </EdgeStoreProvider>
-        </ConvexClientProvider>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&family=Inter:wght@400;500;600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

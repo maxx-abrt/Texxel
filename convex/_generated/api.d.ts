@@ -8,17 +8,30 @@
  * @module
  */
 
-import type * as automations from "../automations.js";
-import type * as comments from "../comments.js";
-import type * as databases from "../databases.js";
-import type * as documents from "../documents.js";
+import type * as a2e_books from "../a2e_books.js";
+import type * as a2e_budgets from "../a2e_budgets.js";
+import type * as a2e_categories from "../a2e_categories.js";
+import type * as a2e_clients from "../a2e_clients.js";
+import type * as a2e_documents from "../a2e_documents.js";
+import type * as a2e_expenses from "../a2e_expenses.js";
+import type * as a2e_fiches from "../a2e_fiches.js";
+import type * as a2e_grantReports from "../a2e_grantReports.js";
+import type * as a2e_invoices from "../a2e_invoices.js";
+import type * as activities from "../activities.js";
+import type * as auth from "../auth.js";
+import type * as flux_databases from "../flux_databases.js";
+import type * as flux_documents from "../flux_documents.js";
+import type * as flux_events from "../flux_events.js";
+import type * as flux_files from "../flux_files.js";
+import type * as flux_tags from "../flux_tags.js";
+import type * as flux_tasks from "../flux_tasks.js";
+import type * as flux_userPrefs from "../flux_userPrefs.js";
+import type * as http from "../http.js";
+import type * as invitations from "../invitations.js";
+import type * as lib_auth from "../lib/auth.js";
 import type * as notifications from "../notifications.js";
 import type * as projects from "../projects.js";
-import type * as subscriptions from "../subscriptions.js";
-import type * as tasks from "../tasks.js";
-import type * as teams from "../teams.js";
-import type * as templates from "../templates.js";
-import type * as userProfiles from "../userProfiles.js";
+import type * as users from "../users.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -28,17 +41,30 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  automations: typeof automations;
-  comments: typeof comments;
-  databases: typeof databases;
-  documents: typeof documents;
+  a2e_books: typeof a2e_books;
+  a2e_budgets: typeof a2e_budgets;
+  a2e_categories: typeof a2e_categories;
+  a2e_clients: typeof a2e_clients;
+  a2e_documents: typeof a2e_documents;
+  a2e_expenses: typeof a2e_expenses;
+  a2e_fiches: typeof a2e_fiches;
+  a2e_grantReports: typeof a2e_grantReports;
+  a2e_invoices: typeof a2e_invoices;
+  activities: typeof activities;
+  auth: typeof auth;
+  flux_databases: typeof flux_databases;
+  flux_documents: typeof flux_documents;
+  flux_events: typeof flux_events;
+  flux_files: typeof flux_files;
+  flux_tags: typeof flux_tags;
+  flux_tasks: typeof flux_tasks;
+  flux_userPrefs: typeof flux_userPrefs;
+  http: typeof http;
+  invitations: typeof invitations;
+  "lib/auth": typeof lib_auth;
   notifications: typeof notifications;
   projects: typeof projects;
-  subscriptions: typeof subscriptions;
-  tasks: typeof tasks;
-  teams: typeof teams;
-  templates: typeof templates;
-  userProfiles: typeof userProfiles;
+  users: typeof users;
   workspaces: typeof workspaces;
 }>;
 

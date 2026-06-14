@@ -1,436 +1,551 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
+/**
+ * A2E SUITE SHARED SCHEMA + A2EMoney TABLES + FLUX TABLES
+ *
+ * - Auth tables come from convex-auth (do not redefine).
+ * - Shared tables (workspaces, memberships, invitations, projects, tasks,
+ *   activities, notifications) are owned by the A2E foundation and used by every
+ *   app in the suite. Left UNCHANGED so A2EMoney keeps working.
+ * - A2EMoney tables are prefixed `a2e_` (preserved verbatim, superset deploy).
+ * - Flux (this app) adds ONLY `flux_` prefixed tables. Every flux table is
+ *   workspace-scoped with a `by_workspace` index.
+ */
 export default defineSchema({
+  // ---- convex-auth tables ----
+  ...authTables,
+
+  // ================= SHARED TABLES (suite-wide) =================
   workspaces: defineTable({
-    name: v.string(),
-    icon: v.optional(v.string()),
-    color: v.optional(v.string()),
-    ownerId: v.string(),
-    isPersonal: v.boolean(),
-    extensions: v.optional(v.string()),
-    uiConfig: v.optional(v.string()),
-    createdAt: v.number(),
-  })
-    .index("by_owner", ["ownerId"]),
-
-  workspaceMembers: defineTable({
-    workspaceId: v.id("workspaces"),
-    userId: v.string(),
-    userEmail: v.string(),
-    userName: v.string(),
-    userImage: v.optional(v.string()),
-    role: v.union(
-      v.literal("owner"),
-      v.literal("admin"),
-      v.literal("editor"),
-      v.literal("viewer"),
-    ),
-    joinedAt: v.number(),
-  })
-    .index("by_workspace", ["workspaceId"])
-    .index("by_user", ["userId"])
-    .index("by_workspace_user", ["workspaceId", "userId"]),
-
-  workspaceInvitations: defineTable({
-    workspaceId: v.id("workspaces"),
-    invitedEmail: v.string(),
-    invitedBy: v.string(),
-    invitedByName: v.optional(v.string()),
-    role: v.union(
-      v.literal("admin"),
-      v.literal("editor"),
-      v.literal("viewer"),
-    ),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("accepted"),
-      v.literal("rejected"),
-      v.literal("expired"),
-    ),
-    token: v.string(),
-    expiresAt: v.number(),
-    createdAt: v.number(),
-  })
-    .index("by_workspace", ["workspaceId"])
-    .index("by_email", ["invitedEmail"])
-    .index("by_token", ["token"])
-    .index("by_workspace_email", ["workspaceId", "invitedEmail"]),
-
-  documents: defineTable({
-    title: v.string(),
-    userId: v.string(),
-    isArchived: v.boolean(),
-    parentDocument: v.optional(v.id("documents")),
-    content: v.optional(v.string()),
-    coverImage: v.optional(v.string()),
-    icon: v.optional(v.string()),
-    isPublished: v.boolean(),
-    order: v.optional(v.number()),
-    workspaceId: v.optional(v.id("workspaces")),  
-    teamId: v.optional(v.id("teams")),
-    projectId: v.optional(v.id("projects")),
-    collaborationMode: v.optional(v.union(v.literal("view_only"), v.literal("open"), v.literal("restricted"))),
-    sharedTeamId: v.optional(v.id("teams")),
-    allowedEditorEmails: v.optional(v.array(v.string())),
-    shareToken: v.optional(v.string()),
-    guestCanEdit: v.optional(v.boolean()),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_parent", ["userId", "parentDocument"])
-    .index("by_team", ["teamId"])
-    .index("by_project", ["projectId"])
-    .index("by_share_token", ["shareToken"]),
-
-  teams: defineTable({
     name: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
-    icon: v.optional(v.string()),
-    iconColor: v.optional(v.string()),
-    iconGradientFrom: v.optional(v.string()),
-    iconGradientTo: v.optional(v.string()),
-    coverImage: v.optional(v.string()),
-    ownerId: v.string(),
-    workspaceId: v.optional(v.id("workspaces")),
+    avatar: v.optional(v.string()),
+    storageQuota: v.number(),
+    ownerId: v.id("users"),
+    locale: v.optional(v.string()),
+    currency: v.optional(v.string()),
+    type: v.optional(
+      v.union(
+        v.literal("individual"),
+        v.literal("business"),
+        v.literal("association"),
+      ),
+    ),
     createdAt: v.number(),
+    updatedAt: v.number(),
   })
-    .index("by_owner", ["ownerId"])
     .index("by_slug", ["slug"])
-    .index("by_workspace", ["workspaceId"]),
+    .index("by_owner", ["ownerId"]),
 
-  teamMembers: defineTable({
-    teamId: v.id("teams"),
-    userId: v.string(),
-    userEmail: v.string(),
-    userName: v.string(),
-    userImage: v.optional(v.string()),
-    role: v.union(v.literal("owner"), v.literal("admin"), v.literal("member")),
+  memberships: defineTable({
+    userId: v.id("users"),
+    workspaceId: v.id("workspaces"),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("admin"),
+      v.literal("member"),
+      v.literal("viewer"),
+    ),
     joinedAt: v.number(),
   })
-    .index("by_team", ["teamId"])
     .index("by_user", ["userId"])
-    .index("by_team_user", ["teamId", "userId"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_user_workspace", ["userId", "workspaceId"]),
 
-  teamInvitations: defineTable({
-    teamId: v.id("teams"),
-    invitedEmail: v.string(),
-    invitedBy: v.string(),
-    role: v.union(v.literal("admin"), v.literal("member")),
-    status: v.union(v.literal("pending"), v.literal("accepted"), v.literal("rejected"), v.literal("expired")),
+  invitations: defineTable({
+    email: v.string(),
+    workspaceId: v.id("workspaces"),
+    role: v.union(
+      v.literal("owner"),
+      v.literal("admin"),
+      v.literal("member"),
+      v.literal("viewer"),
+    ),
     token: v.string(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("revoked"),
+      v.literal("expired"),
+    ),
+    invitedBy: v.id("users"),
     expiresAt: v.number(),
     createdAt: v.number(),
   })
-    .index("by_team", ["teamId"])
-    .index("by_email", ["invitedEmail"])
-    .index("by_token", ["token"])
-    .index("by_team_email", ["teamId", "invitedEmail"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_email", ["email"])
+    .index("by_token", ["token"]),
 
   projects: defineTable({
+    workspaceId: v.id("workspaces"),
     name: v.string(),
+    client: v.string(),
+    status: v.union(
+      v.literal("planning"),
+      v.literal("active"),
+      v.literal("completed"),
+      v.literal("on_hold"),
+    ),
+    budget: v.optional(v.number()),
+    spent: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
     description: v.optional(v.string()),
-    icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    status: v.union(v.literal("active"), v.literal("archived"), v.literal("completed")),
-    teamId: v.optional(v.id("teams")),
-    ownerId: v.string(),
-    workspaceId: v.optional(v.id("workspaces")),
+    createdBy: v.id("users"),
     createdAt: v.number(),
-    dueDate: v.optional(v.number()),
+    updatedAt: v.number(),
   })
-    .index("by_owner", ["ownerId"])
-    .index("by_team", ["teamId"])
-    .index("by_status", ["status"])
-    .index("by_workspace", ["workspaceId"]),
-
-  projectMembers: defineTable({
-    projectId: v.id("projects"),
-    userId: v.string(),
-    role: v.union(v.literal("owner"), v.literal("editor"), v.literal("viewer")),
-  })
-    .index("by_project", ["projectId"])
-    .index("by_user", ["userId"])
-    .index("by_project_user", ["projectId", "userId"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_status", ["workspaceId", "status"]),
 
   tasks: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
     title: v.string(),
     description: v.optional(v.string()),
-    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("in_review"), v.literal("done"), v.literal("cancelled")),
-    priority: v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
-    projectId: v.optional(v.id("projects")),
-    teamId: v.optional(v.id("teams")),
-    workspaceId: v.optional(v.id("workspaces")),
-    createdBy: v.string(),
-    assigneeId: v.optional(v.string()),
+    status: v.union(
+      v.literal("todo"),
+      v.literal("in_progress"),
+      v.literal("done"),
+    ),
+    assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
-    completedAt: v.optional(v.number()),
-    order: v.optional(v.number()),
-    parentTaskId: v.optional(v.id("tasks")),
-    labels: v.optional(v.array(v.string())),
-    estimateMinutes: v.optional(v.number()),
-    blockedBy: v.optional(v.array(v.id("tasks"))),
-    startDate: v.optional(v.number()),
+    createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_project", ["projectId"])
-    .index("by_team", ["teamId"])
     .index("by_workspace", ["workspaceId"])
-    .index("by_creator", ["createdBy"])
-    .index("by_assignee", ["assigneeId"])
-    .index("by_status", ["status"])
-    .index("by_project_status", ["projectId", "status"]),
+    .index("by_project", ["projectId"])
+    .index("by_assignee", ["assigneeId"]),
 
-  taskComments: defineTable({
-    taskId: v.id("tasks"),
-    userId: v.string(),
-    userName: v.string(),
-    userImage: v.optional(v.string()),
-    content: v.string(),
+  activities: defineTable({
+    workspaceId: v.id("workspaces"),
+    actorId: v.id("users"),
+    action: v.string(),
+    targetType: v.string(),
+    targetId: v.string(),
+    metadata: v.optional(v.any()),
     createdAt: v.number(),
   })
-    .index("by_task", ["taskId"])
-    .index("by_user", ["userId"]),
+    .index("by_workspace", ["workspaceId", "createdAt"])
+    .index("by_actor", ["actorId"])
+    .index("by_target", ["targetType", "targetId"]),
 
-  userProfiles: defineTable({
-    userId: v.string(),
-    name: v.optional(v.string()),
-    email: v.optional(v.string()),
-    image: v.optional(v.string()),
-    onboardingCompleted: v.boolean(),
-    role: v.optional(v.string()),
-    description: v.optional(v.string()),
+  notifications: defineTable({
+    userId: v.id("users"),
+    workspaceId: v.id("workspaces"),
+    type: v.string(),
+    title: v.string(),
+    message: v.string(),
+    read: v.boolean(),
+    link: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId", "read"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // ================= A2EMoney TABLES (a2e_) =================
+  a2e_invoices: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    number: v.string(),
+    client: v.string(),
+    clientEmail: v.string(),
+    clientAddress: v.optional(v.string()),
+    items: v.array(
+      v.object({
+        id: v.string(),
+        description: v.string(),
+        quantity: v.number(),
+        unitPrice: v.number(),
+      }),
+    ),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("sent"),
+      v.literal("paid"),
+      v.literal("overdue"),
+      v.literal("cancelled"),
+    ),
+    issueDate: v.number(),
+    dueDate: v.number(),
+    paidDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    linkedDocuments: v.optional(v.array(v.string())),
+    linkedBookEntries: v.optional(v.array(v.string())),
+    taxRate: v.optional(v.number()),
+    currency: v.string(),
+    linkedClientId: v.optional(v.id("a2e_clients")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_status", ["workspaceId", "status"])
+    .index("by_project", ["projectId"])
+    .index("by_number", ["workspaceId", "number"]),
+
+  a2e_expenses: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    description: v.string(),
+    amount: v.number(),
+    category: v.string(),
+    date: v.number(),
+    paymentMethod: v.string(),
+    type: v.union(v.literal("expense"), v.literal("income")),
+    notes: v.optional(v.string()),
+    linkedDocuments: v.optional(v.array(v.string())),
+    linkedInvoice: v.optional(v.id("a2e_invoices")),
+    linkedBookEntries: v.optional(v.array(v.string())),
+    isRecurring: v.optional(v.boolean()),
+    recurringFrequency: v.optional(
+      v.union(
+        v.literal("weekly"),
+        v.literal("monthly"),
+        v.literal("yearly"),
+      ),
+    ),
+    tags: v.optional(v.array(v.string())),
+    currency: v.optional(v.string()),
+    sheetId: v.optional(v.id("a2e_bookSheets")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_date", ["workspaceId", "date"])
+    .index("by_category", ["workspaceId", "category"])
+    .index("by_project", ["projectId"])
+    .index("by_sheet", ["sheetId"]),
+
+  a2e_documents: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    type: v.union(
+      v.literal("invoice"),
+      v.literal("receipt"),
+      v.literal("certificate"),
+      v.literal("contract"),
+      v.literal("other"),
+    ),
+    size: v.number(),
+    contentType: v.optional(v.string()),
+    url: v.string(),
+    s3Key: v.string(),
+    linkedToType: v.optional(
+      v.union(
+        v.literal("expense"),
+        v.literal("invoice"),
+        v.literal("book_entry"),
+        v.literal("project"),
+      ),
+    ),
+    linkedToId: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_linked", ["linkedToType", "linkedToId"]),
+
+  a2e_bookSheets: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
     icon: v.optional(v.string()),
-    accentColor: v.optional(v.string()),
-    gradientFrom: v.optional(v.string()),
-    gradientTo: v.optional(v.string()),
-    useCases: v.optional(v.array(v.string())),
-    dueDateAlertsEnabled: v.optional(v.boolean()),
-    dueDateAlertDays: v.optional(v.number()),
-    accentPalette: v.optional(v.string()),
+    color: v.optional(v.string()),
+    type: v.optional(v.string()),
+    columns: v.optional(v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        type: v.string(),
+        width: v.optional(v.number()),
+        options: v.optional(v.array(v.string())),
+        formula: v.optional(v.string()),
+        required: v.optional(v.boolean()),
+        linkedType: v.optional(v.string()),
+      }),
+    )),
+    isTemplate: v.optional(v.boolean()),
+    description: v.optional(v.string()),
+    createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_template", ["isTemplate"]),
 
-  documentThreads: defineTable({
-    documentId: v.id("documents"),
-    threadId: v.string(),
-    resolved: v.boolean(),
-    resolvedBy: v.optional(v.string()),
-    resolvedAt: v.optional(v.number()),
-    createdAt: v.number(),
-    createdBy: v.string(),
-    deletedAt: v.optional(v.number()),
-  })
-    .index("by_document", ["documentId"])
-    .index("by_thread_id", ["threadId"]),
-
-  documentThreadComments: defineTable({
-    threadId: v.string(),
-    documentId: v.id("documents"),
-    commentId: v.string(),
-    userId: v.string(),
-    body: v.string(),
+  a2e_bookEntries: defineTable({
+    workspaceId: v.id("workspaces"),
+    sheetId: v.id("a2e_bookSheets"),
+    cells: v.any(),
+    linkedDocuments: v.optional(v.array(v.string())),
+    linkedExpenses: v.optional(v.array(v.id("a2e_expenses"))),
+    linkedInvoices: v.optional(v.array(v.id("a2e_invoices"))),
+    linkedProjectId: v.optional(v.id("projects")),
+    createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
-    deletedAt: v.optional(v.number()),
-    reactions: v.optional(v.string()),
   })
-    .index("by_thread", ["threadId"])
+    .index("by_sheet", ["sheetId"])
+    .index("by_workspace", ["workspaceId"]),
+
+  a2e_budgets: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    amount: v.number(),
+    spent: v.optional(v.number()),
+    category: v.string(),
+    period: v.union(
+      v.literal("monthly"),
+      v.literal("yearly"),
+      v.literal("custom"),
+    ),
+    startDate: v.number(),
+    endDate: v.optional(v.number()),
+    color: v.string(),
+    currency: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_category", ["workspaceId", "category"]),
+
+  a2e_categories: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    icon: v.optional(v.string()),
+    color: v.optional(v.string()),
+    type: v.union(v.literal("expense"), v.literal("income"), v.literal("both")),
+    archived: v.optional(v.boolean()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  a2e_fiches: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    template: v.string(),
+    title: v.string(),
+    subtitle: v.optional(v.string()),
+    data: v.any(),
+    status: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("submitted"),
+        v.literal("approved"),
+        v.literal("archived"),
+      ),
+    ),
+    locale: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_project", ["projectId"]),
+
+  // a2e_clients + a2e_grantReports: referenced by newer a2e functions; defined
+  // here (empty on the deployment) so the superset compiles. Shapes inferred
+  // from a2e_clients.ts / a2e_grantReports.ts usage.
+  a2e_clients: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    email: v.optional(v.string()),
+    address: v.optional(v.string()),
+    siret: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    totalInvoiced: v.optional(v.number()),
+    totalPaid: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  a2e_grantReports: defineTable({
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    title: v.string(),
+    data: v.any(),
+    status: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("submitted"),
+        v.literal("approved"),
+        v.literal("archived"),
+      ),
+    ),
+    locale: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_project", ["projectId"]),
+
+  // ================= FLUX TABLES (flux_) =================
+  // Notion-style documents/notes. Nested via parentId. Content = BlockNote JSON.
+  flux_documents: defineTable({
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    parentId: v.optional(v.id("flux_documents")),
+    content: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    coverImage: v.optional(v.string()),
+    isArchived: v.boolean(),
+    isPublished: v.boolean(),
+    order: v.optional(v.number()),
+    shareToken: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_parent", ["workspaceId", "parentId"])
+    .index("by_share_token", ["shareToken"])
+    .searchIndex("search_title", {
+      searchField: "title",
+      filterFields: ["workspaceId", "isArchived"],
+    }),
+
+  flux_documentVersions: defineTable({
+    documentId: v.id("flux_documents"),
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    content: v.optional(v.string()),
+    savedBy: v.id("users"),
+    savedAt: v.number(),
+  })
     .index("by_document", ["documentId"]),
 
-  documentVersions: defineTable({
-    documentId: v.id("documents"),
-    content: v.string(),
-    title: v.string(),
-    savedAt: v.number(),
-    savedBy: v.string(),
-    savedByName: v.optional(v.string()),
-    label: v.optional(v.string()),
-  })
-    .index("by_document", ["documentId"])
-    .index("by_document_time", ["documentId", "savedAt"]),
-
-  documentPresence: defineTable({
-    documentId: v.id("documents"),
-    userId: v.string(),
-    userName: v.string(),
-    userColor: v.string(),
-    userImage: v.optional(v.string()),
-    lastSeen: v.number(),
-  })
-    .index("by_document", ["documentId"])
-    .index("by_document_user", ["documentId", "userId"]),
-
-  automations: defineTable({
-    name: v.string(),
-    description: v.optional(v.string()),
-    trigger: v.union(v.literal("task_created"), v.literal("task_status_changed"), v.literal("task_due_soon"), v.literal("task_assigned")),
-    action: v.union(v.literal("set_status"), v.literal("set_priority"), v.literal("assign_to"), v.literal("send_notification"), v.literal("add_label")),
-    triggerValue: v.optional(v.string()),
-    actionValue: v.optional(v.string()),
-    projectId: v.optional(v.id("projects")),
-    teamId: v.optional(v.id("teams")),
-    workspaceId: v.optional(v.id("workspaces")),
-    ownerId: v.string(),
-    enabled: v.boolean(),
-    createdAt: v.number(),
-  })
-    .index("by_owner", ["ownerId"])
-    .index("by_workspace", ["workspaceId"])
-    .index("by_project", ["projectId"])
-    .index("by_team", ["teamId"]),
-
-  // ─── Databases (Notion-like custom tables) ───────────────────────────────
-  databases: defineTable({
+  // Notion-style custom databases. columns/cells stored as JSON strings.
+  flux_databases: defineTable({
+    workspaceId: v.id("workspaces"),
     title: v.string(),
     description: v.optional(v.string()),
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
-    ownerId: v.string(),
-    workspaceId: v.optional(v.id("workspaces")),
-    projectId: v.optional(v.id("projects")),
-    teamId: v.optional(v.id("teams")),
-    // Columns definition as JSON: [{id, name, type, options?, width?}]
-    // Types: text, number, select, multiSelect, date, checkbox, url, person, relation
     columns: v.string(),
     isArchived: v.optional(v.boolean()),
+    createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_owner", ["ownerId"])
-    .index("by_workspace", ["workspaceId"])
-    .index("by_project", ["projectId"])
-    .index("by_team", ["teamId"]),
+    .index("by_workspace", ["workspaceId"]),
 
-  databaseRows: defineTable({
-    databaseId: v.id("databases"),
-    // Cell values as JSON: { [columnId]: value }
+  flux_databaseRows: defineTable({
+    databaseId: v.id("flux_databases"),
+    workspaceId: v.id("workspaces"),
     cells: v.string(),
     order: v.optional(v.number()),
-    createdBy: v.string(),
+    createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_database", ["databaseId"])
-    .index("by_database_order", ["databaseId", "order"]),
+    .index("by_workspace", ["workspaceId"]),
 
-  // ─── Templates Marketplace ───────────────────────────────────────────────
-  templates: defineTable({
-    title: v.string(),
-    description: v.string(),
-    longDescription: v.optional(v.string()),
-    category: v.union(
-      v.literal("project_management"),
-      v.literal("engineering"),
-      v.literal("design"),
-      v.literal("marketing"),
-      v.literal("sales"),
-      v.literal("hr"),
-      v.literal("education"),
-      v.literal("personal"),
-      v.literal("startup"),
-      v.literal("other"),
+  // Flux-specific task presentation metadata. Sidecar to the shared `tasks`
+  // table (keeps the shared table decoupled & cross-app safe).
+  flux_taskMeta: defineTable({
+    workspaceId: v.id("workspaces"),
+    taskId: v.id("tasks"),
+    priority: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("low"),
+        v.literal("medium"),
+        v.literal("high"),
+        v.literal("urgent"),
+      ),
     ),
-    coverImage: v.optional(v.string()),
-    previewImages: v.optional(v.array(v.string())),
-    icon: v.optional(v.string()),
+    labels: v.optional(v.array(v.string())),
+    order: v.optional(v.number()),
+    startDate: v.optional(v.number()),
     color: v.optional(v.string()),
-
-    // What's included
-    includeTasks: v.boolean(),
-    includeDocuments: v.boolean(),
-    includeProject: v.boolean(),
-    includeDatabases: v.optional(v.boolean()),
-
-    // Template data (JSON-serialized)
-    tasksData: v.optional(v.string()),
-    documentsData: v.optional(v.string()),
-    projectData: v.optional(v.string()),
-    databasesData: v.optional(v.string()),
-
-    // Author
-    authorId: v.string(),
-    authorName: v.string(),
-    authorImage: v.optional(v.string()),
-
-    // Marketplace
-    isPublished: v.boolean(),
-    isFeatured: v.optional(v.boolean()),
-    usageCount: v.number(),
-    likesCount: v.number(),
-    tags: v.optional(v.array(v.string())),
-
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_author", ["authorId"])
-    .index("by_category", ["category"])
-    .index("by_published", ["isPublished"])
-    .index("by_featured", ["isFeatured", "isPublished"])
-    .index("by_usage", ["usageCount"]),
+    .index("by_workspace", ["workspaceId"])
+    .index("by_task", ["taskId"]),
 
-  templateLikes: defineTable({
-    templateId: v.id("templates"),
-    userId: v.string(),
+  flux_taskComments: defineTable({
+    workspaceId: v.id("workspaces"),
+    taskId: v.id("tasks"),
+    userId: v.id("users"),
+    content: v.string(),
     createdAt: v.number(),
   })
-    .index("by_template", ["templateId"])
-    .index("by_user", ["userId"])
-    .index("by_template_user", ["templateId", "userId"]),
+    .index("by_task", ["taskId"]),
 
-  // ─── A2E Suite Subscriptions ────────────────────────────────────────────
-  subscriptions: defineTable({
-    userId: v.string(),
-    plan: v.union(v.literal("free"), v.literal("suite")),
-    // Suite = €5/mo — unlocks extended AI, infinite workspaces
-    status: v.union(v.literal("active"), v.literal("cancelled"), v.literal("expired")),
-    currentPeriodStart: v.optional(v.number()),
-    currentPeriodEnd: v.optional(v.number()),
-    stripeCustomerId: v.optional(v.string()),
-    stripeSubscriptionId: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_stripe_customer", ["stripeCustomerId"]),
-
-  // ─── AI Token Usage Tracking ──────────────────────────────────────────
-  aiUsage: defineTable({
-    userId: v.string(),
-    // Daily bucket key e.g. "2026-04-06"
-    date: v.string(),
-    tokensUsed: v.number(),
-    requestCount: v.number(),
-  })
-    .index("by_user_date", ["userId", "date"])
-    .index("by_user", ["userId"]),
-
-  notifications: defineTable({
-    userId: v.string(),
-    type: v.union(
-      v.literal("team_invitation"),
-      v.literal("task_assigned"),
-      v.literal("task_comment"),
-      v.literal("task_completed"),
-      v.literal("project_invitation"),
-      v.literal("mention"),
-      v.literal("task_due_soon"),
-      v.literal("task_created_in_team"),
-      v.literal("reminder"),
-    ),
+  // Calendar events.
+  flux_events: defineTable({
+    workspaceId: v.id("workspaces"),
     title: v.string(),
-    body: v.string(),
-    read: v.boolean(),
-    link: v.optional(v.string()),
-    relatedId: v.optional(v.string()),
-    fromUserId: v.optional(v.string()),
-    fromUserName: v.optional(v.string()),
-    fromUserImage: v.optional(v.string()),
+    description: v.optional(v.string()),
+    start: v.number(),
+    end: v.optional(v.number()),
+    allDay: v.optional(v.boolean()),
+    color: v.optional(v.string()),
+    location: v.optional(v.string()),
+    projectId: v.optional(v.id("projects")),
+    taskId: v.optional(v.id("tasks")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_start", ["workspaceId", "start"]),
+
+  flux_favorites: defineTable({
+    userId: v.id("users"),
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
-    .index("by_user_read", ["userId", "read"]),
+    .index("by_user_workspace", ["userId", "workspaceId"])
+    .index("by_user_document", ["userId", "documentId"]),
+
+  flux_tags: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    color: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  flux_documentTags: defineTable({
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
+    tagId: v.id("flux_tags"),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_tag", ["tagId"]),
+
+  // Per-user Flux preferences (app-scoped, not workspace-scoped).
+  flux_userPrefs: defineTable({
+    userId: v.id("users"),
+    locale: v.optional(v.string()),
+    theme: v.optional(v.string()),
+    accentColor: v.optional(v.string()),
+    onboardingCompleted: v.optional(v.boolean()),
+    lastWorkspaceId: v.optional(v.id("workspaces")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
 });

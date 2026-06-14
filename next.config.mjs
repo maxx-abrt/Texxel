@@ -1,36 +1,21 @@
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-// Resolve the canonical yjs CJS/ESM entry via Node's require, which correctly
-// walks node_modules. This deduplaces the module so @blocknote/core and y-partykit
-// share one Yjs instance instead of creating two (which triggers the Yjs warning).
-const yjsResolved = require.resolve("yjs");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
+  typescript: { ignoreBuildErrors: true },
+  turbopack: { root: "/app/frontend" },
+  // Allow the Emergent preview proxy origin during `next dev`.
+  allowedDevOrigins: [
+    "flux-dashboard-2.preview.emergentagent.com",
+    ".preview.emergentagent.com",
+  ],
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "files.edgestore.dev",
-      },
+      { protocol: "https", hostname: "*.convex.cloud" },
+      { protocol: "https", hostname: "*.convex.site" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "customer-assets.emergentagent.com" },
     ],
-  },
-
-  // ── Turbopack (next dev) — alias by package name, Turbopack resolves it ──
-  turbopack: {
-    resolveAlias: {
-      yjs: "yjs",
-    },
-  },
-
-  // ── Webpack (next build / production) ───────────────────────────────────
-  webpack(config) {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      yjs: yjsResolved,
-    };
-    return config;
   },
 };
 

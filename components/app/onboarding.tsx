@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { toast } from "sonner";
 import { Flash, ArrowRight2, Logout } from "iconsax-reactjs";
 
@@ -16,7 +15,6 @@ const TYPES = [
 
 export function Onboarding() {
   const create = useMutation(api.workspaces.create);
-  const { signOut } = useAuthActions();
   const router = useRouter();
   const [name, setName] = useState("");
   const [type, setType] = useState<(typeof TYPES)[number]["id"]>("individual");
@@ -42,7 +40,7 @@ export function Onboarding() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-between">
           <span className="text-2xl font-extrabold tracking-tight">flux<span className="text-primary">.</span></span>
-          <button onClick={() => signOut()} data-testid="onboarding-signout" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <button onClick={() => router.push("/api/auth/signout")} data-testid="onboarding-signout" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <Logout variant="Bulk" size={16} /> Sign out
           </button>
         </div>

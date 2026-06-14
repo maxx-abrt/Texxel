@@ -1,14 +1,27 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useConvexAuth } from "convex/react";
-import { useState } from "react";
+import { useConvexAuth, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { WorkspaceProvider, useWorkspace } from "@/hooks/use-flux-workspace";
 import { Sidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
 import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
+
+function UserStoreSync({ children }: { children: React.ReactNode }) {
+  const storeUser = useMutation(api.users.store);
+  const [synced, setSynced] = useState(false);
+
+  useEffect(() => {
+    storeUser().then(() => setSynced(true)).catch(() => setSynced(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!synced) return <Loader />;
+  return <>{children}</>;
+}
 
 function Loader() {
   return (
@@ -66,8 +79,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return null;
 
   return (
-    <WorkspaceProvider>
-      <Shell>{children}</Shell>
-    </WorkspaceProvider>
+    <UserStoreSync>
+      <WorkspaceProvider>
+        <Shell>{children}</Shell>
+      </WorkspaceProvider>
+    </UserStoreSync>
   );
 }

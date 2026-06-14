@@ -1,7 +1,8 @@
-import { convexAuth } from "@convex-dev/auth/server";
-import Google from "@auth/core/providers/google";
-import { Password } from "@convex-dev/auth/providers/Password";
+// Auth is now handled by WorkOS AuthKit (@workos-inc/authkit-nextjs).
+// This file is kept as a stub — nothing below is imported or executed.
+export {};
 
+/*
 const emailCopy: Record<string, {
   subject: string;
   tagline: string;
@@ -175,3 +176,4 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Password({ id: "password" }),
   ],
 });
+*/

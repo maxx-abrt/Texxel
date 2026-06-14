@@ -4,7 +4,6 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import {
   HamburgerMenu,
@@ -30,7 +29,6 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { me, activeWorkspaceId } = useWorkspace();
-  const { signOut } = useAuthActions();
   const unread = useQuery(api.notifications.unreadCount) as number | undefined;
 
   return (
@@ -77,7 +75,7 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
             <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Profile variant="Bulk" size={16} /> Profile</DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Setting2 variant="Bulk" size={16} /> Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()} data-testid="signout" className="gap-2 text-destructive"><Logout variant="Bulk" size={16} /> Sign out</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/api/auth/signout")} data-testid="signout" className="gap-2 text-destructive"><Logout variant="Bulk" size={16} /> Sign out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

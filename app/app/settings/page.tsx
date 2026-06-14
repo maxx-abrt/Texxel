@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale } from "@/components/providers/locale-provider";
 import { PageContainer, PageHeader, btnPrimary, btnOutline, inputBase } from "@/components/app/common";
@@ -28,7 +27,6 @@ export default function SettingsPage() {
   const search = useSearchParams();
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useLocale();
-  const { signOut } = useAuthActions();
   const { me, activeWorkspace, activeWorkspaceId, setActive } = useWorkspace();
 
   const updateProfile = useMutation(api.users.updateProfile);
@@ -91,7 +89,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <button onClick={() => signOut()} className={cn(btnOutline, "text-destructive")} data-testid="settings-signout"><Logout variant="Bulk" size={16} /> Sign out</button>
+        <button onClick={() => router.push("/api/auth/signout")} className={cn(btnOutline, "text-destructive")} data-testid="settings-signout"><Logout variant="Bulk" size={16} /> Sign out</button>
       </div>
     </PageContainer>
   );

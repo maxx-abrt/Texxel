@@ -9,13 +9,14 @@ export type Role = "owner" | "admin" | "member" | "viewer";
 const ROLE_RANK: Record<Role, number> = { owner: 4, admin: 3, member: 2, viewer: 1 };
 
 export async function requireUserId(ctx: QCtx | MCtx): Promise<Id<"users">> {
-  // convex-auth surfaces user via ctx.auth.getUserIdentity().
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) throw new Error("Not authenticated");
-  // identity.subject is a string like `userId|sessionId` in convex-auth.
-  const subject = identity.subject as string;
-  const [userId] = subject.split("|");
-  return userId as Id<"users">;
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
+    .unique();
+  if (!user) throw new Error("User not found — call users.store after login");
+  return user._id;
 }
 
 export async function getOptionalUserId(
@@ -23,9 +24,11 @@ export async function getOptionalUserId(
 ): Promise<Id<"users"> | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) return null;
-  const subject = identity.subject as string;
-  const [userId] = subject.split("|");
-  return userId as Id<"users">;
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_external_id", (q) => q.eq("externalId", identity.subject))
+    .unique();
+  return user?._id ?? null;
 }
 
 export async function assertWorkspaceMember(

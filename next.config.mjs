@@ -2,7 +2,6 @@
 const nextConfig = {
   reactStrictMode: false,
   typescript: { ignoreBuildErrors: true },
-  turbopack: { root: "/app/frontend" },
   // Allow the Emergent preview proxy origin during `next dev`.
   allowedDevOrigins: [
     "flux-dashboard-2.preview.emergentagent.com",

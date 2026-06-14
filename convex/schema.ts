@@ -1,6 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 /**
  * A2E SUITE SHARED SCHEMA + A2EMoney TABLES + FLUX TABLES
@@ -14,8 +13,14 @@ import { authTables } from "@convex-dev/auth/server";
  *   workspace-scoped with a `by_workspace` index.
  */
 export default defineSchema({
-  // ---- convex-auth tables ----
-  ...authTables,
+  // ---- users (keyed by WorkOS externalId) ----
+  users: defineTable({
+    externalId: v.string(),
+    email: v.string(),
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_external_id", ["externalId"]),
 
   // ================= SHARED TABLES (suite-wide) =================
   workspaces: defineTable({

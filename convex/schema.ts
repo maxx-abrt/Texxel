@@ -136,7 +136,10 @@ export default defineSchema({
     .index("by_target", ["targetType", "targetId"]),
 
   notifications: defineTable({
-    userId: v.id("users"),
+    // Shared, suite-wide table. Some apps store external/legacy user UUIDs here
+    // (not convex-auth Id<"users">), so keep this permissive to avoid breaking
+    // deploys with `v.id("users")` schema validation against existing rows.
+    userId: v.string(),
     workspaceId: v.optional(v.id("workspaces")),
     type: v.string(),
     title: v.string(),

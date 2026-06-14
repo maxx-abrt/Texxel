@@ -552,4 +552,11 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"]),
+}, {
+  // SHARED A2E Suite deployment: other apps in the suite own and extend some
+  // tables (e.g. `notifications` gets extra fields like `relatedId` and legacy
+  // UUID userIds) with shapes this schema does not fully model. Disabling strict
+  // schema validation prevents `convex deploy` from ever failing on another
+  // app's data. TypeScript still type-checks writes inside our own functions.
+  schemaValidation: false,
 });

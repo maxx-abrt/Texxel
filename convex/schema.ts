@@ -153,6 +153,7 @@ export default defineSchema({
     read: v.boolean(),
     link: v.optional(v.string()),
     metadata: v.optional(v.any()),
+    relatedId: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_user", ["userId", "read"])
@@ -563,5 +564,5 @@ export default defineSchema({
   // UUID userIds) with shapes this schema does not fully model. Disabling strict
   // schema validation prevents `convex deploy` from ever failing on another
   // app's data. TypeScript still type-checks writes inside our own functions.
-  schemaValidation: true,
+  schemaValidation: false,
 });

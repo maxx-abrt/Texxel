@@ -59,6 +59,9 @@ importers:
       '@workos-inc/authkit-nextjs':
         specifier: ^4.1.1
         version: 4.1.1(next@16.2.9(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+      '@workos-inc/node':
+        specifier: ^10.2.0
+        version: 10.2.0
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2352,6 +2355,10 @@ packages:
       next: ^13.5.9 || ^14.2.26 || ^15.2.3 || ^16
       react: ^18.0 || ^19.0.0
       react-dom: ^18.0 || ^19.0.0
+
+  '@workos-inc/node@10.2.0':
+    resolution: {integrity: sha512-K7LmCvwu8fL7HN3drAvjb/dWceltlDNSs3u1QNNYx5goZaxxG4dgCXDkdlcDt6ZKm8VGv030WfkmL7DylXvdaQ==}
+    engines: {node: '>=22.11.0'}
 
   '@workos-inc/node@9.3.1':
     resolution: {integrity: sha512-z6+V5lPAdEtJ2IklAsOUJWv5guihkMbtC8WHmLCKOJYLa/H0j9bRj/OmxTs7T+bzL2dhItxPRarhxlAAq/0jgQ==}
@@ -5784,6 +5791,10 @@ snapshots:
       valibot: 1.4.1(typescript@5.9.3)
     transitivePeerDependencies:
       - typescript
+
+  '@workos-inc/node@10.2.0':
+    dependencies:
+      eventemitter3: 5.0.4
 
   '@workos-inc/node@9.3.1':
     dependencies:

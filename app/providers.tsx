@@ -12,6 +12,7 @@ const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 function useWorkosAuth() {
   const [token, setToken] = useState<string | null | undefined>(undefined);
   const fetchingRef = useRef(false);
+  const lastFetchRef = useRef(0);
 
   const fetchToken = useCallback(async (): Promise<string | null> => {
     try {
@@ -19,6 +20,7 @@ function useWorkosAuth() {
       if (!res.ok) { setToken(null); return null; }
       const data = await res.json();
       const t = data.token ?? null;
+      lastFetchRef.current = Date.now();
       setToken(t);
       return t;
     } catch {
@@ -37,7 +39,10 @@ function useWorkosAuth() {
     isLoading: token === undefined,
     isAuthenticated: token != null,
     fetchAccessToken: async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
-      if (forceRefreshToken) return fetchToken();
+      // Only hit the server if forced AND the last fetch was >30s ago.
+      if (forceRefreshToken && Date.now() - lastFetchRef.current > 30_000) {
+        return fetchToken();
+      }
       return token ?? null;
     },
   };

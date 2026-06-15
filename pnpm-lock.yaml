@@ -80,6 +80,9 @@ importers:
       iconsax-reactjs:
         specifier: ^0.0.8
         version: 0.0.8(react@19.2.7)
+      iron-session:
+        specifier: ^8.0.4
+        version: 8.0.4
       lucide-react:
         specifier: ^0.563.0
         version: 0.563.0(react@19.2.7)

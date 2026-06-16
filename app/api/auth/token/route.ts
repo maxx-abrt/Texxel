@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { sealData, unsealData } from "iron-session";
 import { WorkOS } from "@workos-inc/node";
+import { devAuthEnabled, decodeDevUser, mintDevToken } from "@/lib/dev-auth";
 
 type WosSession = {
   accessToken?: string;
@@ -20,8 +21,26 @@ function isExpired(jwt: string): boolean {
 }
 
 export async function GET() {
+  const cookieStore = await cookies();
+
+  // ── Dev auth bypass (TESTING ONLY) ──
+  if (devAuthEnabled()) {
+    const devRaw = cookieStore.get("dev-user")?.value;
+    if (devRaw) {
+      const user = decodeDevUser(devRaw);
+      if (user) {
+        try {
+          const token = await mintDevToken(user);
+          return Response.json({ token });
+        } catch {
+          /* fall through to WorkOS */
+        }
+      }
+    }
+  }
+
+  // ── WorkOS session ──
   try {
-    const cookieStore = await cookies();
     const raw = cookieStore.get("wos-session")?.value;
     if (!raw) return Response.json({ token: null });
 
@@ -32,12 +51,10 @@ export async function GET() {
     let { accessToken, refreshToken } = session;
     if (!accessToken) return Response.json({ token: null });
 
-    // If the access token is still valid, return it immediately.
     if (!isExpired(accessToken)) {
       return Response.json({ token: accessToken });
     }
 
-    // Access token expired — refresh it.
     if (!refreshToken) return Response.json({ token: null });
     const workos = new WorkOS(process.env.WORKOS_API_KEY!);
     const refreshed = await workos.userManagement.authenticateWithRefreshToken({
@@ -47,7 +64,6 @@ export async function GET() {
     accessToken = refreshed.accessToken;
     refreshToken = refreshed.refreshToken;
 
-    // Re-seal the updated session and write it back to the cookie.
     const newRaw = await sealData(
       { ...session, accessToken, refreshToken },
       { password: process.env.WORKOS_COOKIE_PASSWORD! }

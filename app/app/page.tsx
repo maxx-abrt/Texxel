@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { PageContainer, timeAgo, btnPrimary } from "@/components/app/common";
+import { ContributionGrid } from "@/components/app/contribution-grid";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -95,6 +96,13 @@ export default function HomePage() {
           </button>
         ))}
       </div>
+
+      {/* Contribution grid */}
+      {activeWorkspaceId && (
+        <div className="mt-6">
+          <ContributionGrid workspaceId={activeWorkspaceId} />
+        </div>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Recent documents */}

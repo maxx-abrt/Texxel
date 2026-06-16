@@ -2,6 +2,38 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember } from "./lib/auth";
 
+/** Activity heatmap (GitHub-style contribution grid). Returns a map of
+ * YYYY-MM-DD -> activity count over the last `days` days, scoped to the
+ * workspace. Set `mineOnly` to count only the current user's contributions.
+ * Efficient: range-scans the by_workspace index on createdAt. */
+export const heatmap = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    days: v.optional(v.number()),
+    mineOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId);
+    const days = Math.min(args.days ?? 364, 366);
+    const cutoff = Date.now() - days * 86_400_000;
+    const rows = await ctx.db
+      .query("activities")
+      .withIndex("by_workspace", (q) =>
+        q.eq("workspaceId", args.workspaceId).gte("createdAt", cutoff),
+      )
+      .collect();
+    const counts: Record<string, number> = {};
+    let total = 0;
+    for (const r of rows) {
+      if (args.mineOnly && r.actorId !== userId) continue;
+      const d = new Date(r.createdAt).toISOString().slice(0, 10);
+      counts[d] = (counts[d] ?? 0) + 1;
+      total++;
+    }
+    return { counts, total };
+  },
+});
+
 export const list = query({
   args: {
     workspaceId: v.id("workspaces"),

@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
 import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
+import { AiPanel } from "@/components/app/ai-panel";
 
 function UserStoreSync({ children }: { children: React.ReactNode }) {
   const storeUser = useMutation(api.users.store);
@@ -63,6 +64,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>
       <CommandPalette open={searchOpen} setOpen={setSearchOpen} />
+      <AiPanel />
     </div>
   );
 }

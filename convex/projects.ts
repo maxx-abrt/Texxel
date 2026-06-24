@@ -22,6 +22,24 @@ export const list = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
+    // Task progress per project.
+    const allTasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    const statusRows = await ctx.db
+      .query("flux_taskStatuses")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    const doneKeys = new Set(
+      statusRows.length ? statusRows.filter((s) => s.isDone).map((s) => s.key) : ["done"],
+    );
+    // Assigned members per project.
+    const memberRows = await ctx.db
+      .query("flux_projectMembers")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+
     return projects.map((p) => {
       const spent = allExpenses
         .filter((e) => e.projectId === p._id && e.type === "expense")
@@ -36,7 +54,11 @@ export const list = query({
             a + (i.items || []).reduce((b, it) => b + it.quantity * it.unitPrice, 0),
           0,
         );
-      return { ...p, spent, income, invoiced };
+      const projTasks = allTasks.filter((t) => t.projectId === p._id);
+      const taskTotal = projTasks.length;
+      const taskDone = projTasks.filter((t) => doneKeys.has(t.status)).length;
+      const memberCount = memberRows.filter((m) => m.projectId === p._id).length;
+      return { ...p, spent, income, invoiced, taskTotal, taskDone, memberCount };
     });
   },
 });

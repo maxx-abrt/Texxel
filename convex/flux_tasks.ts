@@ -32,6 +32,7 @@ async function hydrate(ctx: any, workspaceId: Id<"workspaces">, tasks: any[]) {
       labels: meta?.labels ?? [],
       order: meta?.order ?? t.createdAt,
       startDate: meta?.startDate,
+      estimateMinutes: meta?.estimateMinutes,
       assignee: await getUser(t.assigneeId),
     });
   }
@@ -68,6 +69,7 @@ export const get = query({
       labels: meta?.labels ?? [],
       order: meta?.order ?? task.createdAt,
       startDate: meta?.startDate,
+      estimateMinutes: meta?.estimateMinutes,
       assignee: assignee
         ? { _id: assignee._id, name: (assignee as any).name, email: (assignee as any).email, image: (assignee as any).image }
         : null,
@@ -81,7 +83,7 @@ export const create = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
-    status: v.optional(v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done"))),
+    status: v.optional(v.string()),
     priority: v.optional(
       v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
     ),
@@ -89,6 +91,7 @@ export const create = mutation({
     dueDate: v.optional(v.number()),
     startDate: v.optional(v.number()),
     labels: v.optional(v.array(v.string())),
+    estimateMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
@@ -112,6 +115,7 @@ export const create = mutation({
       labels: args.labels ?? [],
       order: now,
       startDate: args.startDate,
+      estimateMinutes: args.estimateMinutes,
       createdAt: now,
       updatedAt: now,
     });
@@ -142,7 +146,7 @@ export const update = mutation({
     taskId: v.id("tasks"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
-    status: v.optional(v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done"))),
+    status: v.optional(v.string()),
     priority: v.optional(
       v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
     ),
@@ -152,6 +156,7 @@ export const update = mutation({
     projectId: v.optional(v.id("projects")),
     labels: v.optional(v.array(v.string())),
     order: v.optional(v.number()),
+    estimateMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
@@ -169,7 +174,7 @@ export const update = mutation({
       .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
       .unique();
     const metaPatch: any = { updatedAt: now };
-    for (const k of ["priority", "labels", "order", "startDate"] as const) {
+    for (const k of ["priority", "labels", "order", "startDate", "estimateMinutes"] as const) {
       if ((args as any)[k] !== undefined) metaPatch[k] = (args as any)[k];
     }
     if (meta) {
@@ -205,12 +210,97 @@ export const update = mutation({
 });
 
 export const setStatus = mutation({
-  args: { taskId: v.id("tasks"), status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")) },
+  args: { taskId: v.id("tasks"), status: v.string(), order: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
     await assertWorkspaceMember(ctx, task.workspaceId, "member");
     await ctx.db.patch(args.taskId, { status: args.status, updatedAt: Date.now() });
+    if (args.order !== undefined) {
+      const meta = await ctx.db
+        .query("flux_taskMeta")
+        .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
+        .unique();
+      if (meta) await ctx.db.patch(meta._id, { order: args.order, updatedAt: Date.now() });
+      else
+        await ctx.db.insert("flux_taskMeta", {
+          workspaceId: task.workspaceId,
+          taskId: args.taskId,
+          priority: "none",
+          labels: [],
+          order: args.order,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+    }
+  },
+});
+
+/** Bulk update many tasks at once (status / priority / assignee / project). */
+export const bulkUpdate = mutation({
+  args: {
+    taskIds: v.array(v.id("tasks")),
+    status: v.optional(v.string()),
+    priority: v.optional(
+      v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+    ),
+    assigneeId: v.optional(v.union(v.id("users"), v.null())),
+    projectId: v.optional(v.union(v.id("projects"), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const taskId of args.taskIds) {
+      const task = await ctx.db.get(taskId);
+      if (!task) continue;
+      await assertWorkspaceMember(ctx, task.workspaceId, "member");
+      const taskPatch: any = { updatedAt: now };
+      if (args.status !== undefined) taskPatch.status = args.status;
+      if (args.assigneeId !== undefined) taskPatch.assigneeId = args.assigneeId ?? undefined;
+      if (args.projectId !== undefined) taskPatch.projectId = args.projectId ?? undefined;
+      await ctx.db.patch(taskId, taskPatch);
+      if (args.priority !== undefined) {
+        const meta = await ctx.db
+          .query("flux_taskMeta")
+          .withIndex("by_task", (q) => q.eq("taskId", taskId))
+          .unique();
+        if (meta) await ctx.db.patch(meta._id, { priority: args.priority, updatedAt: now });
+        else
+          await ctx.db.insert("flux_taskMeta", {
+            workspaceId: task.workspaceId,
+            taskId,
+            priority: args.priority,
+            labels: [],
+            order: now,
+            createdAt: now,
+            updatedAt: now,
+          });
+      }
+    }
+    return args.taskIds.length;
+  },
+});
+
+/** Bulk delete tasks (and their metas + comments). */
+export const bulkRemove = mutation({
+  args: { taskIds: v.array(v.id("tasks")) },
+  handler: async (ctx, args) => {
+    for (const taskId of args.taskIds) {
+      const task = await ctx.db.get(taskId);
+      if (!task) continue;
+      await assertWorkspaceMember(ctx, task.workspaceId, "member");
+      const meta = await ctx.db
+        .query("flux_taskMeta")
+        .withIndex("by_task", (q) => q.eq("taskId", taskId))
+        .unique();
+      if (meta) await ctx.db.delete(meta._id);
+      const comments = await ctx.db
+        .query("flux_taskComments")
+        .withIndex("by_task", (q) => q.eq("taskId", taskId))
+        .collect();
+      for (const c of comments) await ctx.db.delete(c._id);
+      await ctx.db.delete(taskId);
+    }
+    return args.taskIds.length;
   },
 });
 

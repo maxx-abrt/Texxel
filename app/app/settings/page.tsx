@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useMutation } from "convex/react";
+import { useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -11,7 +11,54 @@ import { PageContainer, PageHeader, btnPrimary, btnOutline, inputBase } from "@/
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout } from "iconsax-reactjs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash } from "iconsax-reactjs";
+
+function WorkspaceBranding({ workspace, workspaceId, canManage }: any) {
+  const convex = useConvex();
+  const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
+  const updateWorkspace = useMutation(api.workspaces.update);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onPick = async (file?: File) => {
+    if (!file || !workspaceId) return;
+    if (file.size > 4 * 1024 * 1024) return toast.error("Image must be under 4MB");
+    setBusy(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
+      const { storageId } = await res.json();
+      const url = await convex.query(api.flux_files.getUrl, { storageId });
+      await updateWorkspace({ workspaceId, avatar: url ?? undefined });
+      toast.success("Workspace logo updated");
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mb-5 flex items-center gap-4" data-testid="workspace-branding">
+      <Avatar className="h-16 w-16 rounded-2xl border border-border">
+        {workspace?.avatar && <AvatarImage src={workspace.avatar} className="rounded-2xl object-cover" />}
+        <AvatarFallback className="rounded-2xl bg-[var(--flux-coral-soft)] text-xl font-semibold text-primary">{(workspace?.name ?? "W").charAt(0).toUpperCase()}</AvatarFallback>
+      </Avatar>
+      <div>
+        <p className="text-sm font-medium">Workspace logo</p>
+        <p className="mb-2 text-xs text-muted-foreground">PNG or JPG, up to 4MB.</p>
+        {canManage && (
+          <div className="flex items-center gap-2">
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onPick(e.target.files?.[0])} data-testid="ws-logo-input" />
+            <button onClick={() => fileRef.current?.click()} disabled={busy} className={cn(btnOutline, "h-8 text-xs")} data-testid="ws-logo-upload"><Gallery variant="Bulk" size={15} /> {busy ? "Uploading…" : "Upload logo"}</button>
+            {workspace?.avatar && <button onClick={() => updateWorkspace({ workspaceId, avatar: "" }).then(() => toast.success("Logo removed"))} className="flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10"><Trash variant="Bulk" size={14} /> Remove</button>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function Section({ title, icon: Icon, children }: any) {
   return (
@@ -73,6 +120,7 @@ export default function SettingsPage() {
         </Section>
 
         <Section title="Workspace" icon={Buildings}>
+          <WorkspaceBranding workspace={activeWorkspace} workspaceId={activeWorkspaceId} canManage={canManageWs} />
           <label className="mb-1.5 block text-sm font-medium">Workspace name</label>
           <div className="flex gap-2">
             <input value={wsName} onChange={(e) => setWsName(e.target.value)} disabled={!canManageWs} className={cn(inputBase, !canManageWs && "opacity-60")} data-testid="settings-ws-name" />

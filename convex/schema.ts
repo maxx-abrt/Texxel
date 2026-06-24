@@ -112,11 +112,10 @@ export default defineSchema({
     projectId: v.optional(v.id("projects")),
     title: v.string(),
     description: v.optional(v.string()),
-    status: v.union(
-      v.literal("todo"),
-      v.literal("in_progress"),
-      v.literal("done"),
-    ),
+    // Status is a string key. Defaults: "todo" | "in_progress" | "done", but
+    // workspaces can define custom statuses (see flux_taskStatuses). Stored as a
+    // plain string for forward-compatibility with custom workspace statuses.
+    status: v.string(),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     createdBy: v.id("users"),
@@ -484,6 +483,7 @@ export default defineSchema({
     labels: v.optional(v.array(v.string())),
     order: v.optional(v.number()),
     startDate: v.optional(v.number()),
+    estimateMinutes: v.optional(v.number()),
     color: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -508,6 +508,8 @@ export default defineSchema({
     start: v.number(),
     end: v.optional(v.number()),
     allDay: v.optional(v.boolean()),
+    recurrence: v.optional(v.string()), // none|daily|weekly|biweekly|monthly
+    recurrenceUntil: v.optional(v.number()),
     color: v.optional(v.string()),
     location: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
@@ -557,6 +559,63 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("by_user", ["userId"]),
+
+  // Workspace-specific custom task statuses (Kanban columns). When a workspace
+  // has none, the app falls back to the 3 built-in defaults (todo/in_progress/
+  // done) and seeds them on first access via flux_taskStatuses.ensureDefaults.
+  flux_taskStatuses: defineTable({
+    workspaceId: v.id("workspaces"),
+    key: v.string(), // stable slug stored on tasks.status
+    label: v.string(),
+    color: v.string(),
+    order: v.number(),
+    isDone: v.optional(v.boolean()), // counts as "completed" for progress calc
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_key", ["workspaceId", "key"]),
+
+  // Workspace-scoped reusable labels for tasks (name + color).
+  flux_labels: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    color: v.string(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  // Project assignment / membership (who is working on a project).
+  flux_projectMembers: defineTable({
+    projectId: v.id("projects"),
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    role: v.optional(v.string()), // "lead" | "member"
+    addedBy: v.optional(v.id("users")),
+    addedAt: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_workspace", ["workspaceId"])
+    .index("by_user", ["userId"])
+    .index("by_project_user", ["projectId", "userId"]),
+
+  // Time tracking entries (logged against a task and/or project).
+  flux_timeEntries: defineTable({
+    workspaceId: v.id("workspaces"),
+    taskId: v.optional(v.id("tasks")),
+    projectId: v.optional(v.id("projects")),
+    userId: v.id("users"),
+    minutes: v.number(),
+    note: v.optional(v.string()),
+    spentAt: v.number(), // when the work happened (day)
+    createdAt: v.number(),
+  })
+    .index("by_task", ["taskId"])
+    .index("by_project", ["projectId"])
+    .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"]),
 }, {
   // SHARED A2E Suite deployment: other apps in the suite own and extend some

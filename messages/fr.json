@@ -214,7 +214,14 @@
       "daysBefore": "Jours avant la date limite",
       "generate": "Générer le rétro-planning",
       "generated": "Rétro-planning généré !",
-      "noDeadline": "Définissez une date limite de projet pour utiliser le rétro-planning"
+      "noDeadline": "Définissez une date limite de projet pour utiliser le rétro-planning",
+      "daysLeft": "jours restants",
+      "durationDays": "Durée (jours)",
+      "generateFailed": "Échec de la génération des tâches",
+      "generating": "Génération…",
+      "named": "nommé",
+      "setDeadlineHint": "Définissez une échéance de projet pour utiliser le rétroplanning.",
+      "timeline": "Chronologie"
     },
     "saveChanges": "Enregistrer",
     "saving": "Enregistrement...",
@@ -277,27 +284,27 @@
       "member": "Membre"
     },
     "newNote": "Nouvelle note",
-    "notePlaceholder": "Titre de la note\u2026",
+    "notePlaceholder": "Titre de la note…",
     "moreNotes": "notes de plus",
     "noNotes": "Aucune note pour l'instant",
-    "noNotesDesc": "Cr\u00e9ez la premi\u00e8re note de cet espace \u00e9quipe",
-    "noteCreated": "Note cr\u00e9\u00e9e",
-    "noteCreateFailed": "\u00c9chec de la cr\u00e9ation de la note",
-    "backToTeams": "Retour aux \u00e9quipes",
-    "tasks": "T\u00e2ches",
-    "moreTasks": "t\u00e2ches de plus",
+    "noNotesDesc": "Créez la première note de cet espace équipe",
+    "noteCreated": "Note créée",
+    "noteCreateFailed": "Échec de la création de la note",
+    "backToTeams": "Retour aux équipes",
+    "tasks": "Tâches",
+    "moreTasks": "tâches de plus",
     "open": "ouvertes",
-    "done": "termin\u00e9es",
+    "done": "terminées",
     "seeAll": "Voir tout",
     "statsMembers": "Membres",
     "statsProjects": "Projets",
-    "statsTasks": "T\u00e2ches ouvertes",
+    "statsTasks": "Tâches ouvertes",
     "workspaceBanner": "{count, plural, one {# membre de l'espace de travail} other {# membres de l'espace de travail}}",
-    "roleDescAdmin": "Peut g\u00e9rer les membres, projets et param\u00e8tres",
-    "roleDescMember": "Peut consulter et collaborer sur les projets et t\u00e2ches",
+    "roleDescAdmin": "Peut gérer les membres, projets et paramètres",
+    "roleDescMember": "Peut consulter et collaborer sur les projets et tâches",
     "you": "vous",
     "acceptInvite": "Accepter l'invitation",
-    "inviteJoin": "Vous avez \u00e9t\u00e9 invité \u00e0 rejoindre",
+    "inviteJoin": "Vous avez été invité à rejoindre",
     "inviteRole": "en tant que",
     "inviteAccepted": "Invitation acceptée ! Bienvenue dans l'équipe.",
     "inviteAcceptFailed": "Échec de l'acceptation de l'invitation",
@@ -601,10 +608,22 @@
       "subtitle": "Nous adapterons votre expérience en conséquence.",
       "continue": "Continuer",
       "roles": {
-        "individual": { "label": "Étudiant", "desc": "Notes personnelles, tâches et gestion d'études" },
-        "team_lead": { "label": "Chef d'équipe", "desc": "Diriger un groupe d'étude ou une petite équipe" },
-        "manager": { "label": "Créateur", "desc": "Gérer des projets et des collaborateurs" },
-        "developer": { "label": "Développeur", "desc": "Construire et livrer des logiciels" }
+        "individual": {
+          "label": "Étudiant",
+          "desc": "Notes personnelles, tâches et gestion d'études"
+        },
+        "team_lead": {
+          "label": "Chef d'équipe",
+          "desc": "Diriger un groupe d'étude ou une petite équipe"
+        },
+        "manager": {
+          "label": "Créateur",
+          "desc": "Gérer des projets et des collaborateurs"
+        },
+        "developer": {
+          "label": "Développeur",
+          "desc": "Construire et livrer des logiciels"
+        }
       }
     },
     "useCase": {
@@ -612,10 +631,22 @@
       "subtitle": "Sélectionnez tout ce qui s'applique.",
       "continue": "Continuer",
       "cases": {
-        "tasks": { "label": "Gestion des tâches", "desc": "Suivre les todos et éléments de travail" },
-        "projects": { "label": "Projets", "desc": "Planifier et exécuter des projets" },
-        "notes": { "label": "Notes & Docs", "desc": "Rédiger et collaborer sur des documents" },
-        "team": { "label": "Collaboration d'équipe", "desc": "Travailler avec votre groupe" }
+        "tasks": {
+          "label": "Gestion des tâches",
+          "desc": "Suivre les todos et éléments de travail"
+        },
+        "projects": {
+          "label": "Projets",
+          "desc": "Planifier et exécuter des projets"
+        },
+        "notes": {
+          "label": "Notes & Docs",
+          "desc": "Rédiger et collaborer sur des documents"
+        },
+        "team": {
+          "label": "Collaboration d'équipe",
+          "desc": "Travailler avec votre groupe"
+        }
       }
     },
     "team": {
@@ -694,16 +725,46 @@
       "ai": "IA & Automatisation"
     },
     "items": {
-      "kanban": { "name": "Tableau Kanban", "desc": "Tableau visuel de tâches avec colonnes glisser-déposer" },
-      "gantt": { "name": "Diagramme de Gantt", "desc": "Vue chronologique pour la planification de projet" },
-      "retroPlanning": { "name": "Rétro-planning", "desc": "Planification inversée depuis les dates limites" },
-      "aiAssistant": { "name": "Assistant IA", "desc": "IA contextuelle pour les notes et tâches" },
-      "calendar": { "name": "Vue calendrier", "desc": "Voir les tâches et échéances sur un calendrier" },
-      "timeTracking": { "name": "Suivi du temps", "desc": "Suivre le temps passé sur les tâches" },
-      "customFields": { "name": "Champs personnalisés", "desc": "Ajouter des propriétés personnalisées aux tâches" },
-      "automations": { "name": "Automatisations", "desc": "Automatisez les workflows répétitifs" },
-      "focusTimer": { "name": "Minuteur Focus", "desc": "Minuteur Pomodoro pour les sessions de travail profond" },
-      "databases": { "name": "Bases de données", "desc": "Tableaux personnalisés pour tout organiser — comme Notion" }
+      "kanban": {
+        "name": "Tableau Kanban",
+        "desc": "Tableau visuel de tâches avec colonnes glisser-déposer"
+      },
+      "gantt": {
+        "name": "Diagramme de Gantt",
+        "desc": "Vue chronologique pour la planification de projet"
+      },
+      "retroPlanning": {
+        "name": "Rétro-planning",
+        "desc": "Planification inversée depuis les dates limites"
+      },
+      "aiAssistant": {
+        "name": "Assistant IA",
+        "desc": "IA contextuelle pour les notes et tâches"
+      },
+      "calendar": {
+        "name": "Vue calendrier",
+        "desc": "Voir les tâches et échéances sur un calendrier"
+      },
+      "timeTracking": {
+        "name": "Suivi du temps",
+        "desc": "Suivre le temps passé sur les tâches"
+      },
+      "customFields": {
+        "name": "Champs personnalisés",
+        "desc": "Ajouter des propriétés personnalisées aux tâches"
+      },
+      "automations": {
+        "name": "Automatisations",
+        "desc": "Automatisez les workflows répétitifs"
+      },
+      "focusTimer": {
+        "name": "Minuteur Focus",
+        "desc": "Minuteur Pomodoro pour les sessions de travail profond"
+      },
+      "databases": {
+        "name": "Bases de données",
+        "desc": "Tableaux personnalisés pour tout organiser — comme Notion"
+      }
     },
     "uiConfig": {
       "title": "Apparence & Mise en page",
@@ -1061,11 +1122,11 @@
     "untitled": "Graphique",
     "edit": "Modifier",
     "close": "Fermer",
-    "titlePlaceholder": "Titre du graphique\u2026",
-    "labelPlaceholder": "Libell\u00e9",
+    "titlePlaceholder": "Titre du graphique…",
+    "labelPlaceholder": "Libellé",
     "addDataPoint": "Ajouter un point",
     "grid": "Grille",
-    "legend": "L\u00e9gende",
+    "legend": "Légende",
     "accentColor": "Couleur",
     "cancel": "Annuler",
     "apply": "Appliquer",
@@ -1206,10 +1267,22 @@
   "landing": {
     "valueProps": {
       "heading": "Conçu pour la façon dont les étudiants travaillent vraiment.",
-      "solo": { "title": "Notes & docs personnels", "desc": "Éditeur par blocs, export PDF et Word, puces intelligentes. Votre base de connaissances personnelle." },
-      "group": { "title": "Projets en groupe", "desc": "Invitez des camarades, rédigez ensemble en temps réel et répartissez les tâches sur un tableau kanban partagé." },
-      "manage": { "title": "Gestion de projet", "desc": "Créez des projets, fixez des délais, assignez des rôles et suivez les progrès — simple pour tout le monde." },
-      "free": { "title": "Toujours gratuit", "desc": "Toutes les fonctionnalités, sans limite de plan, sans carte bancaire. Gratuit pour toujours." }
+      "solo": {
+        "title": "Notes & docs personnels",
+        "desc": "Éditeur par blocs, export PDF et Word, puces intelligentes. Votre base de connaissances personnelle."
+      },
+      "group": {
+        "title": "Projets en groupe",
+        "desc": "Invitez des camarades, rédigez ensemble en temps réel et répartissez les tâches sur un tableau kanban partagé."
+      },
+      "manage": {
+        "title": "Gestion de projet",
+        "desc": "Créez des projets, fixez des délais, assignez des rôles et suivez les progrès — simple pour tout le monde."
+      },
+      "free": {
+        "title": "Toujours gratuit",
+        "desc": "Toutes les fonctionnalités, sans limite de plan, sans carte bancaire. Gratuit pour toujours."
+      }
     },
     "nav": {
       "features": "Fonctionnalités",

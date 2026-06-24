@@ -25,6 +25,15 @@ async function requestToken(): Promise<string | null> {
   }
 }
 
+function decodeExpMs(jwt: string): number | null {
+  try {
+    const payload = JSON.parse(atob(jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 function useWorkosAuth() {
   const [state, setState] = useState<{ isLoading: boolean; isAuthenticated: boolean }>({
     isLoading: true,
@@ -32,34 +41,62 @@ function useWorkosAuth() {
   });
   const tokenRef = useRef<string | null>(null);
   const lastFetch = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const applyToken = useCallback((t: string | null) => {
+    tokenRef.current = t;
+    lastFetch.current = Date.now();
+    setState((s) =>
+      s.isLoading === false && s.isAuthenticated === (t != null)
+        ? s
+        : { isLoading: false, isAuthenticated: t != null },
+    );
+    // Schedule a proactive background refresh shortly before the token expires
+    // so the session stays alive and users are not logged out unexpectedly.
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (t) {
+      const expMs = decodeExpMs(t);
+      const now = Date.now();
+      // refresh 90s before expiry, clamp to [20s, 10min]
+      let delay = expMs ? expMs - now - 90_000 : 4 * 60_000;
+      delay = Math.max(20_000, Math.min(delay, 10 * 60_000));
+      timerRef.current = setTimeout(() => {
+        requestToken().then(applyToken);
+      }, delay);
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
     requestToken().then((t) => {
       if (!active) return;
-      tokenRef.current = t;
-      lastFetch.current = Date.now();
-      setState({ isLoading: false, isAuthenticated: t != null });
+      applyToken(t);
     });
+    // Re-validate when the tab regains focus (handles long sleeps).
+    const onFocus = () => {
+      if (Date.now() - lastFetch.current > 60_000) {
+        requestToken().then(applyToken);
+      }
+    };
+    window.addEventListener("focus", onFocus);
     return () => {
       active = false;
+      window.removeEventListener("focus", onFocus);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, []);
+  }, [applyToken]);
 
   const fetchAccessToken = useCallback(
     async ({ forceRefreshToken }: { forceRefreshToken: boolean }) => {
-      const stale = Date.now() - lastFetch.current > 30_000;
-      if (tokenRef.current == null || (forceRefreshToken && stale)) {
+      const expMs = tokenRef.current ? decodeExpMs(tokenRef.current) : null;
+      const nearExpiry = expMs != null && expMs - Date.now() < 120_000;
+      if (tokenRef.current == null || forceRefreshToken || nearExpiry) {
         const t = await requestToken();
-        tokenRef.current = t;
-        lastFetch.current = Date.now();
-        setState((s) =>
-          s.isAuthenticated === (t != null) ? s : { isLoading: false, isAuthenticated: t != null },
-        );
+        applyToken(t);
       }
       return tokenRef.current;
     },
-    [],
+    [applyToken],
   );
 
   return useMemo(

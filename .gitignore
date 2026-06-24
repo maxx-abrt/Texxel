@@ -3,3 +3,7 @@ node_modules
 .env
 .next
 .qodo
+
+# local dev
+dev.log
+.env.local

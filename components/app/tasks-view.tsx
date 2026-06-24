@@ -1,36 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
 import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, inputBase } from "@/components/app/common";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
+  DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
+  closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext, useSortable, arrayMove, verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  TaskSquare, Add, Kanban, RowVertical, More, Trash, Flag, Calendar, TickCircle, Send2,
+  TaskSquare, Add, Kanban, RowVertical, More, Trash, Flag, Calendar, TickCircle,
+  Send2, Tag, Setting4, CloseCircle, TickSquare, Profile, Clock,
 } from "iconsax-reactjs";
-
-const STATUSES = [
-  { id: "todo", label: "To do", color: "var(--accent-ocean)" },
-  { id: "in_progress", label: "In progress", color: "#d98324" },
-  { id: "done", label: "Done", color: "var(--accent-mint)" },
-] as const;
 
 const PRIORITIES: Record<string, { label: string; color: string }> = {
   none: { label: "None", color: "var(--muted-foreground)" },
@@ -39,6 +38,8 @@ const PRIORITIES: Record<string, { label: string; color: string }> = {
   high: { label: "High", color: "#e5484d" },
   urgent: { label: "Urgent", color: "#fb5648" },
 };
+
+const STATUS_PALETTE = ["#2f7ea6", "#d98324", "#2fbf9b", "#8b5cf6", "#ec4899", "#e5484d", "#0ea5e9", "#f59e0b"];
 
 function fmtDate(ts?: number) {
   if (!ts) return "";
@@ -50,32 +51,49 @@ function toDateInput(ts?: number) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+type Status = { _id: Id<"flux_taskStatuses"> | null; key: string; label: string; color: string; order: number; isDone?: boolean };
+
 export function TasksView() {
   const search = useSearchParams();
   const { activeWorkspaceId } = useWorkspace();
   const tasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const statuses = useQuery(api.flux_taskStatuses.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip") as Status[] | undefined;
   const members = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const projects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const labels = useQuery(api.flux_labels.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
 
   const create = useMutation(api.flux_tasks.create);
   const update = useMutation(api.flux_tasks.update);
   const setStatus = useMutation(api.flux_tasks.setStatus);
   const remove = useMutation(api.flux_tasks.remove);
+  const ensureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
 
   const [view, setView] = useState<"board" | "list">("board");
   const [createOpen, setCreateOpen] = useState(false);
-  const [createStatus, setCreateStatus] = useState<"todo" | "in_progress" | "done">("todo");
+  const [createStatus, setCreateStatus] = useState<string>("todo");
   const [selected, setSelected] = useState<any>(null);
+  const [statusMgrOpen, setStatusMgrOpen] = useState(false);
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (search.get("new") === "1") setCreateOpen(true);
-  }, [search]);
+  useEffect(() => { if (search.get("new") === "1") setCreateOpen(true); }, [search]);
+  useEffect(() => { if (activeWorkspaceId) ensureDefaults({ workspaceId: activeWorkspaceId }).catch(() => {}); }, [activeWorkspaceId, ensureDefaults]);
 
-  const byStatus = useMemo(() => {
-    const map: Record<string, any[]> = { todo: [], in_progress: [], done: [] };
-    for (const t of tasks ?? []) map[t.status]?.push(t);
-    return map;
-  }, [tasks]);
+  const cols: Status[] = useMemo(() => {
+    const s = (statuses ?? []).slice().sort((a, b) => a.order - b.order);
+    return s.length ? s : [];
+  }, [statuses]);
+
+  const filteredTasks = useMemo(() => {
+    let list = tasks ?? [];
+    if (labelFilter) list = list.filter((t: any) => (t.labels ?? []).includes(labelFilter));
+    return list;
+  }, [tasks, labelFilter]);
+
+  const labelColor = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const l of labels ?? []) m[l.name] = l.color;
+    return m;
+  }, [labels]);
 
   return (
     <PageContainer>
@@ -94,86 +112,58 @@ export function TasksView() {
                 <RowVertical variant="Bulk" size={16} /> List
               </button>
             </div>
-            <button onClick={() => { setCreateStatus("todo"); setCreateOpen(true); }} className={btnPrimary} data-testid="new-task-btn">
+            <button onClick={() => setStatusMgrOpen(true)} className={cn(btnOutline, "h-9")} data-testid="manage-statuses-btn" title="Manage statuses">
+              <Setting4 variant="Bulk" size={16} /> Statuses
+            </button>
+            <button onClick={() => { setCreateStatus(cols[0]?.key ?? "todo"); setCreateOpen(true); }} className={btnPrimary} data-testid="new-task-btn">
               <Add variant="Bulk" size={18} /> New task
             </button>
           </div>
         }
       />
 
-      {tasks === undefined ? (
+      {/* Label filter bar */}
+      {labels && labels.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="label-filter-bar">
+          <span className="text-xs font-medium text-muted-foreground"><Tag variant="Bulk" size={14} className="mr-1 inline" />Labels:</span>
+          <button onClick={() => setLabelFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !labelFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>All</button>
+          {labels.map((l: any) => (
+            <button key={l._id} onClick={() => setLabelFilter(labelFilter === l.name ? null : l.name)} data-testid="label-filter-chip"
+              className={cn("rounded-full px-2.5 py-1 text-xs font-medium transition", labelFilter === l.name ? "ring-2 ring-offset-1" : "opacity-90 hover:opacity-100")}
+              style={{ backgroundColor: `color-mix(in oklch, ${l.color} 18%, transparent)`, color: l.color }}>
+              {l.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tasks === undefined || statuses === undefined ? (
         <div className="grid gap-4 md:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-64 animate-pulse rounded-2xl bg-muted" />)}
         </div>
-      ) : (tasks.length === 0 && view === "list") ? (
-        <EmptyState icon={TaskSquare} title="No tasks yet" description="Create a task to start tracking your work." testId="tasks-empty"
-          action={<button onClick={() => setCreateOpen(true)} className={btnPrimary}><Add variant="Bulk" size={18} /> New task</button>} />
       ) : view === "board" ? (
-        <div className="grid gap-4 md:grid-cols-3" data-testid="tasks-kanban-board">
-          {STATUSES.map((s) => (
-            <div key={s.id} className="flex flex-col rounded-2xl border border-border bg-muted/40 p-3">
-              <div className="mb-2 flex items-center justify-between px-1">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                  {s.label}
-                  <span className="text-muted-foreground">{byStatus[s.id].length}</span>
-                </div>
-                <button onClick={() => { setCreateStatus(s.id); setCreateOpen(true); }} className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-background">
-                  <Add variant="Bulk" size={16} />
-                </button>
-              </div>
-              <div className="flex-1 space-y-2">
-                {byStatus[s.id].map((t: any) => (
-                  <TaskCard key={t._id} task={t} onClick={() => setSelected(t)} onMove={(st) => setStatus({ taskId: t._id, status: st })} />
-                ))}
-                {byStatus[s.id].length === 0 && (
-                  <button onClick={() => { setCreateStatus(s.id); setCreateOpen(true); }} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground hover:bg-background">
-                    <Add variant="Bulk" size={14} /> Add task
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+        <KanbanBoard
+          cols={cols}
+          tasks={filteredTasks}
+          labelColor={labelColor}
+          onOpen={(t) => setSelected(t)}
+          onAdd={(statusKey) => { setCreateStatus(statusKey); setCreateOpen(true); }}
+          onMove={async (taskId, statusKey, order) => { await setStatus({ taskId: taskId as Id<"tasks">, status: statusKey, order }); }}
+        />
       ) : (
-        <div className="space-y-5" data-testid="tasks-list">
-          {STATUSES.map((s) => byStatus[s.id].length > 0 && (
-            <div key={s.id}>
-              <div className="mb-1.5 flex items-center gap-2 px-1 text-sm font-semibold">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
-                <span className="text-muted-foreground">{byStatus[s.id].length}</span>
-              </div>
-              <div className="overflow-hidden rounded-2xl border border-border bg-card">
-                {byStatus[s.id].map((t: any) => (
-                  <div key={t._id} data-testid="tasks-list-row" className="flex items-center gap-3 border-b border-border px-3 py-2.5 last:border-0 hover:bg-muted/50">
-                    <button onClick={() => setStatus({ taskId: t._id, status: t.status === "done" ? "todo" : "done" })} className={cn("shrink-0", t.status === "done" ? "text-[var(--accent-mint)]" : "text-muted-foreground hover:text-foreground")}>
-                      <TickCircle variant="Bulk" size={20} />
-                    </button>
-                    <button onClick={() => setSelected(t)} className="min-w-0 flex-1 text-left">
-                      <span className={cn("truncate text-sm", t.status === "done" && "text-muted-foreground line-through")}>{t.title}</span>
-                    </button>
-                    {t.priority !== "none" && (
-                      <span className="hidden items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium sm:inline-flex" style={{ backgroundColor: `color-mix(in oklch, ${PRIORITIES[t.priority].color} 16%, transparent)`, color: PRIORITIES[t.priority].color }}>
-                        <Flag variant="Bulk" size={12} /> {PRIORITIES[t.priority].label}
-                      </span>
-                    )}
-                    {t.dueDate && <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"><Calendar variant="Bulk" size={13} /> {fmtDate(t.dueDate)}</span>}
-                    {t.assignee && (
-                      <Avatar className="h-6 w-6"><AvatarImage src={t.assignee.image} /><AvatarFallback className="bg-primary text-[10px] text-primary-foreground">{(t.assignee.name ?? t.assignee.email ?? "U").charAt(0).toUpperCase()}</AvatarFallback></Avatar>
-                    )}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild><button className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"><More variant="Bulk" size={16} /></button></DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelected(t)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => remove({ taskId: t._id })} className="text-destructive">Delete</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ListView
+          cols={cols}
+          tasks={filteredTasks}
+          labelColor={labelColor}
+          members={members ?? []}
+          onOpen={(t) => setSelected(t)}
+          onToggleDone={(t) => {
+            const doneKey = cols.find((c) => c.isDone)?.key ?? "done";
+            const todoKey = cols.find((c) => !c.isDone)?.key ?? "todo";
+            setStatus({ taskId: t._id, status: t.status === doneKey ? todoKey : doneKey });
+          }}
+          onDelete={(t) => remove({ taskId: t._id })}
+        />
       )}
 
       <TaskCreateDialog
@@ -181,8 +171,11 @@ export function TasksView() {
         onOpenChange={setCreateOpen}
         members={members ?? []}
         projects={projects ?? []}
+        labels={labels ?? []}
+        statuses={cols}
         defaultStatus={createStatus}
-        onCreate={async (data) => {
+        workspaceId={activeWorkspaceId}
+        onCreate={async (data: any) => {
           if (!activeWorkspaceId) return;
           await create({ workspaceId: activeWorkspaceId, ...data });
           toast.success("Task created");
@@ -194,25 +187,183 @@ export function TasksView() {
         task={selected}
         onClose={() => setSelected(null)}
         members={members ?? []}
-        onUpdate={async (patch) => { if (selected) await update({ taskId: selected._id, ...patch }); }}
+        statuses={cols}
+        labels={labels ?? []}
+        labelColor={labelColor}
+        workspaceId={activeWorkspaceId}
+        onUpdate={async (patch: any) => { if (selected) await update({ taskId: selected._id, ...patch }); }}
         onDelete={async () => { if (selected) { await remove({ taskId: selected._id }); setSelected(null); toast.success("Task deleted"); } }}
       />
+
+      <StatusManagerDialog open={statusMgrOpen} onOpenChange={setStatusMgrOpen} statuses={cols} workspaceId={activeWorkspaceId} />
     </PageContainer>
   );
 }
 
-function TaskCard({ task, onClick, onMove }: any) {
+/* ───────────────────────── Kanban board (dnd-kit) ───────────────────────── */
+
+function KanbanBoard({ cols, tasks, labelColor, onOpen, onAdd, onMove }: any) {
+  // Local board state for instant, smooth drag feedback. Synced from props when
+  // not actively dragging.
+  const [board, setBoard] = useState<Record<string, any[]>>({});
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const draggingRef = useRef(false);
+
+  useEffect(() => {
+    if (draggingRef.current) return;
+    const map: Record<string, any[]> = {};
+    for (const c of cols) map[c.key] = [];
+    for (const t of tasks) (map[t.status] ?? (map[t.status] = [])).push(t);
+    for (const k of Object.keys(map)) map[k].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    setBoard(map);
+  }, [tasks, cols]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const findContainer = (id: string): string | undefined => {
+    if (cols.some((c: any) => c.key === id)) return id;
+    return Object.keys(board).find((k) => board[k].some((t) => t._id === id));
+  };
+
+  const activeTask = activeId
+    ? Object.values(board).flat().find((t: any) => t._id === activeId)
+    : null;
+
+  const onDragStart = (e: DragStartEvent) => {
+    draggingRef.current = true;
+    setActiveId(String(e.active.id));
+  };
+
+  const onDragOver = (e: DragOverEvent) => {
+    const { active, over } = e;
+    if (!over) return;
+    const activeC = findContainer(String(active.id));
+    const overC = findContainer(String(over.id));
+    if (!activeC || !overC || activeC === overC) return;
+    setBoard((prev) => {
+      const next = { ...prev };
+      const activeItems = [...(next[activeC] ?? [])];
+      const overItems = [...(next[overC] ?? [])];
+      const idx = activeItems.findIndex((t) => t._id === active.id);
+      if (idx < 0) return prev;
+      const [moved] = activeItems.splice(idx, 1);
+      const overIdx = overItems.findIndex((t) => t._id === over.id);
+      const insertAt = overIdx >= 0 ? overIdx : overItems.length;
+      overItems.splice(insertAt, 0, { ...moved, status: overC });
+      next[activeC] = activeItems;
+      next[overC] = overItems;
+      return next;
+    });
+  };
+
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    setActiveId(null);
+    draggingRef.current = false;
+    if (!over) return;
+    const activeC = findContainer(String(active.id));
+    let overC = findContainer(String(over.id));
+    if (!activeC || !overC) return;
+
+    setBoard((prev) => {
+      const next = { ...prev };
+      const items = [...(next[overC!] ?? [])];
+      const oldIndex = items.findIndex((t) => t._id === active.id);
+      const newIndex = items.findIndex((t) => t._id === over.id);
+      let ordered = items;
+      if (oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) {
+        ordered = arrayMove(items, oldIndex, newIndex);
+        next[overC!] = ordered;
+      }
+      // Persist: status + order for the moved task.
+      const finalIndex = ordered.findIndex((t) => t._id === active.id);
+      const order = (finalIndex >= 0 ? finalIndex : ordered.length) * 1000;
+      onMove(String(active.id), overC!, order);
+      return next;
+    });
+  };
+
   return (
-    <div onClick={onClick} data-testid="tasks-kanban-card" className="group cursor-pointer rounded-xl border border-border bg-card p-3 transition-shadow hover:shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 text-left text-sm font-medium">{task.title}</span>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild><button onClick={(e) => e.stopPropagation()} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 hover:bg-muted group-hover:opacity-100"><More variant="Bulk" size={15} /></button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            {STATUSES.map((s) => <DropdownMenuItem key={s.id} onClick={() => onMove(s.id)}>Move to {s.label}</DropdownMenuItem>)}
-          </DropdownMenuContent>
-        </DropdownMenu>
+    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
+      <div className="flex gap-4 overflow-x-auto pb-2" data-testid="tasks-kanban-board">
+        {cols.map((s: Status) => (
+          <Column key={s.key} status={s} items={board[s.key] ?? []} labelColor={labelColor} onOpen={onOpen} onAdd={onAdd} />
+        ))}
       </div>
+      <DragOverlay>
+        {activeTask ? <TaskCardInner task={activeTask} labelColor={labelColor} dragging /> : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function Column({ status, items, labelColor, onOpen, onAdd }: any) {
+  const { setNodeRef, isOver } = useSortableColumn(status.key);
+  return (
+    <div className="flex w-[300px] shrink-0 flex-col rounded-2xl border border-border bg-muted/40 p-3" data-testid="kanban-column" data-status={status.key}>
+      <div className="mb-2 flex items-center justify-between px-1">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: status.color }} />
+          {status.label}
+          <span className="text-muted-foreground">{items.length}</span>
+        </div>
+        <button onClick={() => onAdd(status.key)} className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:bg-background">
+          <Add variant="Bulk" size={16} />
+        </button>
+      </div>
+      <SortableContext items={items.map((t: any) => t._id)} strategy={verticalListSortingStrategy}>
+        <div ref={setNodeRef} className={cn("flex-1 space-y-2 rounded-xl p-0.5 transition-colors", isOver && "bg-primary/5 ring-2 ring-primary/30")} style={{ minHeight: 80 }}>
+          {items.map((t: any) => (
+            <SortableTaskCard key={t._id} task={t} labelColor={labelColor} onOpen={onOpen} />
+          ))}
+          {items.length === 0 && (
+            <button onClick={() => onAdd(status.key)} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground hover:bg-background">
+              <Add variant="Bulk" size={14} /> Add task
+            </button>
+          )}
+        </div>
+      </SortableContext>
+    </div>
+  );
+}
+
+// Make a column body itself a droppable target (so dropping on empty space works).
+function useSortableColumn(id: string) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return { setNodeRef, isOver };
+}
+
+function SortableTaskCard({ task, labelColor, onOpen }: any) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition ?? "transform 200ms cubic-bezier(0.25,1,0.5,1)",
+    opacity: isDragging ? 0.4 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+      onClick={() => onOpen(task)}
+      data-testid="tasks-kanban-card"
+      className="cursor-grab touch-none rounded-xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
+      <TaskCardInner task={task} labelColor={labelColor} />
+    </div>
+  );
+}
+
+function TaskCardInner({ task, labelColor, dragging }: any) {
+  return (
+    <div className={cn(dragging && "rotate-2 shadow-xl ring-2 ring-primary/40 rounded-xl bg-card p-3 w-[280px]")}>
+      <span className="block text-left text-sm font-medium leading-snug">{task.title}</span>
+      {(task.labels ?? []).length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {task.labels.map((l: string) => (
+            <span key={l} className="rounded-full px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `color-mix(in oklch, ${labelColor[l] ?? "#888"} 18%, transparent)`, color: labelColor[l] ?? "#888" }}>{l}</span>
+          ))}
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {task.priority !== "none" && (
           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: `color-mix(in oklch, ${PRIORITIES[task.priority].color} 16%, transparent)`, color: PRIORITIES[task.priority].color }}>
@@ -226,15 +377,178 @@ function TaskCard({ task, onClick, onMove }: any) {
   );
 }
 
-function TaskCreateDialog({ open, onOpenChange, onCreate, members, projects, defaultStatus }: any) {
+/* ───────────────────────── List view + bulk ops ───────────────────────── */
+
+function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDelete }: any) {
+  const { isSelecting, toggleSelecting, exitSelecting, selectedIds, toggle, isSelected, selectAll, deselectAll } = useBulkSelect();
+  const bulkUpdate = useMutation(api.flux_tasks.bulkUpdate);
+  const bulkRemove = useMutation(api.flux_tasks.bulkRemove);
+
+  useEffect(() => () => exitSelecting(), [exitSelecting]);
+
+  const byStatus = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    for (const c of cols) map[c.key] = [];
+    for (const t of tasks) (map[t.status] ?? (map[t.status] = [])).push(t);
+    return map;
+  }, [tasks, cols]);
+
+  const allIds = tasks.map((t: any) => t._id);
+  const selectedArr = Array.from(selectedIds) as Id<"tasks">[];
+
+  const runBulk = async (patch: any) => {
+    if (selectedArr.length === 0) return;
+    await bulkUpdate({ taskIds: selectedArr, ...patch });
+    toast.success(`Updated ${selectedArr.length} task(s)`);
+  };
+
+  if (tasks.length === 0) {
+    return <EmptyState icon={TaskSquare} title="No tasks yet" description="Create a task to start tracking your work." testId="tasks-empty" />;
+  }
+
+  return (
+    <div className="space-y-5" data-testid="tasks-list">
+      <div className="flex items-center gap-2">
+        <button onClick={toggleSelecting} className={cn(btnOutline, "h-8 text-xs")} data-testid="bulk-select-toggle">
+          <TickSquare variant="Bulk" size={15} /> {isSelecting ? "Cancel selection" : "Select"}
+        </button>
+        {isSelecting && (
+          <>
+            <button onClick={() => (selectedIds.size === allIds.length ? deselectAll() : selectAll(allIds))} className="text-xs font-medium text-primary hover:underline">
+              {selectedIds.size === allIds.length ? "Deselect all" : "Select all"}
+            </button>
+            <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+          </>
+        )}
+      </div>
+
+      {cols.map((s: Status) => (byStatus[s.key] ?? []).length > 0 && (
+        <div key={s.key}>
+          <div className="mb-1.5 flex items-center gap-2 px-1 text-sm font-semibold">
+            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
+            <span className="text-muted-foreground">{byStatus[s.key].length}</span>
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-card">
+            {byStatus[s.key].map((t: any) => (
+              <div key={t._id} data-testid="tasks-list-row" className={cn("flex items-center gap-3 border-b border-border px-3 py-2.5 last:border-0 hover:bg-muted/50", isSelected(t._id) && "bg-primary/5")}>
+                {isSelecting ? (
+                  <button onClick={() => toggle(t._id)} className="shrink-0" data-testid="bulk-row-checkbox">
+                    <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", isSelected(t._id) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
+                      {isSelected(t._id) && <TickCircle variant="Bold" size={14} />}
+                    </span>
+                  </button>
+                ) : (
+                  <button onClick={() => onToggleDone(t)} className={cn("shrink-0", s.isDone ? "text-[var(--accent-mint)]" : "text-muted-foreground hover:text-foreground")}>
+                    <TickCircle variant="Bulk" size={20} />
+                  </button>
+                )}
+                <button onClick={() => (isSelecting ? toggle(t._id) : onOpen(t))} className="min-w-0 flex-1 text-left">
+                  <span className={cn("truncate text-sm", s.isDone && "text-muted-foreground line-through")}>{t.title}</span>
+                </button>
+                {(t.labels ?? []).slice(0, 3).map((l: string) => (
+                  <span key={l} className="hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline" style={{ backgroundColor: `color-mix(in oklch, ${labelColor[l] ?? "#888"} 18%, transparent)`, color: labelColor[l] ?? "#888" }}>{l}</span>
+                ))}
+                {t.priority !== "none" && (
+                  <span className="hidden items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium sm:inline-flex" style={{ backgroundColor: `color-mix(in oklch, ${PRIORITIES[t.priority].color} 16%, transparent)`, color: PRIORITIES[t.priority].color }}>
+                    <Flag variant="Bulk" size={12} /> {PRIORITIES[t.priority].label}
+                  </span>
+                )}
+                {t.dueDate && <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"><Calendar variant="Bulk" size={13} /> {fmtDate(t.dueDate)}</span>}
+                {t.assignee && (
+                  <Avatar className="h-6 w-6"><AvatarImage src={t.assignee.image} /><AvatarFallback className="bg-primary text-[10px] text-primary-foreground">{(t.assignee.name ?? t.assignee.email ?? "U").charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                )}
+                {!isSelecting && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><button className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"><More variant="Bulk" size={16} /></button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onOpen(t)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(t)} className="text-destructive">Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Bulk action bar */}
+      {isSelecting && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-xl" data-testid="bulk-action-bar">
+          <span className="px-1 text-sm font-medium">{selectedIds.size} selected</span>
+          <Select onValueChange={(v) => runBulk({ status: v })}>
+            <SelectTrigger className="h-8 w-32" data-testid="bulk-status"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>{cols.map((s: Status) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select onValueChange={(v) => runBulk({ priority: v })}>
+            <SelectTrigger className="h-8 w-28" data-testid="bulk-priority"><SelectValue placeholder="Priority" /></SelectTrigger>
+            <SelectContent>{Object.entries(PRIORITIES).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select onValueChange={(v) => runBulk({ assigneeId: v === "none" ? null : v })}>
+            <SelectTrigger className="h-8 w-32" data-testid="bulk-assignee"><SelectValue placeholder="Assignee" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Unassigned</SelectItem>
+              {members.map((m: any) => <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <button onClick={async () => { await bulkRemove({ taskIds: selectedArr }); toast.success("Deleted"); deselectAll(); }} className="flex h-8 items-center gap-1 rounded-lg px-2 text-sm font-medium text-destructive hover:bg-destructive/10" data-testid="bulk-delete">
+            <Trash variant="Bulk" size={15} /> Delete
+          </button>
+          <button onClick={exitSelecting} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"><CloseCircle variant="Bulk" size={16} /></button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── Labels editor ───────────────────────── */
+
+function LabelEditor({ workspaceId, labels, selected, onChange }: any) {
+  const createLabel = useMutation(api.flux_labels.create);
+  const [input, setInput] = useState("");
+  const toggle = (name: string) => {
+    onChange(selected.includes(name) ? selected.filter((s: string) => s !== name) : [...selected, name]);
+  };
+  const addNew = async () => {
+    const name = input.trim();
+    if (!name || !workspaceId) return;
+    await createLabel({ workspaceId, name });
+    if (!selected.includes(name)) onChange([...selected, name]);
+    setInput("");
+  };
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-muted-foreground">Labels</label>
+      <div className="flex flex-wrap gap-1.5">
+        {(labels ?? []).map((l: any) => (
+          <button key={l._id} type="button" onClick={() => toggle(l.name)} data-testid="task-label-option"
+            className={cn("rounded-full px-2.5 py-1 text-xs font-medium transition", selected.includes(l.name) ? "ring-2 ring-offset-1" : "opacity-70 hover:opacity-100")}
+            style={{ backgroundColor: `color-mix(in oklch, ${l.color} 18%, transparent)`, color: l.color }}>
+            {l.name}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addNew(); } }} placeholder="New label…" className={cn(inputBase, "h-8 text-sm")} data-testid="task-new-label-input" />
+        <button type="button" onClick={addNew} className={cn(btnOutline, "h-8 text-xs")}>Add</button>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────── Create dialog ───────────────────────── */
+
+function TaskCreateDialog({ open, onOpenChange, onCreate, members, projects, labels, statuses, defaultStatus, workspaceId }: any) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("none");
   const [assigneeId, setAssigneeId] = useState("none");
   const [due, setDue] = useState("");
+  const [status, setStatusVal] = useState(defaultStatus);
+  const [selLabels, setSelLabels] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (open) { setTitle(""); setDescription(""); setPriority("none"); setAssigneeId("none"); setDue(""); } }, [open]);
+  useEffect(() => { if (open) { setTitle(""); setDescription(""); setPriority("none"); setAssigneeId("none"); setDue(""); setStatusVal(defaultStatus); setSelLabels([]); } }, [open, defaultStatus]);
 
   const submit = async () => {
     if (!title.trim()) return toast.error("Add a task title");
@@ -243,10 +557,11 @@ function TaskCreateDialog({ open, onOpenChange, onCreate, members, projects, def
       await onCreate({
         title: title.trim(),
         description: description.trim() || undefined,
-        status: defaultStatus,
+        status,
         priority,
         assigneeId: assigneeId === "none" ? undefined : assigneeId,
         dueDate: due ? new Date(due).getTime() : undefined,
+        labels: selLabels,
       });
     } finally { setBusy(false); }
   };
@@ -260,6 +575,13 @@ function TaskCreateDialog({ open, onOpenChange, onCreate, members, projects, def
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" rows={2} className={cn(inputBase, "resize-none")} />
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
+              <Select value={status} onValueChange={setStatusVal}>
+                <SelectTrigger data-testid="task-status-select"><SelectValue /></SelectTrigger>
+                <SelectContent>{statuses.map((s: Status) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Priority</label>
               <Select value={priority} onValueChange={setPriority}>
                 <SelectTrigger data-testid="task-priority-select"><SelectValue /></SelectTrigger>
@@ -270,28 +592,100 @@ function TaskCreateDialog({ open, onOpenChange, onCreate, members, projects, def
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Due date</label>
               <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={inputBase} />
             </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Assignee</label>
+              <Select value={assigneeId} onValueChange={setAssigneeId}>
+                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {members.map((m: any) => <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Assignee</label>
-            <Select value={assigneeId} onValueChange={setAssigneeId}>
-              <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Unassigned</SelectItem>
-                {members.map((m: any) => <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+          <LabelEditor workspaceId={workspaceId} labels={labels} selected={selLabels} onChange={setSelLabels} />
         </div>
         <DialogFooter>
           <button onClick={() => onOpenChange(false)} className={btnOutline}>Cancel</button>
-          <button onClick={submit} disabled={busy} className={btnPrimary} data-testid="task-create-submit">{busy ? "Creating\u2026" : "Create task"}</button>
+          <button onClick={submit} disabled={busy} className={btnPrimary} data-testid="task-create-submit">{busy ? "Creating…" : "Create task"}</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function TaskDetailSheet({ task, onClose, members, onUpdate, onDelete }: any) {
+/* ───────────────────────── Task time tracking ───────────────────────── */
+
+function fmtMin(m: number) {
+  if (!m) return "0h";
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${h ? h + "h" : ""}${mm ? " " + mm + "m" : h ? "" : "0h"}`.trim();
+}
+
+function TaskTimeTracking({ task, workspaceId, onUpdate }: any) {
+  const data = useQuery(api.flux_time.listByTask, task ? { taskId: task._id } : "skip");
+  const addEntry = useMutation(api.flux_time.add);
+  const removeEntry = useMutation(api.flux_time.remove);
+  const [mins, setMins] = useState("");
+  const [note, setNote] = useState("");
+  const [estimate, setEstimate] = useState<string>(task?.estimateMinutes ? String(task.estimateMinutes) : "");
+
+  useEffect(() => { setEstimate(task?.estimateMinutes ? String(task.estimateMinutes) : ""); }, [task?._id, task?.estimateMinutes]);
+
+  const tracked = data?.totalMinutes ?? 0;
+  const est = task?.estimateMinutes ?? 0;
+  const pct = est > 0 ? Math.min(100, Math.round((tracked / est) * 100)) : 0;
+
+  const log = async (m: number) => {
+    if (!workspaceId || m <= 0) return;
+    await addEntry({ taskId: task._id, workspaceId, minutes: m, note: note.trim() || undefined });
+    setMins(""); setNote("");
+    toast.success(`Logged ${fmtMin(m)}`);
+  };
+
+  return (
+    <div className="rounded-xl border border-border p-3" data-testid="task-time-tracking">
+      <div className="mb-2 flex items-center justify-between">
+        <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Clock variant="Bulk" size={14} /> Time tracking</label>
+        <div className="flex items-center gap-1 text-xs">
+          <span className="text-muted-foreground">Estimate</span>
+          <input type="number" value={estimate} onChange={(e) => setEstimate(e.target.value)} onBlur={() => onUpdate({ estimateMinutes: estimate ? Number(estimate) : undefined })} placeholder="min" className="h-7 w-16 rounded-md border border-border bg-transparent px-1.5 text-right" data-testid="task-estimate-input" />
+          <span className="text-muted-foreground">min</span>
+        </div>
+      </div>
+      {est > 0 && (
+        <div className="mb-2">
+          <div className="flex justify-between text-xs text-muted-foreground"><span>{fmtMin(tracked)} tracked</span><span>{fmtMin(est)} est · {pct}%</span></div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className={cn("h-full rounded-full", pct >= 100 ? "bg-destructive" : "bg-[var(--accent-mint)]")} style={{ width: `${pct}%` }} /></div>
+        </div>
+      )}
+      {est === 0 && tracked > 0 && <p className="mb-2 text-xs text-muted-foreground">{fmtMin(tracked)} tracked</p>}
+      <div className="flex items-center gap-1.5">
+        <input type="number" value={mins} onChange={(e) => setMins(e.target.value)} placeholder="minutes" className={cn(inputBase, "h-8 text-sm")} data-testid="task-log-minutes" />
+        <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="note (optional)" className={cn(inputBase, "h-8 text-sm")} />
+        <button onClick={() => log(Number(mins))} disabled={!mins} className={cn(btnPrimary, "h-8 shrink-0 text-xs")} data-testid="task-log-time">Log</button>
+      </div>
+      <div className="mt-1.5 flex gap-1">
+        {[15, 30, 60].map((m) => <button key={m} onClick={() => log(m)} className="rounded-md bg-muted px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted/70">+{m}m</button>)}
+      </div>
+      {(data?.entries ?? []).length > 0 && (
+        <div className="mt-2 space-y-1">
+          {data!.entries.slice(0, 5).map((e: any) => (
+            <div key={e._id} className="group flex items-center gap-2 text-xs">
+              <span className="font-medium">{fmtMin(e.minutes)}</span>
+              <span className="flex-1 truncate text-muted-foreground">{e.note || (e.user?.name ?? e.user?.email ?? "")}</span>
+              <button onClick={() => removeEntry({ entryId: e._id })} className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><CloseCircle variant="Bulk" size={13} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── Detail sheet ───────────────────────── */
+
+function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor, workspaceId, onUpdate, onDelete }: any) {
   const comments = useQuery(api.flux_tasks.listComments, task ? { taskId: task._id } : "skip");
   const addComment = useMutation(api.flux_tasks.addComment);
   const [title, setTitle] = useState("");
@@ -306,13 +700,13 @@ function TaskDetailSheet({ task, onClose, members, onUpdate, onDelete }: any) {
       <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-md" data-testid="task-detail-sheet">
         <SheetHeader className="border-b border-border p-4"><SheetTitle>Task details</SheetTitle></SheetHeader>
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => title.trim() && title !== task.title && onUpdate({ title: title.trim() })} className="w-full rounded-xl border border-transparent bg-transparent text-lg font-semibold outline-none hover:border-border focus:border-border focus:px-3 focus:py-2" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={() => title.trim() && title !== task.title && onUpdate({ title: title.trim() })} className="w-full rounded-xl border border-transparent bg-transparent text-lg font-semibold outline-none hover:border-border focus:border-border focus:px-3 focus:py-2" data-testid="task-detail-title" />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">Status</label>
               <Select value={task.status} onValueChange={(v) => onUpdate({ status: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{STATUSES.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}</SelectContent>
+                <SelectTrigger data-testid="task-detail-status"><SelectValue /></SelectTrigger>
+                <SelectContent>{statuses.map((s: Status) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div>
@@ -337,6 +731,11 @@ function TaskDetailSheet({ task, onClose, members, onUpdate, onDelete }: any) {
               <input type="date" defaultValue={toDateInput(task.dueDate)} onChange={(e) => onUpdate({ dueDate: e.target.value ? new Date(e.target.value).getTime() : undefined })} className={inputBase} />
             </div>
           </div>
+
+          <LabelEditor workspaceId={workspaceId} labels={labels} selected={task.labels ?? []} onChange={(next: string[]) => onUpdate({ labels: next })} />
+
+          <TaskTimeTracking task={task} workspaceId={workspaceId} onUpdate={onUpdate} />
+
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Comments</label>
             <div className="space-y-2">
@@ -359,5 +758,55 @@ function TaskDetailSheet({ task, onClose, members, onUpdate, onDelete }: any) {
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/* ───────────────────────── Status manager ───────────────────────── */
+
+function StatusManagerDialog({ open, onOpenChange, statuses, workspaceId }: any) {
+  const createStatus = useMutation(api.flux_taskStatuses.create);
+  const updateStatus = useMutation(api.flux_taskStatuses.update);
+  const removeStatus = useMutation(api.flux_taskStatuses.remove);
+  const ensureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
+  const [newLabel, setNewLabel] = useState("");
+  const [newColor, setNewColor] = useState(STATUS_PALETTE[0]);
+
+  const add = async () => {
+    if (!newLabel.trim() || !workspaceId) return;
+    if ((statuses ?? []).every((s: Status) => s._id == null)) {
+      await ensureDefaults({ workspaceId });
+    }
+    await createStatus({ workspaceId, label: newLabel.trim(), color: newColor });
+    setNewLabel("");
+    setNewColor(STATUS_PALETTE[Math.floor(Math.random() * STATUS_PALETTE.length)]);
+    toast.success("Status added");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md" data-testid="status-manager-dialog">
+        <DialogHeader><DialogTitle>Task statuses</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">Customize the columns of your board for this workspace.</p>
+        <div className="space-y-2">
+          {(statuses ?? []).map((s: Status) => (
+            <div key={s.key} className="flex items-center gap-2 rounded-xl border border-border p-2" data-testid="status-row">
+              <input type="color" value={s.color} disabled={s._id == null} onChange={(e) => s._id && updateStatus({ statusId: s._id, color: e.target.value })} className="h-7 w-7 cursor-pointer rounded-md border border-border bg-transparent" />
+              <input defaultValue={s.label} disabled={s._id == null} onBlur={(e) => s._id && e.target.value.trim() && e.target.value !== s.label && updateStatus({ statusId: s._id, label: e.target.value.trim() })} className="flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm hover:border-border focus:border-border" />
+              <label className="flex items-center gap-1 text-xs text-muted-foreground" title="Counts as completed">
+                <input type="checkbox" checked={!!s.isDone} disabled={s._id == null} onChange={(e) => s._id && updateStatus({ statusId: s._id, isDone: e.target.checked })} /> done
+              </label>
+              {s._id && (statuses ?? []).length > 1 && (
+                <button onClick={() => removeStatus({ statusId: s._id! }).then(() => toast.success("Status removed")).catch((err) => toast.error(err.message))} className="text-muted-foreground hover:text-destructive"><Trash variant="Bulk" size={16} /></button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 border-t border-border pt-3">
+          <input type="color" value={newColor} onChange={(e) => setNewColor(e.target.value)} className="h-8 w-8 cursor-pointer rounded-md border border-border bg-transparent" />
+          <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} onKeyDown={(e) => e.key === "Enter" && add()} placeholder="New status name…" className={cn(inputBase, "h-9")} data-testid="new-status-input" />
+          <button onClick={add} className={btnPrimary} data-testid="add-status-btn"><Add variant="Bulk" size={16} /> Add</button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

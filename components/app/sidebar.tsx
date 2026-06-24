@@ -100,8 +100,12 @@ export function Sidebar({
                 data-testid="workspace-switcher"
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-1.5 text-left hover:bg-sidebar-accent"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                  {(activeWorkspace?.name ?? "F").charAt(0).toUpperCase()}
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+                  {activeWorkspace?.avatar ? (
+                    <img src={activeWorkspace.avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    (activeWorkspace?.name ?? "F").charAt(0).toUpperCase()
+                  )}
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold">{activeWorkspace?.name ?? "Workspace"}</span>
@@ -114,7 +118,7 @@ export function Sidebar({
               <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
               {workspaces.map((w) => (
                 <DropdownMenuItem key={w._id} data-testid="workspace-option" onClick={() => setActive(w._id)} className="gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">{w.name.charAt(0).toUpperCase()}</span>
+                  <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-primary text-xs font-bold text-primary-foreground">{(w as any).avatar ? <img src={(w as any).avatar} alt="" className="h-full w-full object-cover" /> : w.name.charAt(0).toUpperCase()}</span>
                   <span className="flex-1 truncate">{w.name}</span>
                   {w._id === activeWorkspaceId && <span className="h-2 w-2 rounded-full bg-primary" />}
                 </DropdownMenuItem>

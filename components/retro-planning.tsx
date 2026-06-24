@@ -21,6 +21,7 @@ interface Milestone {
 interface RetroplanningProps {
   projectId: Id<"projects">;
   projectDueDate?: number;
+  workspaceId: Id<"workspaces">;
   teamId?: Id<"teams">;
   onClose?: () => void;
 }
@@ -54,12 +55,13 @@ function getPriority(daysBefore: number): "urgent" | "high" | "medium" | "low" {
 export function RetroPlanningPanel({
   projectId,
   projectDueDate,
+  workspaceId,
   teamId,
   onClose,
 }: RetroplanningProps) {
-  const t = useTranslations("retroPlanning");
+  const t = useTranslations("projects.retroPlanning");
   const locale = useLocale();
-  const createTask = useMutation(api.tasks.create);
+  const createTask = useMutation(api.flux_tasks.create);
   const uid = useId();
 
   const [milestones, setMilestones] = useState<Milestone[]>([
@@ -111,8 +113,8 @@ export function RetroPlanningPanel({
       for (const ms of milestones.filter((m) => m.name.trim())) {
         await createTask({
           title: ms.name.trim(),
+          workspaceId,
           projectId,
-          teamId: teamId ?? undefined,
           priority: getPriority(ms.daysBefore),
           dueDate: projectDueDate - ms.daysBefore * DAY_MS,
           status: "todo",

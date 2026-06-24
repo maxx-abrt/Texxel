@@ -214,7 +214,14 @@
       "daysBefore": "Days before deadline",
       "generate": "Generate retro-planning",
       "generated": "Retro-planning generated!",
-      "noDeadline": "Set a project deadline to use retro-planning"
+      "noDeadline": "Set a project deadline to use retro-planning",
+      "daysLeft": "days left",
+      "durationDays": "Duration (days)",
+      "generateFailed": "Failed to generate tasks",
+      "generating": "Generating…",
+      "named": "named",
+      "setDeadlineHint": "Set a project deadline to use retro-planning.",
+      "timeline": "Timeline"
     },
     "saveChanges": "Save Changes",
     "saving": "Saving...",
@@ -601,10 +608,22 @@
       "subtitle": "We'll tailor your experience accordingly.",
       "continue": "Continue",
       "roles": {
-        "individual": { "label": "Student", "desc": "Personal notes, tasks and study management" },
-        "team_lead": { "label": "Team Lead", "desc": "Leading a study group or small team" },
-        "manager": { "label": "Creator", "desc": "Managing projects and collaborators" },
-        "developer": { "label": "Developer", "desc": "Building and shipping software" }
+        "individual": {
+          "label": "Student",
+          "desc": "Personal notes, tasks and study management"
+        },
+        "team_lead": {
+          "label": "Team Lead",
+          "desc": "Leading a study group or small team"
+        },
+        "manager": {
+          "label": "Creator",
+          "desc": "Managing projects and collaborators"
+        },
+        "developer": {
+          "label": "Developer",
+          "desc": "Building and shipping software"
+        }
       }
     },
     "useCase": {
@@ -612,10 +631,22 @@
       "subtitle": "Select all that apply.",
       "continue": "Continue",
       "cases": {
-        "tasks": { "label": "Task Management", "desc": "Track todos and work items" },
-        "projects": { "label": "Projects", "desc": "Plan and execute projects" },
-        "notes": { "label": "Notes & Docs", "desc": "Write and collaborate on docs" },
-        "team": { "label": "Team Collaboration", "desc": "Work with your group" }
+        "tasks": {
+          "label": "Task Management",
+          "desc": "Track todos and work items"
+        },
+        "projects": {
+          "label": "Projects",
+          "desc": "Plan and execute projects"
+        },
+        "notes": {
+          "label": "Notes & Docs",
+          "desc": "Write and collaborate on docs"
+        },
+        "team": {
+          "label": "Team Collaboration",
+          "desc": "Work with your group"
+        }
       }
     },
     "team": {
@@ -694,16 +725,46 @@
       "ai": "AI & Automation"
     },
     "items": {
-      "kanban": { "name": "Kanban Board", "desc": "Visual task board with drag-and-drop columns" },
-      "gantt": { "name": "Gantt Chart", "desc": "Timeline view for project planning" },
-      "retroPlanning": { "name": "Retro-planning", "desc": "Backward scheduling from deadlines" },
-      "aiAssistant": { "name": "AI Assistant", "desc": "Context-aware AI for notes and tasks" },
-      "calendar": { "name": "Calendar View", "desc": "See tasks and deadlines on a calendar" },
-      "timeTracking": { "name": "Time Tracking", "desc": "Track time spent on tasks" },
-      "customFields": { "name": "Custom Fields", "desc": "Add custom properties to tasks" },
-      "automations": { "name": "Automations", "desc": "Automate repetitive workflows" },
-      "focusTimer": { "name": "Focus Timer", "desc": "Pomodoro timer for deep work sessions" },
-      "databases": { "name": "Databases", "desc": "Custom tables to organize anything — like Notion" }
+      "kanban": {
+        "name": "Kanban Board",
+        "desc": "Visual task board with drag-and-drop columns"
+      },
+      "gantt": {
+        "name": "Gantt Chart",
+        "desc": "Timeline view for project planning"
+      },
+      "retroPlanning": {
+        "name": "Retro-planning",
+        "desc": "Backward scheduling from deadlines"
+      },
+      "aiAssistant": {
+        "name": "AI Assistant",
+        "desc": "Context-aware AI for notes and tasks"
+      },
+      "calendar": {
+        "name": "Calendar View",
+        "desc": "See tasks and deadlines on a calendar"
+      },
+      "timeTracking": {
+        "name": "Time Tracking",
+        "desc": "Track time spent on tasks"
+      },
+      "customFields": {
+        "name": "Custom Fields",
+        "desc": "Add custom properties to tasks"
+      },
+      "automations": {
+        "name": "Automations",
+        "desc": "Automate repetitive workflows"
+      },
+      "focusTimer": {
+        "name": "Focus Timer",
+        "desc": "Pomodoro timer for deep work sessions"
+      },
+      "databases": {
+        "name": "Databases",
+        "desc": "Custom tables to organize anything — like Notion"
+      }
     },
     "uiConfig": {
       "title": "Appearance & Layout",
@@ -1206,10 +1267,22 @@
   "landing": {
     "valueProps": {
       "heading": "Designed around how students actually work.",
-      "solo": { "title": "Solo notes & docs", "desc": "Rich block editor, live export to PDF and Word, smart inline chips. Your personal knowledge base." },
-      "group": { "title": "Group projects", "desc": "Invite classmates, write together in real time and split tasks on a shared kanban board." },
-      "manage": { "title": "Project management", "desc": "Create projects, set deadlines, assign roles and track progress — simple enough for anyone." },
-      "free": { "title": "Always free", "desc": "Every feature, no plan limit, no credit card. Open and free forever." }
+      "solo": {
+        "title": "Solo notes & docs",
+        "desc": "Rich block editor, live export to PDF and Word, smart inline chips. Your personal knowledge base."
+      },
+      "group": {
+        "title": "Group projects",
+        "desc": "Invite classmates, write together in real time and split tasks on a shared kanban board."
+      },
+      "manage": {
+        "title": "Project management",
+        "desc": "Create projects, set deadlines, assign roles and track progress — simple enough for anyone."
+      },
+      "free": {
+        "title": "Always free",
+        "desc": "Every feature, no plan limit, no credit card. Open and free forever."
+      }
     },
     "nav": {
       "features": "Features",

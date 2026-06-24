@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
@@ -27,6 +27,7 @@ const STATUS: Record<string, { label: string; color: string }> = {
 };
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const search = useSearchParams();
   const { activeWorkspaceId, activeWorkspace } = useWorkspace();
   const projects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
@@ -53,20 +54,26 @@ export default function ProjectsPage() {
           {projects.map((p: any) => {
             const st = STATUS[p.status] ?? STATUS.planning;
             const pct = p.budget > 0 ? Math.min(100, Math.round((p.spent / p.budget) * 100)) : 0;
+            const taskPct = p.taskTotal > 0 ? Math.round((p.taskDone / p.taskTotal) * 100) : 0;
             return (
-              <div key={p._id} data-testid="project-card" className="flex flex-col rounded-2xl border border-border bg-card p-4">
+              <div key={p._id} data-testid="project-card" onClick={() => router.push(`/app/projects/${p._id}`)} className="group flex cursor-pointer flex-col rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start justify-between">
                   <span className="h-9 w-9 rounded-xl" style={{ backgroundColor: p.color ?? "var(--flux-coral)" }} />
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild><button className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"><More variant="Bulk" size={16} /></button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end"><DropdownMenuItem onClick={() => remove({ projectId: p._id }).then(() => toast.success("Project deleted")).catch(() => toast.error("Only admins can delete"))} className="text-destructive">Delete</DropdownMenuItem></DropdownMenuContent>
+                    <DropdownMenuTrigger asChild><button onClick={(e) => e.stopPropagation()} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"><More variant="Bulk" size={16} /></button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}><DropdownMenuItem onClick={() => remove({ projectId: p._id }).then(() => toast.success("Project deleted")).catch(() => toast.error("Only admins can delete"))} className="text-destructive">Delete</DropdownMenuItem></DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                <p className="mt-3 font-semibold">{p.name}</p>
+                <p className="mt-3 font-semibold group-hover:text-primary">{p.name}</p>
                 <p className="text-xs text-muted-foreground">{p.client}</p>
                 <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: `color-mix(in oklch, ${st.color} 16%, transparent)`, color: st.color }}>{st.label}</span>
+                {/* Task progression */}
+                <div className="mt-3">
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>{p.taskDone}/{p.taskTotal} tasks</span><span>{taskPct}%</span></div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-[var(--accent-mint)] transition-all" style={{ width: `${taskPct}%` }} /></div>
+                </div>
                 {p.budget > 0 && (
-                  <div className="mt-3">
+                  <div className="mt-2">
                     <div className="flex justify-between text-xs text-muted-foreground"><span>{p.spent?.toLocaleString()} {currency}</span><span>{p.budget?.toLocaleString()} {currency}</span></div>
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
                   </div>

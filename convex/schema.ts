@@ -417,6 +417,8 @@ export default defineSchema({
     isPublished: v.boolean(),
     order: v.optional(v.number()),
     shareToken: v.optional(v.string()),
+    visibility: v.optional(v.string()), // "workspace" | "private" | "custom"
+    accessUserIds: v.optional(v.array(v.id("users"))),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -439,6 +441,36 @@ export default defineSchema({
   })
     .index("by_document", ["documentId"]),
 
+  // Real-time collaboration presence: who is currently viewing/editing a doc.
+  // Rows are refreshed by a client heartbeat and considered "active" while
+  // lastSeen is recent (see flux_presence.ts PRESENCE_TTL_MS). Additive only.
+  flux_presence: defineTable({
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
+    userId: v.id("users"),
+    state: v.string(), // "viewing" | "editing"
+    lastSeen: v.number(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_document_user", ["documentId", "userId"]),
+
+  // Document comments with @mentions + resolve/open state. Additive only.
+  flux_comments: defineTable({
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
+    userId: v.id("users"), // author
+    content: v.string(),
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
+    parentId: v.optional(v.id("flux_comments")), // reserved for threaded replies
+    resolved: v.optional(v.boolean()),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_workspace", ["workspaceId"]),
+
   // Notion-style custom databases. columns/cells stored as JSON strings.
   flux_databases: defineTable({
     workspaceId: v.id("workspaces"),
@@ -447,10 +479,24 @@ export default defineSchema({
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
     columns: v.string(),
+    viewType: v.optional(v.string()), // "table" | "gallery" | "kanban" | "calendar"
+    viewConfig: v.optional(v.string()), // JSON: { groupBy, dateField, cardField }
     isArchived: v.optional(v.boolean()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"]),
+
+  // Saved document templates (workspace-scoped).
+  flux_docTemplates: defineTable({
+    workspaceId: v.id("workspaces"),
+    title: v.string(),
+    content: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    category: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
   })
     .index("by_workspace", ["workspaceId"]),
 

@@ -6,14 +6,18 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
-import { PageContainer, PageHeader, EmptyState, btnPrimary, timeAgo, inputBase } from "@/components/app/common";
+import { useLocale } from "@/components/providers/locale-provider";
+import { getBuiltinTemplates } from "@/lib/doc-templates";
+import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, timeAgo, inputBase } from "@/components/app/common";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { DocumentText, Add, SearchNormal1, Clock, Star1 } from "iconsax-reactjs";
+import { DocumentText, Add, SearchNormal1, Clock, Star1, Trash } from "iconsax-reactjs";
 
 export default function DocumentsPage() {
   const router = useRouter();
   const { activeWorkspaceId } = useWorkspace();
+  const { locale } = useLocale();
   const docs = useQuery(
     api.flux_documents.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
@@ -22,13 +26,32 @@ export default function DocumentsPage() {
     api.flux_documents.listFavorites,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
+  const savedTemplates = useQuery(
+    api.flux_docTemplates.list,
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
+  );
   const createDoc = useMutation(api.flux_documents.create);
+  const removeTemplate = useMutation(api.flux_docTemplates.remove);
   const [q, setQ] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const builtins = getBuiltinTemplates(locale);
 
   const onNew = async () => {
     if (!activeWorkspaceId) return;
     try {
       const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled" });
+      router.push(`/app/documents/${id}`);
+    } catch {
+      toast.error("Could not create document");
+    }
+  };
+
+  const createFrom = async (opts: { title: string; icon?: string; content?: string }) => {
+    if (!activeWorkspaceId) return;
+    try {
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: opts.title, icon: opts.icon, content: opts.content });
+      setPickerOpen(false);
       router.push(`/app/documents/${id}`);
     } catch {
       toast.error("Could not create document");
@@ -48,7 +71,7 @@ export default function DocumentsPage() {
         icon={DocumentText}
         testId="documents-header"
         actions={
-          <button onClick={onNew} className={btnPrimary} data-testid="new-document-btn">
+          <button onClick={() => setPickerOpen(true)} className={btnPrimary} data-testid="new-document-btn">
             <Add variant="Bulk" size={18} /> New document
           </button>
         }
@@ -106,6 +129,41 @@ export default function DocumentsPage() {
           ))}
         </div>
       )}
+
+      {/* Template picker */}
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="sm:max-w-2xl" data-testid="template-picker">
+          <DialogHeader><DialogTitle>Start a new document</DialogTitle><DialogDescription>Choose a blank page or start from a template.</DialogDescription></DialogHeader>
+          <div className="grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2">
+            <button onClick={onNew} data-testid="template-blank" className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:shadow-sm">
+              <span className="text-2xl">📄</span>
+              <span><span className="block font-semibold">Blank document</span><span className="text-xs text-muted-foreground">Start from scratch</span></span>
+            </button>
+            {builtins.map((tpl) => (
+              <button key={tpl.id} onClick={() => createFrom({ title: tpl.title, icon: tpl.icon, content: JSON.stringify(tpl.blocks) })} data-testid="template-builtin" className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:shadow-sm">
+                <span className="text-2xl">{tpl.icon}</span>
+                <span><span className="block font-semibold">{tpl.title}</span><span className="text-xs text-muted-foreground">{tpl.description}</span></span>
+              </button>
+            ))}
+          </div>
+          {(savedTemplates ?? []).length > 0 && (
+            <div className="mt-2 border-t border-border pt-3">
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">Saved templates</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {savedTemplates!.map((tpl: any) => (
+                  <div key={tpl._id} className="group flex items-center gap-2 rounded-xl border border-border p-2.5">
+                    <button onClick={() => createFrom({ title: tpl.title, icon: tpl.icon, content: tpl.content })} className="flex flex-1 items-center gap-2 text-left" data-testid="template-saved">
+                      <span className="text-xl">{tpl.icon ?? "📄"}</span>
+                      <span className="truncate text-sm font-medium">{tpl.title}</span>
+                    </button>
+                    <button onClick={() => removeTemplate({ templateId: tpl._id })} className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><Trash variant="Bulk" size={15} /></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

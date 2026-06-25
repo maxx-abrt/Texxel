@@ -9,7 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, inputBase, timeAgo } from "@/components/app/common";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Data2, Add, Grid2 } from "iconsax-reactjs";
 
 export default function DatabasesPage() {
@@ -60,7 +60,7 @@ export default function DatabasesPage() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-sm" data-testid="database-create-dialog">
-          <DialogHeader><DialogTitle>New database</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>New database</DialogTitle><DialogDescription>Give your database a name to get started.</DialogDescription></DialogHeader>
           <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="Database name" className={inputBase} data-testid="database-name-input" />
           <DialogFooter>
             <button onClick={() => setOpen(false)} className={btnOutline}>Cancel</button>

@@ -205,3 +205,24 @@
 @media (prefers-reduced-motion: reduce) {
   .flux-float { animation: none; }
 }
+
+/* ── Print / Export-to-PDF: when exporting a document, show only the doc body ── */
+@media print {
+  body.printing-doc aside,
+  body.printing-doc nav,
+  body.printing-doc [data-testid="app-sidebar"],
+  body.printing-doc .no-print {
+    display: none !important;
+  }
+  body.printing-doc .doc-print-area {
+    position: static;
+    width: 100%;
+  }
+  body.printing-doc * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* @mention chip in read mode */
+.mention-chip { cursor: default; }

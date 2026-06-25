@@ -14,11 +14,15 @@ export default function InvitePage() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const inv = useQuery(api.invitations.getByToken, { token: params.token });
   const accept = useMutation(api.invitations.accept);
+  const storeUser = useMutation(api.users.store);
   const [busy, setBusy] = useState(false);
 
   const onAccept = async () => {
     setBusy(true);
     try {
+      // Ensure the Convex user record exists before joining (the invite page
+      // is outside the app shell that normally calls users.store on load).
+      await storeUser({});
       await accept({ token: params.token });
       toast.success("Welcome to the workspace!");
       router.push("/app");

@@ -73,6 +73,8 @@ export const update = mutation({
     icon: v.optional(v.string()),
     color: v.optional(v.string()),
     columns: v.optional(v.string()),
+    viewType: v.optional(v.string()),
+    viewConfig: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const db = await ctx.db.get(args.databaseId);
@@ -154,5 +156,36 @@ export const removeRow = mutation({
     await assertWorkspaceMember(ctx, row.workspaceId, "member");
     await ctx.db.delete(args.rowId);
     return true;
+  },
+});
+
+
+/** Bulk-import rows (e.g. from a CSV). Each entry is a JSON cells string. */
+export const importRows = mutation({
+  args: {
+    databaseId: v.id("flux_databases"),
+    rows: v.array(v.string()),
+    columns: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const db = await ctx.db.get(args.databaseId);
+    if (!db) throw new Error("Database not found");
+    const { userId } = await assertWorkspaceMember(ctx, db.workspaceId, "member");
+    if (args.columns) await ctx.db.patch(args.databaseId, { columns: args.columns, updatedAt: Date.now() });
+    let now = Date.now();
+    let count = 0;
+    for (const cells of args.rows) {
+      await ctx.db.insert("flux_databaseRows", {
+        databaseId: args.databaseId,
+        workspaceId: db.workspaceId,
+        cells,
+        order: now++,
+        createdBy: userId,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      count++;
+    }
+    return count;
   },
 });

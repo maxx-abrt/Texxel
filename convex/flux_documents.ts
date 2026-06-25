@@ -9,17 +9,26 @@ function makeToken() {
   ).replace(/[^a-z0-9]/gi, "");
 }
 
-/** All non-archived docs in a workspace (used to build the sidebar tree). */
+/** Whether a user can access a document given its visibility settings. */
+function canAccessDoc(doc: any, userId: any): boolean {
+  const vis = doc.visibility ?? "workspace";
+  if (vis === "workspace") return true;
+  if (String(doc.createdBy) === String(userId)) return true;
+  if (vis === "custom") return (doc.accessUserIds ?? []).some((u: any) => String(u) === String(userId));
+  return false; // private + not owner
+}
+
+/** All non-archived docs in a workspace the current user may see. */
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
-    await assertWorkspaceMember(ctx, args.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId);
     const docs = await ctx.db
       .query("flux_documents")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
     return docs
-      .filter((d) => !d.isArchived)
+      .filter((d) => !d.isArchived && canAccessDoc(d, userId))
       .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
   },
 });
@@ -29,7 +38,8 @@ export const get = query({
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.documentId);
     if (!doc) return null;
-    await assertWorkspaceMember(ctx, doc.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId);
+    if (!canAccessDoc(doc, userId)) return null;
     return doc;
   },
 });
@@ -53,6 +63,8 @@ export const create = mutation({
     title: v.optional(v.string()),
     parentId: v.optional(v.id("flux_documents")),
     icon: v.optional(v.string()),
+    content: v.optional(v.string()),
+    visibility: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
@@ -62,6 +74,8 @@ export const create = mutation({
       title: args.title ?? "Untitled",
       parentId: args.parentId,
       icon: args.icon,
+      content: args.content,
+      visibility: args.visibility ?? "workspace",
       isArchived: false,
       isPublished: false,
       order: now,
@@ -90,11 +104,14 @@ export const update = mutation({
     coverImage: v.optional(v.string()),
     parentId: v.optional(v.id("flux_documents")),
     order: v.optional(v.number()),
+    visibility: v.optional(v.string()),
+    accessUserIds: v.optional(v.array(v.id("users"))),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.documentId);
     if (!doc) throw new Error("Document not found");
     const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId, "member");
+    if (!canAccessDoc(doc, userId)) throw new Error("No access to this document");
     const { documentId, ...rest } = args;
     const patch: any = { updatedAt: Date.now() };
     for (const [k, val] of Object.entries(rest)) {
@@ -102,6 +119,33 @@ export const update = mutation({
     }
     await ctx.db.patch(args.documentId, patch);
     return args.documentId;
+  },
+});
+
+/** Parse mention nodes out of BlockNote content and notify mentioned users. */
+export const processMentions = mutation({
+  args: { documentId: v.id("flux_documents"), userIds: v.array(v.id("users")) },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) return;
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId, "member");
+    const seen = new Set<string>();
+    for (const target of args.userIds) {
+      if (String(target) === String(userId) || seen.has(String(target))) continue;
+      seen.add(String(target));
+      // Avoid duplicate mention notifications within a short window for same doc.
+      await ctx.db.insert("notifications", {
+        userId: target,
+        workspaceId: doc.workspaceId,
+        type: "mention",
+        title: "You were mentioned",
+        message: doc.title || "a document",
+        read: false,
+        link: `/documents/${args.documentId}`,
+        createdAt: Date.now(),
+      });
+    }
+    return true;
   },
 });
 

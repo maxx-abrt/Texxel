@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import TextareaAutosize from "react-textarea-autosize";
@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { btnGhost, EmptyState, Spinner } from "@/components/app/common";
+import { PresenceAvatars } from "@/components/app/presence-avatars";
+import { DocumentComments } from "@/components/app/comments-panel";
 import {
   Popover,
   PopoverContent,
@@ -37,7 +39,11 @@ import {
   Add,
   CloseCircle,
   DocumentText,
+  DocumentDownload,
   Copy,
+  Lock1,
+  People,
+  TickCircle,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -56,7 +62,7 @@ const TAG_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#e54
 export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> }) {
   const router = useRouter();
   const convex = useConvex();
-  const { activeWorkspaceId } = useWorkspace();
+  const { activeWorkspaceId, me } = useWorkspace();
   const doc = useQuery(api.flux_documents.get, { documentId });
   const favorites = useQuery(
     api.flux_documents.listFavorites,
@@ -70,9 +76,29 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const toggleFavorite = useMutation(api.flux_documents.toggleFavorite);
   const setPublished = useMutation(api.flux_documents.setPublished);
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
+  const processMentions = useMutation(api.flux_documents.processMentions);
+  const saveAsTemplate = useMutation(api.flux_docTemplates.saveAsTemplate);
+
+  // Data for @mentions + permissions.
+  const wsMembers = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const wsTasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const wsProjects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+
+  const mentionables = useMemo(() => {
+    const out: any[] = [];
+    for (const m of wsMembers ?? []) out.push({ id: m.userId, userId: m.userId, label: m.name ?? m.email ?? "User", kind: "user" });
+    for (const t of (wsTasks ?? []).slice(0, 100)) out.push({ id: t._id, label: t.title, kind: "task" });
+    for (const p of wsProjects ?? []) out.push({ id: p._id, label: p.name, kind: "project" });
+    return out;
+  }, [wsMembers, wsTasks, wsProjects]);
+
+  const editorRef = useRef<any>(null);
+  const mentionTimer = useRef<any>(null);
 
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const editingTimer = useRef<any>(null);
   const titleTimer = useRef<any>(null);
   const contentTimer = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -103,6 +129,10 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
 
   const saveContent = useCallback(
     (content: string) => {
+      // Flag the user as actively editing for presence (resets after idle).
+      setIsEditing(true);
+      if (editingTimer.current) clearTimeout(editingTimer.current);
+      editingTimer.current = setTimeout(() => setIsEditing(false), 8000);
       if (contentTimer.current) clearTimeout(contentTimer.current);
       setSaving(true);
       contentTimer.current = setTimeout(async () => {
@@ -131,6 +161,46 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     } catch {
       toast.error("Could not upload cover");
     }
+  };
+
+  const downloadBlob = (text: string, filename: string, type: string) => {
+    const blob = new Blob([text], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportMarkdown = async () => {
+    try {
+      const ed = editorRef.current;
+      if (!ed) return toast.error("Editor not ready");
+      const md = await ed.blocksToMarkdownLossy(ed.document);
+      const front = `# ${title || "Untitled"}\n\n`;
+      downloadBlob(front + md, `${(title || "document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.md`, "text/markdown");
+      toast.success("Exported Markdown");
+    } catch {
+      toast.error("Export failed");
+    }
+  };
+
+  const exportPDF = () => {
+    // Uses the browser's native print-to-PDF on the document area.
+    document.body.classList.add("printing-doc");
+    setTimeout(() => { window.print(); document.body.classList.remove("printing-doc"); }, 100);
+  };
+
+  const onSaveTemplate = async () => {
+    if (!activeWorkspaceId) return;
+    const ed = editorRef.current;
+    await saveAsTemplate({
+      workspaceId: activeWorkspaceId,
+      title: title || "Untitled template",
+      content: ed ? JSON.stringify(ed.document) : doc?.content,
+      icon: doc?.icon,
+      category: "custom",
+    });
+    toast.success("Saved as template");
   };
 
   const onArchive = async () => {
@@ -208,7 +278,18 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
             "Saved"
           )}
         </span>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-2">
+          <PresenceAvatars documentId={documentId} meId={me?._id} editing={isEditing} />
+          <DocumentComments
+            documentId={documentId}
+            meId={me?._id}
+            members={(wsMembers ?? []).map((m: any) => ({
+              userId: m.userId,
+              name: m.name,
+              email: m.email,
+              image: m.image,
+            }))}
+          />
           {doc.isPublished && (
             <button onClick={copyShareLink} className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-primary hover:bg-muted" data-testid="doc-copy-link">
               <Link21 variant="Bulk" size={16} /> Live
@@ -217,6 +298,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           <button onClick={() => toggleFavorite({ documentId })} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", isFavorite ? "text-primary" : "text-muted-foreground")} data-testid="doc-favorite">
             <Star1 variant="Bulk" size={18} />
           </button>
+          <DocPermissions doc={doc} documentId={documentId} update={update} members={wsMembers ?? []} />
           <button onClick={onTogglePublish} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isPublished ? "text-primary" : "text-muted-foreground")} data-testid="doc-publish" title="Publish & share">
             <Global variant="Bulk" size={18} />
           </button>
@@ -226,7 +308,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                 <More variant="Bulk" size={18} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem onClick={() => fileRef.current?.click()} className="gap-2">
                 <GalleryAdd variant="Bulk" size={16} /> {doc.coverImage ? "Change cover" : "Add cover"}
               </DropdownMenuItem>
@@ -235,6 +317,16 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   <CloseCircle variant="Bulk" size={16} /> Remove cover
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={exportMarkdown} className="gap-2" data-testid="doc-export-md">
+                <DocumentDownload variant="Bulk" size={16} /> Export Markdown
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPDF} className="gap-2" data-testid="doc-export-pdf">
+                <DocumentDownload variant="Bulk" size={16} /> Export PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onSaveTemplate} className="gap-2" data-testid="doc-save-template">
+                <Copy variant="Bulk" size={16} /> Save as template
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onArchive} className="gap-2 text-destructive" data-testid="doc-archive">
                 <Trash variant="Bulk" size={16} /> Move to trash
@@ -297,12 +389,19 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         <TagRow documentId={documentId} />
 
         {/* Editor */}
-        <div className="mt-4">
+        <div className="mt-4 doc-print-area">
           <FluxEditor
             key={doc._id}
             initialContent={doc.content}
             editable
             onChange={saveContent}
+            mentionables={mentionables}
+            onEditorReady={(ed: any) => { editorRef.current = ed; }}
+            onMentions={(ids: string[]) => {
+              if (!ids.length) return;
+              if (mentionTimer.current) clearTimeout(mentionTimer.current);
+              mentionTimer.current = setTimeout(() => { processMentions({ documentId, userIds: ids as any }).catch(() => {}); }, 1500);
+            }}
           />
         </div>
       </div>
@@ -385,5 +484,53 @@ function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
         </PopoverContent>
       </Popover>
     </div>
+  );
+}
+
+
+function DocPermissions({ doc, documentId, update, members }: any) {
+  const visibility = doc.visibility ?? "workspace";
+  const access: string[] = doc.accessUserIds ?? [];
+  const setVis = (v: string) => update({ documentId, visibility: v });
+  const toggleUser = (uid: string) => {
+    const next = access.includes(uid) ? access.filter((x) => x !== uid) : [...access, uid];
+    update({ documentId, accessUserIds: next });
+  };
+  const Icon = visibility === "private" ? Lock1 : visibility === "custom" ? People : Global;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={cn("flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium hover:bg-muted", visibility !== "workspace" ? "text-primary" : "text-muted-foreground")} data-testid="doc-permissions" title="Page permissions">
+          <Icon variant="Bulk" size={16} /> {visibility === "workspace" ? "Workspace" : visibility === "private" ? "Private" : "Custom"}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-2" data-testid="doc-permissions-popover">
+        <p className="px-1 pb-1 text-xs font-semibold text-muted-foreground">Who can access</p>
+        {[
+          { key: "workspace", label: "Everyone in workspace", icon: Global },
+          { key: "private", label: "Only me (private)", icon: Lock1 },
+          { key: "custom", label: "Specific people", icon: People },
+        ].map((o) => (
+          <button key={o.key} onClick={() => setVis(o.key)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted" data-testid={`doc-vis-${o.key}`}>
+            <o.icon variant="Bulk" size={16} className="text-muted-foreground" />
+            <span className="flex-1">{o.label}</span>
+            {visibility === o.key && <TickCircle variant="Bold" size={16} className="text-primary" />}
+          </button>
+        ))}
+        {visibility === "custom" && (
+          <div className="mt-2 border-t border-border pt-2">
+            <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">Grant access to</p>
+            <div className="max-h-48 space-y-0.5 overflow-y-auto">
+              {members.map((m: any) => (
+                <button key={m.userId} onClick={() => toggleUser(m.userId)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted">
+                  <span className={cn("flex h-4 w-4 items-center justify-center rounded border", access.includes(m.userId) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{access.includes(m.userId) && <TickCircle variant="Bold" size={11} />}</span>
+                  <span className="flex-1 truncate">{m.name ?? m.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

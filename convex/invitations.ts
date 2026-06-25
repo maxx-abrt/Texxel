@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import {
   assertWorkspaceAdmin,
   assertWorkspaceMember,
+  requireUserId,
   logActivity,
   notifyWorkspaceMembers,
 } from "./lib/auth";
@@ -98,10 +99,7 @@ export const getByToken = query({
 export const accept = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const [userId] = (identity.subject as string).split("|");
-    const userIdT = userId as any;
+    const userId = await requireUserId(ctx);
 
     const inv = await ctx.db
       .query("invitations")
@@ -114,7 +112,7 @@ export const accept = mutation({
       throw new Error("Invitation expired");
     }
     // Make sure email matches the invited email (optional safety).
-    const user: any = await ctx.db.get(userIdT);
+    const user: any = await ctx.db.get(userId);
     if (user?.email && inv.email && user.email.toLowerCase() !== inv.email) {
       // We still allow, but log this. Some companies want to enforce.
     }
@@ -122,12 +120,12 @@ export const accept = mutation({
     const existing = await ctx.db
       .query("memberships")
       .withIndex("by_user_workspace", (q) =>
-        q.eq("userId", userIdT).eq("workspaceId", inv.workspaceId),
+        q.eq("userId", userId).eq("workspaceId", inv.workspaceId),
       )
       .unique();
     if (!existing) {
       await ctx.db.insert("memberships", {
-        userId: userIdT,
+        userId,
         workspaceId: inv.workspaceId,
         role: inv.role,
         joinedAt: Date.now(),
@@ -136,7 +134,7 @@ export const accept = mutation({
     await ctx.db.patch(inv._id, { status: "accepted" });
     await logActivity(ctx, {
       workspaceId: inv.workspaceId,
-      actorId: userIdT,
+      actorId: userId,
       action: "invitation.accepted",
       targetType: "invitation",
       targetId: inv._id,
@@ -146,7 +144,7 @@ export const accept = mutation({
       type: "member_joined",
       title: "New team member",
       message: `${user?.name ?? user?.email ?? "A new member"} joined the workspace.`,
-      exceptUserId: userIdT,
+      exceptUserId: userId,
     });
     return inv.workspaceId;
   },

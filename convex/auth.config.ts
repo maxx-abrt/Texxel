@@ -10,7 +10,7 @@
 // The WorkOS client id is PUBLIC, so we hardcode it (with an env fallback) to
 // keep `convex deploy` working on any deployment without extra env wiring.
 const WORKOS_CLIENT_ID =
-  process.env.WORKOS_CLIENT_ID ?? "client_01KV3J2M42HT3P59CBKMQMZ998";
+  process.env.WORKOS_CLIENT_ID ?? "client_01KVW89GASSRCG2KRX2ZB183QN";
 const WORKOS_JWKS = `https://api.workos.com/sso/jwks/${WORKOS_CLIENT_ID}`;
 
 type Provider = {

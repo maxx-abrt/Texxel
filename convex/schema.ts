@@ -419,6 +419,11 @@ export default defineSchema({
     shareToken: v.optional(v.string()),
     visibility: v.optional(v.string()), // "workspace" | "private" | "custom"
     accessUserIds: v.optional(v.array(v.id("users"))),
+    isFolder: v.optional(v.boolean()),
+    isLocked: v.optional(v.boolean()),       // passphrase-protected (client-side AES-GCM)
+    passphraseSalt: v.optional(v.string()),  // hex, 16 bytes — for PBKDF2 key derivation
+    lockIv: v.optional(v.string()),          // hex, 12 bytes — AES-GCM IV
+    passphraseHint: v.optional(v.string()),  // optional hint shown on lock screen
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),

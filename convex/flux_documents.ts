@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { assertWorkspaceMember, logActivity, requireUserId, getOptionalUserId } from "./lib/auth";
 
 function makeToken() {
@@ -28,6 +28,24 @@ export const list = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
     return docs
+      .filter((d) => !d.isArchived && canAccessDoc(d, userId))
+      .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
+  },
+});
+
+export const listChildren = query({
+  args: { documentId: v.id("flux_documents") },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) return [];
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId);
+    const children = await ctx.db
+      .query("flux_documents")
+      .withIndex("by_workspace_parent", (q) =>
+        q.eq("workspaceId", doc.workspaceId).eq("parentId", args.documentId),
+      )
+      .collect();
+    return children
       .filter((d) => !d.isArchived && canAccessDoc(d, userId))
       .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
   },
@@ -95,6 +113,67 @@ export const create = mutation({
   },
 });
 
+export const createFolder = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    title: v.optional(v.string()),
+    parentId: v.optional(v.id("flux_documents")),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
+    const now = Date.now();
+    const id = await ctx.db.insert("flux_documents", {
+      workspaceId: args.workspaceId,
+      title: args.title ?? "New folder",
+      parentId: args.parentId,
+      isFolder: true,
+      icon: "📁",
+      visibility: "workspace",
+      isArchived: false,
+      isPublished: false,
+      order: now,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await logActivity(ctx, {
+      workspaceId: args.workspaceId,
+      actorId: userId,
+      action: "document.created",
+      targetType: "flux_document",
+      targetId: id,
+      metadata: { title: args.title ?? "New folder", isFolder: true },
+    });
+    return id;
+  },
+});
+
+export const move = mutation({
+  args: {
+    documentId: v.id("flux_documents"),
+    parentId: v.optional(v.id("flux_documents")),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) throw new Error("Document not found");
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId, "member");
+    if (!canAccessDoc(doc, userId)) throw new Error("No access to this document");
+    if (args.parentId !== undefined) {
+      if (args.parentId === args.documentId) throw new Error("Cannot move a document into itself");
+      let cursor: Id<"flux_documents"> | null = args.parentId;
+      while (cursor) {
+        const parent: Doc<"flux_documents"> | null = await ctx.db.get(cursor);
+        if (!parent) break;
+        if (parent.workspaceId !== doc.workspaceId) throw new Error("Parent must be in the same workspace");
+        if (String(parent._id) === String(args.documentId)) throw new Error("Cannot move a document into its own descendants");
+        cursor = parent.parentId ?? null;
+      }
+    }
+    await ctx.db.patch(args.documentId, { parentId: args.parentId, updatedAt: Date.now() });
+    return args.documentId;
+  },
+});
+
 export const update = mutation({
   args: {
     documentId: v.id("flux_documents"),
@@ -116,6 +195,17 @@ export const update = mutation({
     const patch: any = { updatedAt: Date.now() };
     for (const [k, val] of Object.entries(rest)) {
       if (val !== undefined) patch[k] = val;
+    }
+    if (args.parentId !== undefined) {
+      if (args.parentId === args.documentId) throw new Error("Cannot move a document into itself");
+      let cursor: Id<"flux_documents"> | null = args.parentId;
+      while (cursor) {
+        const parent: Doc<"flux_documents"> | null = await ctx.db.get(cursor);
+        if (!parent) break;
+        if (parent.workspaceId !== doc.workspaceId) throw new Error("Parent must be in the same workspace");
+        if (String(parent._id) === String(args.documentId)) throw new Error("Cannot move a document into its own descendants");
+        cursor = parent.parentId ?? null;
+      }
     }
     await ctx.db.patch(args.documentId, patch);
     return args.documentId;
@@ -304,6 +394,30 @@ export const setPublished = mutation({
   },
 });
 
+// ----- Lock / encryption metadata -----
+export const setLock = mutation({
+  args: {
+    documentId: v.id("flux_documents"),
+    isLocked: v.boolean(),
+    passphraseSalt: v.optional(v.string()),
+    lockIv: v.optional(v.string()),
+    passphraseHint: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) throw new Error("Document not found");
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId, "member");
+    if (String(doc.createdBy) !== String(userId)) throw new Error("Only the document owner can lock/unlock");
+    await ctx.db.patch(args.documentId, {
+      isLocked: args.isLocked,
+      passphraseSalt: args.passphraseSalt,
+      lockIv: args.lockIv,
+      passphraseHint: args.passphraseHint,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
 // ----- Versions -----
 export const saveVersion = mutation({
   args: { documentId: v.id("flux_documents") },
@@ -328,11 +442,42 @@ export const listVersions = query({
     const doc = await ctx.db.get(args.documentId);
     if (!doc) return [];
     await assertWorkspaceMember(ctx, doc.workspaceId);
-    return await ctx.db
+    const versions = await ctx.db
       .query("flux_documentVersions")
       .withIndex("by_document", (q) => q.eq("documentId", args.documentId))
       .order("desc")
       .take(50);
+    const out = [];
+    for (const v of versions) {
+      const u: any = await ctx.db.get(v.savedBy);
+      out.push({ ...v, savedByName: u?.name ?? u?.email ?? "Unknown" });
+    }
+    return out;
+  },
+});
+
+export const restoreVersion = mutation({
+  args: { versionId: v.id("flux_documentVersions") },
+  handler: async (ctx, args) => {
+    const version = await ctx.db.get(args.versionId);
+    if (!version) throw new Error("Version not found");
+    const doc = await ctx.db.get(version.documentId);
+    if (!doc) throw new Error("Document not found");
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId, "member");
+    await ctx.db.insert("flux_documentVersions", {
+      documentId: doc._id,
+      workspaceId: doc.workspaceId,
+      title: doc.title,
+      content: doc.content,
+      savedBy: userId,
+      savedAt: Date.now(),
+    });
+    await ctx.db.patch(version.documentId, {
+      title: version.title,
+      content: version.content,
+      updatedAt: Date.now(),
+    });
+    return true;
   },
 });
 

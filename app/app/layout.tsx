@@ -10,6 +10,7 @@ import { Topbar } from "@/components/app/topbar";
 import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
 import { AiPanel } from "@/components/app/ai-panel";
+import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
 
 function UserStoreSync({ children }: { children: React.ReactNode }) {
   const storeUser = useMutation(api.users.store);
@@ -57,15 +58,17 @@ function Shell({ children }: { children: React.ReactNode }) {
   if (needsOnboarding) return <Onboarding />;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} onSearch={() => setSearchOpen(true)} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenu={() => setMobileOpen(true)} onSearch={() => setSearchOpen(true)} />
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+    <TrashDndProvider>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} onSearch={() => setSearchOpen(true)} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar onMenu={() => setMobileOpen(true)} onSearch={() => setSearchOpen(true)} />
+          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        </div>
+        <CommandPalette open={searchOpen} setOpen={setSearchOpen} />
+        <AiPanel />
       </div>
-      <CommandPalette open={searchOpen} setOpen={setSearchOpen} />
-      <AiPanel />
-    </div>
+    </TrashDndProvider>
   );
 }
 

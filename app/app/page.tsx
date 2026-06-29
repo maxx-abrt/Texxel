@@ -19,6 +19,11 @@ import {
   Notification,
   Clock,
   TickCircle,
+  Briefcase,
+  Calendar,
+  WalletMoney,
+  MessageText1,
+  Warning2,
 } from "iconsax-reactjs";
 
 export default function HomePage() {
@@ -32,7 +37,16 @@ export default function HomePage() {
     api.flux_tasks.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
-  const notifications = useQuery(api.notifications.listMine, { limit: 6 });
+  const notifications = useQuery(api.notifications.listMine, { limit: 20 });
+  const projects = useQuery(
+    api.projects.list,
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
+  );
+  const now = Date.now();
+  const events = useQuery(
+    api.flux_events.list,
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId, start: now, end: now + 7 * 24 * 60 * 60 * 1000 } : "skip",
+  );
   const createDoc = useMutation(api.flux_documents.create);
 
   const recent = (docs ?? [])
@@ -40,6 +54,17 @@ export default function HomePage() {
     .sort((a: any, b: any) => b.updatedAt - a.updatedAt)
     .slice(0, 6);
   const openTasks = (tasks ?? []).filter((t: any) => t.status !== "done");
+  const upcomingEvents = (events ?? []).slice(0, 5);
+  const projectHealthData = (() => {
+    const ps = projects ?? [];
+    const counts: Record<string, number> = {};
+    for (const p of ps) counts[p.status ?? "planning"] = (counts[p.status ?? "planning"] ?? 0) + 1;
+    return { total: ps.length, counts };
+  })();
+  const budgetAlerts = (projects ?? []).filter(
+    (p: any) => typeof p.budget === "number" && p.budget > 0 && typeof p.spent === "number" && p.spent / p.budget >= 0.8,
+  );
+  const recentMentions = (notifications ?? []).filter((n: any) => n.type === "mention").slice(0, 5);
 
   const greeting = (() => {
     const h = new Date().getHours();
@@ -103,6 +128,118 @@ export default function HomePage() {
           <ContributionGrid workspaceId={activeWorkspaceId} />
         </div>
       )}
+
+      {/* Dashboard widgets */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4" data-testid="dashboard-widgets">
+        {/* Upcoming Events */}
+        <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-events">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <Calendar variant="Bulk" size={16} className="text-[var(--accent-ocean)]" /> Upcoming
+            </h2>
+            <Link href="/app/calendar" className="text-xs font-medium text-primary hover:underline">Calendar</Link>
+          </div>
+          {events === undefined ? (
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : upcomingEvents.length === 0 ? (
+            <p className="py-4 text-center text-xs text-muted-foreground">No events this week</p>
+          ) : (
+            <ul className="space-y-2">
+              {upcomingEvents.map((e: any) => (
+                <li key={e._id} className="flex items-start gap-2">
+                  <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: e.color ?? "var(--accent-ocean)" }} />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium">{e.title}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(e.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Project Health */}
+        <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-project-health">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <Briefcase variant="Bulk" size={16} className="text-[var(--flux-coral)]" /> Projects
+            </h2>
+            <Link href="/app/projects" className="text-xs font-medium text-primary hover:underline">All</Link>
+          </div>
+          {projects === undefined ? (
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : projectHealthData.total === 0 ? (
+            <p className="py-4 text-center text-xs text-muted-foreground">No projects yet</p>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(projectHealthData.counts).map(([status, count]) => (
+                <div key={status} className="flex items-center gap-2">
+                  <span className="w-20 shrink-0 text-xs capitalize text-muted-foreground">{status.replace("_", " ")}</span>
+                  <div className="flex-1 overflow-hidden rounded-full bg-muted" style={{ height: 6 }}>
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((count / projectHealthData.total) * 100)}%` }} />
+                  </div>
+                  <span className="w-5 shrink-0 text-right text-xs font-medium">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Budget Alerts */}
+        <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-budget-alerts">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <WalletMoney variant="Bulk" size={16} className="text-[#d98324]" /> Budget
+            </h2>
+            <Link href="/app/projects" className="text-xs font-medium text-primary hover:underline">Projects</Link>
+          </div>
+          {projects === undefined ? (
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : budgetAlerts.length === 0 ? (
+            <p className="flex items-center gap-2 py-4 text-xs text-muted-foreground"><TickCircle variant="Bulk" size={15} /> All budgets healthy</p>
+          ) : (
+            <ul className="space-y-2">
+              {budgetAlerts.map((p: any) => {
+                const pct = Math.round((p.spent / p.budget) * 100);
+                return (
+                  <li key={p._id} className="flex items-center gap-2">
+                    <Warning2 variant="Bulk" size={14} className={cn(pct >= 100 ? "text-destructive" : "text-[#d98324]")} />
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium">{p.name}</span>
+                    <span className={cn("shrink-0 text-xs font-semibold", pct >= 100 ? "text-destructive" : "text-[#d98324]")}>{pct}%</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Recent Mentions */}
+        <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-mentions">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
+              <MessageText1 variant="Bulk" size={16} className="text-primary" /> Mentions
+            </h2>
+            <Link href="/app/inbox" className="text-xs font-medium text-primary hover:underline">Inbox</Link>
+          </div>
+          {notifications === undefined ? (
+            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
+          ) : recentMentions.length === 0 ? (
+            <p className="py-4 text-center text-xs text-muted-foreground">No recent mentions</p>
+          ) : (
+            <ul className="space-y-2">
+              {recentMentions.map((n: any) => (
+                <li key={n._id} className="flex items-start gap-2">
+                  <span className={cn("mt-1 h-1.5 w-1.5 shrink-0 rounded-full", n.read ? "bg-border" : "bg-primary")} />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium">{n.title}</p>
+                    <p className="truncate text-xs text-muted-foreground">{timeAgo(n.createdAt)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Recent documents */}

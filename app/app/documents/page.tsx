@@ -12,7 +12,10 @@ import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, timeAgo,
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { DocumentText, Add, SearchNormal1, Clock, Star1, Trash } from "iconsax-reactjs";
+import { DocumentText, Add, SearchNormal1, Clock, Star1, Trash, Folder } from "iconsax-reactjs";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { useTrashDnd } from "@/components/providers/dnd-trash-provider";
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -111,21 +114,7 @@ export default function DocumentsPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="documents-grid">
           {filtered.map((d: any) => (
-            <Link
-              key={d._id}
-              href={`/app/documents/${d._id}`}
-              data-testid="document-card"
-              className="group relative flex flex-col rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <span className="text-3xl leading-none">{d.icon ?? "\ud83d\udcc4"}</span>
-                {favIds.has(d._id) && <Star1 variant="Bulk" size={16} className="text-primary" />}
-              </div>
-              <p className="mt-3 truncate font-semibold group-hover:text-primary">{d.title || "Untitled"}</p>
-              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock variant="Bulk" size={12} /> {timeAgo(d.updatedAt)}
-              </p>
-            </Link>
+            <DraggableDocumentCard key={d._id} doc={d} isFavorite={favIds.has(d._id)} />
           ))}
         </div>
       )}
@@ -165,5 +154,51 @@ export default function DocumentsPage() {
         </DialogContent>
       </Dialog>
     </PageContainer>
+  );
+}
+
+function DraggableDocumentCard({ doc, isFavorite }: { doc: any; isFavorite: boolean }) {
+  const isFolder = doc.isFolder ?? false;
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `documents-${doc._id}`,
+    data: { documentId: doc._id, title: doc.title, icon: doc.icon, type: "card" },
+  });
+  const { trashingIds } = useTrashDnd();
+  const isTrashing = trashingIds.has(doc._id);
+  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+
+  return (
+    <div
+      data-testid={isFolder ? "folder-card" : "document-card"}
+      ref={setNodeRef as any}
+      {...attributes}
+      {...listeners}
+      style={style}
+      className={cn(
+        "group relative flex flex-col rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-sm",
+        isDragging && "z-50 cursor-grabbing opacity-0",
+        isTrashing && "pointer-events-none scale-95 opacity-0 transition-all duration-300",
+        isFolder && "bg-sidebar-accent/30 hover:bg-sidebar-accent/50",
+      )}
+    >
+      <Link href={`/app/documents/${doc._id}`} className="flex flex-1 flex-col">
+        <div className="flex items-start justify-between">
+          <span className="text-3xl leading-none">{doc.icon ?? (isFolder ? "\ud83d\udcc1" : "\ud83d\udcc4")}</span>
+          {isFavorite && <Star1 variant="Bulk" size={16} className="text-primary" />}
+        </div>
+        <p className="mt-3 truncate font-semibold group-hover:text-primary">{doc.title || "Untitled"}</p>
+        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+          {isFolder ? (
+            <>
+              <Folder variant="Bulk" size={12} /> Folder
+            </>
+          ) : (
+            <>
+              <Clock variant="Bulk" size={12} /> {timeAgo(doc.updatedAt)}
+            </>
+          )}
+        </p>
+      </Link>
+    </div>
   );
 }

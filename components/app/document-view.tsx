@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import TextareaAutosize from "react-textarea-autosize";
 import { useQuery, useMutation, useConvex } from "convex/react";
@@ -12,7 +13,9 @@ import { IconPicker } from "@/components/icon-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { btnGhost, EmptyState, Spinner } from "@/components/app/common";
+import { btnGhost, EmptyState, Spinner, timeAgo } from "@/components/app/common";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { encryptContent, decryptContent } from "@/lib/crypto";
 import { PresenceAvatars } from "@/components/app/presence-avatars";
 import { DocumentComments } from "@/components/app/comments-panel";
 import {
@@ -44,6 +47,8 @@ import {
   Lock1,
   People,
   TickCircle,
+  Clock,
+  Refresh2,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -78,6 +83,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
   const processMentions = useMutation(api.flux_documents.processMentions);
   const saveAsTemplate = useMutation(api.flux_docTemplates.saveAsTemplate);
+  const saveVersionFn = useMutation(api.flux_documents.saveVersion);
+  const restoreVersionFn = useMutation(api.flux_documents.restoreVersion);
+  const setLock = useMutation(api.flux_documents.setLock);
 
   // Data for @mentions + permissions.
   const wsMembers = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
@@ -95,9 +103,19 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const editorRef = useRef<any>(null);
   const mentionTimer = useRef<any>(null);
 
+  const versions = useQuery(api.flux_documents.listVersions, { documentId });
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [lockDialogOpen, setLockDialogOpen] = useState(false);
+  const [passphraseInput, setPassphraseInput] = useState("");
+  const [passphraseHintInput, setPassphraseHintInput] = useState("");
+  const [unlockInput, setUnlockInput] = useState("");
+  const [lockError, setLockError] = useState("");
+  const [lockLoading, setLockLoading] = useState(false);
+  const [unlockedContent, setUnlockedContent] = useState<string | null>(null);
+  const [currentPassphrase, setCurrentPassphrase] = useState<string | null>(null);
   const editingTimer = useRef<any>(null);
   const titleTimer = useRef<any>(null);
   const contentTimer = useRef<any>(null);
@@ -129,7 +147,6 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
 
   const saveContent = useCallback(
     (content: string) => {
-      // Flag the user as actively editing for presence (resets after idle).
       setIsEditing(true);
       if (editingTimer.current) clearTimeout(editingTimer.current);
       editingTimer.current = setTimeout(() => setIsEditing(false), 8000);
@@ -137,13 +154,19 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       setSaving(true);
       contentTimer.current = setTimeout(async () => {
         try {
-          await update({ documentId, content });
+          if (doc?.isLocked && currentPassphrase && doc.passphraseSalt && doc.lockIv) {
+            const { ciphertext, salt, iv } = await encryptContent(content, currentPassphrase);
+            await update({ documentId, content: ciphertext });
+            await setLock({ documentId, isLocked: true, passphraseSalt: salt, lockIv: iv, passphraseHint: doc.passphraseHint });
+          } else {
+            await update({ documentId, content });
+          }
         } finally {
           setSaving(false);
         }
       }, 700);
     },
-    [documentId, update],
+    [documentId, update, doc, currentPassphrase, setLock],
   );
 
   const onUploadCover = async (file: File) => {
@@ -258,6 +281,10 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     );
   }
 
+  if (doc.isFolder) {
+    return <FolderView doc={doc} documentId={documentId} />;
+  }
+
   const isFavorite = !!favorites?.some((f: any) => f._id === doc._id);
 
   return (
@@ -298,6 +325,14 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           <button onClick={() => toggleFavorite({ documentId })} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", isFavorite ? "text-primary" : "text-muted-foreground")} data-testid="doc-favorite">
             <Star1 variant="Bulk" size={18} />
           </button>
+          <button
+            onClick={() => { setPassphraseInput(""); setPassphraseHintInput(doc.passphraseHint ?? ""); setLockError(""); setLockDialogOpen(true); }}
+            className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isLocked ? "text-primary" : "text-muted-foreground")}
+            data-testid="doc-lock-btn"
+            title={doc.isLocked ? "Secured" : "Secure document"}
+          >
+            <Lock1 variant="Bulk" size={18} />
+          </button>
           <DocPermissions doc={doc} documentId={documentId} update={update} members={wsMembers ?? []} />
           <button onClick={onTogglePublish} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isPublished ? "text-primary" : "text-muted-foreground")} data-testid="doc-publish" title="Publish & share">
             <Global variant="Bulk" size={18} />
@@ -317,6 +352,13 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   <CloseCircle variant="Bulk" size={16} /> Remove cover
                 </DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => saveVersionFn({ documentId }).then(() => toast.success("Version saved"))} className="gap-2" data-testid="doc-save-version">
+                <Clock variant="Bulk" size={16} /> Save version
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setHistoryOpen(true)} className="gap-2" data-testid="doc-history">
+                <Refresh2 variant="Bulk" size={16} /> Version history
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={exportMarkdown} className="gap-2" data-testid="doc-export-md">
                 <DocumentDownload variant="Bulk" size={16} /> Export Markdown
@@ -388,21 +430,318 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         {/* Tags */}
         <TagRow documentId={documentId} />
 
-        {/* Editor */}
-        <div className="mt-4 doc-print-area">
-          <FluxEditor
-            key={doc._id}
-            initialContent={doc.content}
-            editable
-            onChange={saveContent}
-            mentionables={mentionables}
-            onEditorReady={(ed: any) => { editorRef.current = ed; }}
-            onMentions={(ids: string[]) => {
-              if (!ids.length) return;
-              if (mentionTimer.current) clearTimeout(mentionTimer.current);
-              mentionTimer.current = setTimeout(() => { processMentions({ documentId, userIds: ids as any }).catch(() => {}); }, 1500);
-            }}
-          />
+        {/* Editor — locked overlay or decrypted content */}
+        {doc.isLocked && unlockedContent === null ? (
+          <div className="mt-8 flex flex-col items-center rounded-2xl border border-border bg-card px-6 py-12 text-center" data-testid="doc-locked-overlay">
+            <Lock1 variant="Bulk" size={36} className="text-primary" />
+            <h3 className="mt-3 text-lg font-semibold">This document is locked</h3>
+            {doc.passphraseHint && (
+              <p className="mt-1 text-sm text-muted-foreground">Hint: {doc.passphraseHint}</p>
+            )}
+            <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
+              <input
+                type="password"
+                value={unlockInput}
+                onChange={(e) => { setUnlockInput(e.target.value); setLockError(""); }}
+                onKeyDown={async (e) => {
+                  if (e.key !== "Enter" || !unlockInput.trim()) return;
+                  setLockLoading(true);
+                  setLockError("");
+                  try {
+                    const plain = await decryptContent(doc.content ?? "", unlockInput, doc.passphraseSalt!, doc.lockIv!);
+                    setUnlockedContent(plain);
+                    setCurrentPassphrase(unlockInput);
+                    setUnlockInput("");
+                  } catch {
+                    setLockError("Wrong passphrase.");
+                  } finally {
+                    setLockLoading(false);
+                  }
+                }}
+                placeholder="Enter passphrase…"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                data-testid="unlock-input"
+                autoFocus
+              />
+              {lockError && <p className="text-xs text-destructive">{lockError}</p>}
+              <button
+                disabled={lockLoading || !unlockInput.trim()}
+                onClick={async () => {
+                  setLockLoading(true);
+                  setLockError("");
+                  try {
+                    const plain = await decryptContent(doc.content ?? "", unlockInput, doc.passphraseSalt!, doc.lockIv!);
+                    setUnlockedContent(plain);
+                    setCurrentPassphrase(unlockInput);
+                    setUnlockInput("");
+                  } catch {
+                    setLockError("Wrong passphrase.");
+                  } finally {
+                    setLockLoading(false);
+                  }
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                data-testid="unlock-btn"
+              >
+                {lockLoading ? <><Spinner className="h-4 w-4" /> Unlocking…</> : <><Lock1 variant="Bulk" size={16} /> Unlock</>}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 doc-print-area">
+            <FluxEditor
+              key={`${doc._id}-${!!unlockedContent}`}
+              initialContent={unlockedContent ?? doc.content}
+              editable
+              onChange={saveContent}
+              mentionables={mentionables}
+              onEditorReady={(ed: any) => { editorRef.current = ed; }}
+              onMentions={(ids: string[]) => {
+                if (!ids.length) return;
+                if (mentionTimer.current) clearTimeout(mentionTimer.current);
+                mentionTimer.current = setTimeout(() => { processMentions({ documentId, userIds: ids as any }).catch(() => {}); }, 1500);
+              }}
+            />
+          </div>
+        )}
+      </div>
+      {/* Lock management dialog */}
+      {lockDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" data-testid="lock-dialog-overlay">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
+              <Lock1 variant="Bulk" size={20} className="text-primary" />
+              {doc.isLocked ? "Manage lock" : "Secure document"}
+            </h2>
+            <p className="mb-5 text-sm text-muted-foreground">
+              {doc.isLocked ? "The document content is encrypted. Remove the lock or keep it secured." : "Content is encrypted client-side with AES-256-GCM. The passphrase never leaves your browser."}
+            </p>
+
+            {!doc.isLocked && (
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  value={passphraseInput}
+                  onChange={(e) => setPassphraseInput(e.target.value)}
+                  placeholder="Choose a passphrase…"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  data-testid="lock-passphrase-input"
+                  autoFocus
+                />
+                <input
+                  type="text"
+                  value={passphraseHintInput}
+                  onChange={(e) => setPassphraseHintInput(e.target.value)}
+                  placeholder="Hint (optional, stored in plaintext)…"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  data-testid="lock-hint-input"
+                />
+                {lockError && <p className="text-xs text-destructive">{lockError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => setLockDialogOpen(false)}
+                    className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+                  >Cancel</button>
+                  <button
+                    disabled={lockLoading || !passphraseInput.trim()}
+                    onClick={async () => {
+                      setLockLoading(true);
+                      setLockError("");
+                      try {
+                        const ed = editorRef.current;
+                        const plainContent = ed ? JSON.stringify(ed.document) : doc.content ?? "";
+                        const { ciphertext, salt, iv } = await encryptContent(plainContent, passphraseInput);
+                        await update({ documentId, content: ciphertext });
+                        await setLock({ documentId, isLocked: true, passphraseSalt: salt, lockIv: iv, passphraseHint: passphraseHintInput.trim() || undefined });
+                        setCurrentPassphrase(passphraseInput);
+                        setUnlockedContent(plainContent);
+                        setLockDialogOpen(false);
+                        toast.success("Document locked");
+                      } catch {
+                        setLockError("Encryption failed. Please try again.");
+                      } finally {
+                        setLockLoading(false);
+                      }
+                    }}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                    data-testid="confirm-lock-btn"
+                  >
+                    {lockLoading ? <Spinner className="h-4 w-4" /> : <Lock1 variant="Bulk" size={16} />} Lock document
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {doc.isLocked && (
+              <div className="space-y-3">
+                {lockError && <p className="text-xs text-destructive">{lockError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setLockDialogOpen(false)}
+                    className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted"
+                  >Close</button>
+                  <button
+                    disabled={lockLoading || !currentPassphrase}
+                    onClick={async () => {
+                      if (!currentPassphrase) return;
+                      setLockLoading(true);
+                      try {
+                        const plain = unlockedContent ?? await decryptContent(doc.content ?? "", currentPassphrase, doc.passphraseSalt!, doc.lockIv!);
+                        await update({ documentId, content: plain });
+                        await setLock({ documentId, isLocked: false });
+                        setUnlockedContent(null);
+                        setCurrentPassphrase(null);
+                        setLockDialogOpen(false);
+                        toast.success("Lock removed");
+                      } catch {
+                        setLockError("Could not remove lock.");
+                      } finally {
+                        setLockLoading(false);
+                      }
+                    }}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                    data-testid="remove-lock-btn"
+                  >
+                    {lockLoading ? <Spinner className="h-4 w-4" /> : <Lock1 variant="Bulk" size={16} />} Remove lock
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent side="right" className="w-[360px] sm:w-[420px] overflow-y-auto" data-testid="doc-history-panel">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Clock variant="Bulk" size={18} className="text-primary" /> Version History
+            </SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {versions === undefined ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+              ))
+            ) : versions.length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No saved versions yet.<br />Use "Save version" to snapshot the current state.</p>
+            ) : (
+              versions.map((ver: any) => (
+                <div key={ver._id} className="flex items-start justify-between rounded-xl border border-border bg-card p-3 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{ver.title || "Untitled"}</p>
+                    <p className="text-xs text-muted-foreground">{timeAgo(ver.savedAt)} · {ver.savedByName}</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await restoreVersionFn({ versionId: ver._id });
+                      setHistoryOpen(false);
+                      toast.success("Version restored");
+                    }}
+                    className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
+                    data-testid="restore-version-btn"
+                  >
+                    <Refresh2 variant="Bulk" size={14} /> Restore
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_documents"> }) {
+  const router = useRouter();
+  const { activeWorkspaceId } = useWorkspace();
+  const children = useQuery(
+    api.flux_documents.listChildren,
+    activeWorkspaceId ? { documentId } : "skip",
+  );
+  const createDoc = useMutation(api.flux_documents.create);
+  const update = useMutation(api.flux_documents.update);
+  const [title, setTitle] = useState(doc.title || "");
+  const titleTimer = useRef<any>(null);
+
+  const onAddPage = async () => {
+    if (!activeWorkspaceId) return;
+    try {
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled", parentId: documentId });
+      router.push(`/app/documents/${id}`);
+    } catch {
+      toast.error("Could not create document");
+    }
+  };
+
+  const saveTitle = (value: string) => {
+    setTitle(value);
+    if (titleTimer.current) clearTimeout(titleTimer.current);
+    titleTimer.current = setTimeout(async () => {
+      try {
+        await update({ documentId, title: value });
+      } catch {
+        toast.error("Could not save title");
+      }
+    }, 500);
+  };
+
+  return (
+    <div className="min-h-full pb-32" data-testid="folder-view">
+      <div className="mx-auto max-w-[860px] px-5 pt-10 md:px-12">
+        <IconPicker asChild onChange={(icon: string) => update({ documentId, icon })}>
+          <button className="text-6xl leading-none" data-testid="folder-emoji-icon">
+            {doc.icon ?? "📁"}
+          </button>
+        </IconPicker>
+        <TextareaAutosize
+          value={title}
+          onChange={(e) => saveTitle(e.target.value)}
+          placeholder="Untitled"
+          data-testid="folder-title"
+          className="mt-2 w-full resize-none bg-transparent font-display text-4xl font-bold tracking-tight outline-none placeholder:text-muted-foreground/50"
+        />
+
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contents</h3>
+            <button onClick={onAddPage} className={cn(btnGhost, "text-xs")} data-testid="folder-add-page">
+              <Add variant="Bulk" size={14} /> New page
+            </button>
+          </div>
+          {children === undefined ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-24 animate-pulse rounded-2xl bg-muted" />
+              ))}
+            </div>
+          ) : children.length === 0 ? (
+            <EmptyState
+              icon={DocumentText}
+              title="Empty folder"
+              description="Add pages to this folder to keep them organized."
+              action={
+                <button onClick={onAddPage} className={cn(btnGhost, "text-xs")} data-testid="folder-empty-add">
+                  <Add variant="Bulk" size={14} /> New page
+                </button>
+              }
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {children.map((child: any) => (
+                <Link
+                  key={child._id}
+                  href={`/app/documents/${child._id}`}
+                  className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 transition hover:border-primary hover:shadow-sm"
+                  data-testid="folder-child-card"
+                >
+                  <span className="text-2xl">{child.icon ?? (child.isFolder ? "📁" : "📄")}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium group-hover:text-primary">{child.title || "Untitled"}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

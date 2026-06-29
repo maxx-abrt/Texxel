@@ -5,9 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { Id } from "@/convex/_generated/dataModel";
 import { DocumentTree } from "@/components/app/document-tree";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useDroppable, useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { useTrashDnd } from "@/components/providers/dnd-trash-provider";
 import {
   Element3,
   DocumentText,
@@ -24,6 +28,7 @@ import {
   Star1,
   ArrowDown2,
   CloseCircle,
+  Folder,
 } from "iconsax-reactjs";
 import {
   DropdownMenu,
@@ -66,14 +71,26 @@ export function Sidebar({
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
   const createDoc = useMutation(api.flux_documents.create);
+  const createFolder = useMutation(api.flux_documents.createFolder);
+  const { isOver, setNodeRef } = useDroppable({ id: "sidebar-trash" });
+  const { isOver: isOverRoot, setNodeRef: setRootRef } = useDroppable({ id: "sidebar-private-root" });
 
-  const onCreate = async (parentId?: any) => {
+  const onCreate = async (parentId?: Id<"flux_documents">) => {
     if (!activeWorkspaceId) return;
     try {
-      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled" });
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled", parentId });
       router.push(`/app/documents/${id}`);
     } catch {
       toast.error("Could not create document");
+    }
+  };
+
+  const onCreateFolder = async () => {
+    if (!activeWorkspaceId) return;
+    try {
+      await createFolder({ workspaceId: activeWorkspaceId });
+    } catch {
+      toast.error("Could not create folder");
     }
   };
 
@@ -155,16 +172,22 @@ export function Sidebar({
             <div className="mb-3">
               <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Favorites</div>
               {favorites.map((d: any) => (
-                <Link key={d._id} href={`/app/documents/${d._id}`} onClick={onClose} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-sidebar-accent">
-                  <span className="w-4 text-center">{d.icon ?? "\ud83d\udcc4"}</span>
-                  <span className="truncate">{d.title || "Untitled"}</span>
-                </Link>
+                <DraggableFavorite key={d._id} doc={d} onNavigate={onClose} />
               ))}
             </div>
           )}
-          <div className="flex items-center justify-between px-3 py-1">
+          <div
+            ref={setRootRef}
+            className={cn(
+              "flex items-center justify-between rounded-lg px-3 py-1 transition-colors",
+              isOverRoot && "bg-primary/10 ring-1 ring-primary/40",
+            )}
+          >
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Private</span>
-            <button data-testid="sidebar-new-doc" onClick={() => onCreate()} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"><Add variant="Bulk" size={16} /></button>
+            <div className="flex items-center">
+              <button data-testid="sidebar-new-folder" onClick={onCreateFolder} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title="New folder"><Folder variant="Bulk" size={16} /></button>
+              <button data-testid="sidebar-new-doc" onClick={() => onCreate()} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title="New page"><Add variant="Bulk" size={16} /></button>
+            </div>
           </div>
           <DocumentTree docs={docs ?? []} parentId={null} onNavigate={onClose} onCreateChild={onCreate} level={0} />
           {docs && docs.length === 0 && (
@@ -175,14 +198,60 @@ export function Sidebar({
         </div>
 
         <div className="space-y-0.5 border-t border-sidebar-border p-3">
-          <Link href="/app/trash" onClick={onClose} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent", isActive("/app/trash") && "bg-sidebar-accent font-medium")}>
-            <Trash variant="Bulk" size={20} className="text-muted-foreground" /> Trash
-          </Link>
+          <div
+            ref={setNodeRef}
+            data-testid="sidebar-trash-drop"
+            className={cn(
+              "rounded-xl transition-all",
+              isOver && "bg-destructive/10 ring-2 ring-destructive/50",
+            )}
+          >
+            <Link
+              href="/app/trash"
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-all hover:bg-sidebar-accent",
+                isActive("/app/trash") && "bg-sidebar-accent font-medium",
+                isOver && "scale-105 text-destructive",
+              )}
+            >
+              <Trash variant="Bulk" size={20} className={cn("text-muted-foreground", isOver && "text-destructive")} /> Trash
+            </Link>
+          </div>
           <Link href="/app/settings" onClick={onClose} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent", isActive("/app/settings") && "bg-sidebar-accent font-medium")}>
             <Setting2 variant="Bulk" size={20} className="text-muted-foreground" /> Settings
           </Link>
         </div>
       </aside>
     </>
+  );
+}
+
+function DraggableFavorite({ doc, onNavigate }: { doc: any; onNavigate: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `favorite-${doc._id}`,
+    data: { documentId: doc._id, title: doc.title, icon: doc.icon, type: "favorite" },
+  });
+  const { trashingIds } = useTrashDnd();
+  const isTrashing = trashingIds.has(doc._id);
+  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+
+  return (
+    <div
+      ref={setNodeRef as any}
+      {...attributes}
+      {...listeners}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-sidebar-accent",
+        isDragging && "z-50 cursor-grabbing opacity-0",
+        isTrashing && "pointer-events-none scale-95 opacity-0 transition-all duration-300",
+      )}
+    >
+      <Link href={`/app/documents/${doc._id}`} onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="w-4 text-center">{doc.icon ?? "\ud83d\udcc4"}</span>
+        <span className="truncate">{doc.title || "Untitled"}</span>
+      </Link>
+    </div>
   );
 }

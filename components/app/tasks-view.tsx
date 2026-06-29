@@ -28,7 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import {
   TaskSquare, Add, Kanban, RowVertical, More, Trash, Flag, Calendar, TickCircle,
-  Send2, Tag, Setting4, CloseCircle, TickSquare, Profile, Clock,
+  Send2, Tag, Setting4, CloseCircle, TickSquare, Profile, Clock, DocumentDownload,
 } from "iconsax-reactjs";
 
 const PRIORITIES: Record<string, { label: string; color: string }> = {
@@ -44,6 +44,30 @@ const STATUS_PALETTE = ["#2f7ea6", "#d98324", "#2fbf9b", "#8b5cf6", "#ec4899", "
 function fmtDate(ts?: number) {
   if (!ts) return "";
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function exportTasksCSV(tasks: any[], statuses: any[]) {
+  const header = ["Title", "Status", "Priority", "Assignee", "Due Date", "Labels", "Estimate (min)"];
+  const rows = tasks.map((t) => {
+    const statusLabel = statuses.find((s) => s.key === t.status)?.label ?? t.status;
+    return [
+      `"${(t.title ?? "").replace(/"/g, '""')}"`,
+      statusLabel,
+      t.priority ?? "none",
+      t.assignee?.name ?? t.assignee?.email ?? "",
+      t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "",
+      `"${(t.labels ?? []).join(", ")}"`,
+      t.estimateMinutes ?? "",
+    ].join(",");
+  });
+  const csv = [header.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `tasks-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 function toDateInput(ts?: number) {
   if (!ts) return "";
@@ -112,6 +136,14 @@ export function TasksView() {
                 <RowVertical variant="Bulk" size={16} /> List
               </button>
             </div>
+            <button
+              onClick={() => exportTasksCSV(filteredTasks, cols)}
+              className={cn(btnOutline, "h-9")}
+              data-testid="tasks-export-csv"
+              title="Export to CSV"
+            >
+              <DocumentDownload variant="Bulk" size={16} /> Export
+            </button>
             <button onClick={() => setStatusMgrOpen(true)} className={cn(btnOutline, "h-9")} data-testid="manage-statuses-btn" title="Manage statuses">
               <Setting4 variant="Bulk" size={16} /> Statuses
             </button>

@@ -33,6 +33,7 @@ import type * as flux_taskStatuses from "../flux_taskStatuses.js";
 import type * as flux_tasks from "../flux_tasks.js";
 import type * as flux_time from "../flux_time.js";
 import type * as flux_userPrefs from "../flux_userPrefs.js";
+import type * as global_search from "../global_search.js";
 import type * as http from "../http.js";
 import type * as invitations from "../invitations.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -73,6 +74,7 @@ declare const fullApi: ApiFromModules<{
   flux_tasks: typeof flux_tasks;
   flux_time: typeof flux_time;
   flux_userPrefs: typeof flux_userPrefs;
+  global_search: typeof global_search;
   http: typeof http;
   invitations: typeof invitations;
   "lib/auth": typeof lib_auth;

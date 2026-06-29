@@ -18,6 +18,7 @@ type WorkspaceSummary = {
   role: string;
   memberCount: number;
   type?: string;
+  avatar?: string;
 };
 
 type Ctx = {

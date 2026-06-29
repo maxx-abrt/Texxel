@@ -26,8 +26,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <HtmlLang />
-        <Providers>{children}</Providers>
+        <Providers>
+          <HtmlLang />
+          {children}
+        </Providers>
       </body>
     </html>
   );

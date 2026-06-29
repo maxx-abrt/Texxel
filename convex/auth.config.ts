@@ -9,9 +9,24 @@
 //
 // The WorkOS client id is PUBLIC, so we hardcode it (with an env fallback) to
 // keep `convex deploy` working on any deployment without extra env wiring.
-const WORKOS_CLIENT_ID =
-  process.env.WORKOS_CLIENT_ID ?? "client_01KVW89GASSRCG2KRX2ZB183QN";
-const WORKOS_JWKS = `https://api.workos.com/sso/jwks/${WORKOS_CLIENT_ID}`;
+//
+// This WorkOS environment has TWO client ids that share the same signing key
+// (verified: both /sso/jwks/<id> endpoints return the identical key pair
+// `sso_oidc_key_pair_01KVFSBW...`). AuthKit sign-in is configured under
+// `01KVW89G`, but the user_management access tokens are issued with
+// `iss = .../user_management/client_01KVFSBW...` (the environment's canonical
+// User Management client). We therefore accept BOTH issuers so token validation
+// succeeds regardless of which client id WorkOS stamps into `iss`.
+const FALLBACK_CLIENT_IDS = [
+  "client_01KVW89GASSRCG2KRX2ZB183QN",
+  "client_01KVFSBWRCMSW7V0NB63DVQRHC",
+];
+const WORKOS_CLIENT_IDS = Array.from(
+  new Set([
+    ...(process.env.WORKOS_CLIENT_ID ? [process.env.WORKOS_CLIENT_ID] : []),
+    ...FALLBACK_CLIENT_IDS,
+  ]),
+);
 
 type Provider = {
   type: "customJwt";
@@ -21,14 +36,12 @@ type Provider = {
   applicationID?: string;
 };
 
-const providers: Provider[] = [
-  {
-    type: "customJwt",
-    issuer: `https://api.workos.com/user_management/${WORKOS_CLIENT_ID}`,
-    jwks: WORKOS_JWKS,
-    algorithm: "RS256",
-  },
-];
+const providers: Provider[] = WORKOS_CLIENT_IDS.map((id) => ({
+  type: "customJwt",
+  issuer: `https://api.workos.com/user_management/${id}`,
+  jwks: `https://api.workos.com/sso/jwks/${id}`,
+  algorithm: "RS256",
+}));
 
 // ─── Dev-only auth bypass (TESTING) ──────────────────────────────────────────
 // Enabled ONLY when DEV_AUTH_ISSUER is set on the Convex deployment (never set

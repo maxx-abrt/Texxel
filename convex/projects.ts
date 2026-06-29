@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { assertWorkspaceMember, logActivity, requireUserId } from "./lib/auth";
+import { assertWorkspaceMember, logActivity } from "./lib/auth";
 
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
@@ -10,16 +10,6 @@ export const list = query({
       .query("projects")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
-      .collect();
-
-    // Compute live `spent` per project by summing linked expenses.
-    const allExpenses = await ctx.db
-      .query("a2e_expenses")
-      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
-      .collect();
-    const allInvoices = await ctx.db
-      .query("a2e_invoices")
-      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
     // Task progress per project.
@@ -41,24 +31,11 @@ export const list = query({
       .collect();
 
     return projects.map((p) => {
-      const spent = allExpenses
-        .filter((e) => e.projectId === p._id && e.type === "expense")
-        .reduce((a, e) => a + e.amount, 0);
-      const income = allExpenses
-        .filter((e) => e.projectId === p._id && e.type === "income")
-        .reduce((a, e) => a + e.amount, 0);
-      const invoiced = allInvoices
-        .filter((i) => i.projectId === p._id)
-        .reduce(
-          (a, i) =>
-            a + (i.items || []).reduce((b, it) => b + it.quantity * it.unitPrice, 0),
-          0,
-        );
       const projTasks = allTasks.filter((t) => t.projectId === p._id);
       const taskTotal = projTasks.length;
       const taskDone = projTasks.filter((t) => doneKeys.has(t.status)).length;
       const memberCount = memberRows.filter((m) => m.projectId === p._id).length;
-      return { ...p, spent, income, invoiced, taskTotal, taskDone, memberCount };
+      return { ...p, taskTotal, taskDone, memberCount };
     });
   },
 });
@@ -84,14 +61,11 @@ export const create = mutation({
       v.literal("completed"),
       v.literal("on_hold"),
     ),
-    budget: v.optional(v.number()),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
-    autoCreateBudget: v.optional(v.boolean()),
     autoCreateFiche: v.optional(v.boolean()),
-    currency: v.optional(v.string()),
     locale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -102,8 +76,6 @@ export const create = mutation({
       name: args.name,
       client: args.client,
       status: args.status,
-      budget: args.budget ?? 0,
-      spent: 0,
       startDate: args.startDate,
       endDate: args.endDate,
       description: args.description,
@@ -112,25 +84,6 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
-
-    // Auto-create budget when project has a budget
-    if (args.autoCreateBudget && (args.budget ?? 0) > 0) {
-      await ctx.db.insert("a2e_budgets", {
-        workspaceId: args.workspaceId,
-        name: `${args.name} — Budget`,
-        amount: args.budget!,
-        category: "other",
-        period: "custom",
-        startDate: args.startDate ?? now,
-        endDate: args.endDate,
-        color: args.color ?? "#22c55e",
-        currency: args.currency ?? "EUR",
-        spent: 0,
-        createdBy: userId,
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
 
     // Auto-create project sheet (fiche projet)
     if (args.autoCreateFiche) {
@@ -174,8 +127,6 @@ export const update = mutation({
         v.literal("on_hold"),
       ),
     ),
-    budget: v.optional(v.number()),
-    spent: v.optional(v.number()),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     description: v.optional(v.string()),
@@ -220,22 +171,3 @@ export const remove = mutation({
   },
 });
 
-/** Recalculate `spent` for a project from linked invoices/expenses. */
-export const recalcSpend = mutation({
-  args: { projectId: v.id("projects") },
-  handler: async (ctx, args) => {
-    const p = await ctx.db.get(args.projectId);
-    if (!p) throw new Error("Project not found");
-    await assertWorkspaceMember(ctx, p.workspaceId);
-    const exps = await ctx.db
-      .query("a2e_expenses")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-    const spent = exps.reduce(
-      (acc, e) => acc + (e.type === "expense" ? e.amount : 0),
-      0,
-    );
-    await ctx.db.patch(args.projectId, { spent, updatedAt: Date.now() });
-    return spent;
-  },
-});

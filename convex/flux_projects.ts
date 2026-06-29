@@ -96,14 +96,6 @@ export const detail = query({
     if (!p) return null;
     await assertWorkspaceMember(ctx, p.workspaceId);
 
-    // Live spent / income from linked expenses.
-    const expenses = await ctx.db
-      .query("a2e_expenses")
-      .withIndex("by_workspace", (q) => q.eq("workspaceId", p.workspaceId))
-      .collect();
-    const spent = expenses.filter((e) => e.projectId === p._id && e.type === "expense").reduce((a, e) => a + e.amount, 0);
-    const income = expenses.filter((e) => e.projectId === p._id && e.type === "income").reduce((a, e) => a + e.amount, 0);
-
     // Tasks + statuses.
     const tasks = await ctx.db
       .query("tasks")
@@ -150,7 +142,7 @@ export const detail = query({
     }
 
     return {
-      project: { ...p, spent, income },
+      project: p,
       progress: { total, done, pct, byStatus },
       statuses: statusRows.sort((a, b) => a.order - b.order),
       members,

@@ -94,8 +94,6 @@ export default defineSchema({
       v.literal("completed"),
       v.literal("on_hold"),
     ),
-    budget: v.optional(v.number()),
-    spent: v.optional(v.number()),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     description: v.optional(v.string()),
@@ -305,28 +303,6 @@ export default defineSchema({
   })
     .index("by_sheet", ["sheetId"])
     .index("by_workspace", ["workspaceId"]),
-
-  a2e_budgets: defineTable({
-    workspaceId: v.id("workspaces"),
-    name: v.string(),
-    amount: v.number(),
-    spent: v.optional(v.number()),
-    category: v.string(),
-    period: v.union(
-      v.literal("monthly"),
-      v.literal("yearly"),
-      v.literal("custom"),
-    ),
-    startDate: v.number(),
-    endDate: v.optional(v.number()),
-    color: v.string(),
-    currency: v.optional(v.string()),
-    createdBy: v.id("users"),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_workspace", ["workspaceId"])
-    .index("by_category", ["workspaceId", "category"]),
 
   a2e_categories: defineTable({
     workspaceId: v.id("workspaces"),

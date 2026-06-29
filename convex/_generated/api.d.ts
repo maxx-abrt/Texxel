@@ -9,7 +9,6 @@
  */
 
 import type * as a2e_books from "../a2e_books.js";
-import type * as a2e_budgets from "../a2e_budgets.js";
 import type * as a2e_categories from "../a2e_categories.js";
 import type * as a2e_clients from "../a2e_clients.js";
 import type * as a2e_documents from "../a2e_documents.js";
@@ -50,7 +49,6 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   a2e_books: typeof a2e_books;
-  a2e_budgets: typeof a2e_budgets;
   a2e_categories: typeof a2e_categories;
   a2e_clients: typeof a2e_clients;
   a2e_documents: typeof a2e_documents;

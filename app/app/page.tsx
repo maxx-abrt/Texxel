@@ -21,9 +21,7 @@ import {
   TickCircle,
   Briefcase,
   Calendar,
-  WalletMoney,
   MessageText1,
-  Warning2,
 } from "iconsax-reactjs";
 
 export default function HomePage() {
@@ -61,9 +59,6 @@ export default function HomePage() {
     for (const p of ps) counts[p.status ?? "planning"] = (counts[p.status ?? "planning"] ?? 0) + 1;
     return { total: ps.length, counts };
   })();
-  const budgetAlerts = (projects ?? []).filter(
-    (p: any) => typeof p.budget === "number" && p.budget > 0 && typeof p.spent === "number" && p.spent / p.budget >= 0.8,
-  );
   const recentMentions = (notifications ?? []).filter((n: any) => n.type === "mention").slice(0, 5);
 
   const greeting = (() => {
@@ -182,34 +177,6 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-          )}
-        </div>
-
-        {/* Budget Alerts */}
-        <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-budget-alerts">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-              <WalletMoney variant="Bulk" size={16} className="text-[#d98324]" /> Budget
-            </h2>
-            <Link href="/app/projects" className="text-xs font-medium text-primary hover:underline">Projects</Link>
-          </div>
-          {projects === undefined ? (
-            <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
-          ) : budgetAlerts.length === 0 ? (
-            <p className="flex items-center gap-2 py-4 text-xs text-muted-foreground"><TickCircle variant="Bulk" size={15} /> All budgets healthy</p>
-          ) : (
-            <ul className="space-y-2">
-              {budgetAlerts.map((p: any) => {
-                const pct = Math.round((p.spent / p.budget) * 100);
-                return (
-                  <li key={p._id} className="flex items-center gap-2">
-                    <Warning2 variant="Bulk" size={14} className={cn(pct >= 100 ? "text-destructive" : "text-[#d98324]")} />
-                    <span className="min-w-0 flex-1 truncate text-xs font-medium">{p.name}</span>
-                    <span className={cn("shrink-0 text-xs font-semibold", pct >= 100 ? "text-destructive" : "text-[#d98324]")}>{pct}%</span>
-                  </li>
-                );
-              })}
-            </ul>
           )}
         </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useId } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ interface RetroplanningProps {
   projectId: Id<"projects">;
   projectDueDate?: number;
   workspaceId: Id<"workspaces">;
-  teamId?: Id<"teams">;
   onClose?: () => void;
 }
 
@@ -62,6 +61,7 @@ export function RetroPlanningPanel({
   const t = useTranslations("projects.retroPlanning");
   const locale = useLocale();
   const createTask = useMutation(api.flux_tasks.create);
+  const projectTasks = useQuery(api.flux_tasks.list, { workspaceId, projectId });
   const uid = useId();
 
   const [milestones, setMilestones] = useState<Milestone[]>([
@@ -117,6 +117,7 @@ export function RetroPlanningPanel({
           projectId,
           priority: getPriority(ms.daysBefore),
           dueDate: projectDueDate - ms.daysBefore * DAY_MS,
+          startDate: projectDueDate - (ms.daysBefore + ms.durationDays) * DAY_MS,
           status: "todo",
         });
       }
@@ -152,6 +153,14 @@ export function RetroPlanningPanel({
 
   return (
     <div className="flex flex-col gap-5">
+
+      {/* ── Connection summary ── */}
+      <div className="flex items-center justify-between rounded-xl border bg-muted/30 px-4 py-3">
+        <div>
+          <p className="text-xs font-medium text-foreground">{projectTasks ? projectTasks.length : 0} task(s) linked to this project</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Generated milestones will be created as tasks with due dates and start dates.</p>
+        </div>
+      </div>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-2">

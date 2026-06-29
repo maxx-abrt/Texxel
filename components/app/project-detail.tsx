@@ -16,7 +16,7 @@ import { GanttChart } from "@/components/gantt-chart";
 import { RetroPlanningPanel } from "@/components/retro-planning";
 import {
   ArrowLeft2, Briefcase, TaskSquare, Calendar, Chart, People, Clock, Activity,
-  Add, TickCircle, Flag, Wallet3, Timer1, CloseCircle,
+  Add, TickCircle, Flag, Timer1, CloseCircle,
 } from "iconsax-reactjs";
 
 const STATUS: Record<string, { label: string; color: string }> = {
@@ -70,7 +70,7 @@ const TABS = [
 
 export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
   const router = useRouter();
-  const { activeWorkspaceId, activeWorkspace } = useWorkspace();
+  const { activeWorkspaceId } = useWorkspace();
   const detail = useQuery(api.flux_projects.detail, { projectId });
   const timeSummary = useQuery(api.flux_time.projectSummary, { projectId });
   const tasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId, projectId } : "skip");
@@ -95,7 +95,6 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
 
   const p = detail.project;
   const st = STATUS[p.status] ?? STATUS.planning;
-  const currency = activeWorkspace?.currency ?? "EUR";
   const cols = (statuses ?? []) as any[];
   const memberIds = new Set(detail.members.map((m: any) => m.userId));
 
@@ -104,7 +103,9 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
     dueDate: t.dueDate, createdAt: t.createdAt, assigneeName: t.assignee?.name ?? t.assignee?.email,
   }));
 
-  const budgetPct = p.budget > 0 ? Math.min(100, Math.round((p.spent / p.budget) * 100)) : 0;
+  const deadlineStr = p.endDate ? new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : null;
+  const daysRemaining = p.endDate ? Math.ceil((p.endDate - Date.now()) / 86_400_000) : null;
+  const daysLeft = daysRemaining !== null ? Math.max(0, daysRemaining) : null;
 
   return (
     <PageContainer>
@@ -129,6 +130,13 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {deadlineStr && (
+              <div className={cn("flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs", daysLeft !== null && daysLeft <= 7 ? "text-destructive border-destructive/40 bg-destructive/5" : "text-muted-foreground")}>
+                <Calendar variant="Bulk" size={14} className={cn(daysLeft !== null && daysLeft <= 7 && "text-destructive")} />
+                <span className={cn(daysLeft !== null && daysLeft <= 7 && "font-medium")}>Deadline {deadlineStr}</span>
+                {daysLeft !== null && <span className="ml-1 tabular-nums">· {daysLeft}d left</span>}
+              </div>
+            )}
             <Select value={p.status} onValueChange={(v) => updateProject({ projectId, status: v as any }).then(() => toast.success("Status updated"))}>
               <SelectTrigger className="h-9 w-36" data-testid="project-status-select"><SelectValue /></SelectTrigger>
               <SelectContent>{Object.entries(STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent>
@@ -160,14 +168,28 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-5">
-            <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold"><Wallet3 variant="Bulk" size={16} /> Budget</p>
-            {p.budget > 0 ? (
+            <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold"><Calendar variant="Bulk" size={16} /> Deadline</p>
+            {p.endDate ? (
               <>
-                <div className="flex items-end justify-between"><span className="text-2xl font-bold">{p.spent?.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">{currency}</span></span><span className="text-xs text-muted-foreground">of {p.budget?.toLocaleString()}</span></div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className={cn("h-full rounded-full transition-all", budgetPct > 90 ? "bg-destructive" : "bg-primary")} style={{ width: `${budgetPct}%` }} /></div>
-                <p className="mt-1.5 text-xs text-muted-foreground">{budgetPct}% used · {p.income > 0 ? `${p.income.toLocaleString()} ${currency} income` : "No income yet"}</p>
+                <div className="flex items-end justify-between">
+                  <span className={cn("text-2xl font-bold", daysLeft !== null && daysLeft <= 7 && "text-destructive")}>{deadlineStr}</span>
+                  <span className="text-xs text-muted-foreground">{daysLeft !== null ? `${daysLeft} days left` : "Set a deadline"}</span>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">{daysRemaining !== null && daysRemaining <= 0 ? "Overdue — update tasks or move the deadline." : "All retroplanning is calculated from this date."}</p>
               </>
-            ) : <p className="text-sm text-muted-foreground">No budget set.</p>}
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">No deadline set.</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    onChange={(e) => { const d = e.target.value ? new Date(e.target.value).getTime() : undefined; if (d) updateProject({ projectId, endDate: d }).then(() => toast.success("Deadline set")); }}
+                    className={cn(inputBase, "h-9 text-xs")}
+                    data-testid="project-deadline-input"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-5">
@@ -178,7 +200,7 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
             </div>
             {(timeSummary?.totalEstimate ?? 0) > 0 ? (
               <>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-[var(--accent-mint)] transition-all" style={{ width: `${Math.min(100, Math.round(((timeSummary?.totalTracked ?? 0) / (timeSummary!.totalEstimate)) * 100))}%` }} /></div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-(--accent-mint) transition-all" style={{ width: `${Math.min(100, Math.round(((timeSummary?.totalTracked ?? 0) / (timeSummary!.totalEstimate)) * 100))}%` }} /></div>
                 <p className="mt-1.5 text-xs text-muted-foreground">Est. {fmtMinutes(timeSummary!.totalEstimate)} · {fmtMinutes(timeSummary!.remaining)} left</p>
               </>
             ) : <p className="mt-1.5 text-xs text-muted-foreground">Add task estimates to track remaining time.</p>}
@@ -263,7 +285,7 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
                     <div className="overflow-hidden rounded-2xl border border-border bg-card">
                       {ts.map((t: any) => (
                         <div key={t._id} className="flex items-center gap-3 border-b border-border px-3 py-2.5 last:border-0 hover:bg-muted/40" data-testid="project-task-row">
-                          <button onClick={() => { const doneKey = cols.find((c: any) => c.isDone)?.key ?? "done"; const todoKey = cols.find((c: any) => !c.isDone)?.key ?? "todo"; setStatus({ taskId: t._id, status: t.status === doneKey ? todoKey : doneKey }); }} className={cn(s.isDone ? "text-[var(--accent-mint)]" : "text-muted-foreground hover:text-foreground")}><TickCircle variant="Bulk" size={20} /></button>
+                          <button onClick={() => { const doneKey = cols.find((c: any) => c.isDone)?.key ?? "done"; const todoKey = cols.find((c: any) => !c.isDone)?.key ?? "todo"; setStatus({ taskId: t._id, status: t.status === doneKey ? todoKey : doneKey }); }} className={cn(s.isDone ? "text-(--accent-mint)" : "text-muted-foreground hover:text-foreground")}><TickCircle variant="Bulk" size={20} /></button>
                           <span className={cn("flex-1 truncate text-sm", s.isDone && "text-muted-foreground line-through")}>{t.title}</span>
                           {t.estimateMinutes ? <span className="text-xs text-muted-foreground">{fmtMinutes(t.estimateMinutes)}</span> : null}
                           {t.priority !== "none" && <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: `color-mix(in oklch, ${PRIORITY_COLOR[t.priority]} 16%, transparent)`, color: PRIORITY_COLOR[t.priority] }}><Flag variant="Bulk" size={11} /> {t.priority}</span>}

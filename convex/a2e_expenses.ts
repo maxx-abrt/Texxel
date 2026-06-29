@@ -1,7 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember, logActivity } from "./lib/auth";
-import { api } from "./_generated/api";
 
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
@@ -88,17 +87,6 @@ export const create = mutation({
       targetId: id,
       metadata: { amount: args.amount, category: args.category },
     });
-    // Auto-recalc project spent
-    if (args.projectId) {
-      await ctx.runMutation(api.projects.recalcSpend, { projectId: args.projectId });
-    }
-    // Budget alert check
-    if (args.type === "expense") {
-      await ctx.runMutation(api.a2e_budgets.checkAlerts, {
-        workspaceId: args.workspaceId,
-        category: args.category,
-      });
-    }
     return id;
   },
 });
@@ -150,22 +138,6 @@ export const update = mutation({
       targetType: "expense",
       targetId: args.expenseId,
     });
-    // Recalc old project if changed
-    if (args.projectId !== undefined && args.projectId !== e.projectId) {
-      if (e.projectId) await ctx.runMutation(api.projects.recalcSpend, { projectId: e.projectId });
-      if (args.projectId) await ctx.runMutation(api.projects.recalcSpend, { projectId: args.projectId });
-    } else if (e.projectId && (args.amount !== undefined || args.type !== undefined)) {
-      await ctx.runMutation(api.projects.recalcSpend, { projectId: e.projectId });
-    }
-    // Budget alert check
-    const category = args.category ?? e.category;
-    const type = args.type ?? e.type;
-    if (type === "expense") {
-      await ctx.runMutation(api.a2e_budgets.checkAlerts, {
-        workspaceId: e.workspaceId,
-        category,
-      });
-    }
     return args.expenseId;
   },
 });
@@ -217,15 +189,6 @@ export const remove = mutation({
       targetType: "expense",
       targetId: args.expenseId,
     });
-    if (e.projectId) {
-      await ctx.runMutation(api.projects.recalcSpend, { projectId: e.projectId });
-    }
-    if (e.type === "expense") {
-      await ctx.runMutation(api.a2e_budgets.checkAlerts, {
-        workspaceId: e.workspaceId,
-        category: e.category,
-      });
-    }
     return true;
   },
 });

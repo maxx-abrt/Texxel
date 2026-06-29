@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": []
+  },
+  "hooks": {},
+  "enabledPlugins": {
+    "frontend-design@anthropic": true
+  }
+}

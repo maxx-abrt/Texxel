@@ -117,7 +117,7 @@ Render a "History" side panel for each project/document showing who did what and
 Very well, all working awesomely etc... (with real logs and versions)
 - Home Dashboard Widgets
 Current home is minimal (quick actions + contribution grid + recent docs + tasks)
-Add: upcoming events from calendar, project health overview (% done), budget alerts, recent mentions
+Add: upcoming events from calendar, project health overview (% done), deadline alerts, recent mentions
 - Workspace Avatar / Branding
 Workspace has avatar field in schema but Settings page has no avatar upload
 Add logo upload for workspace (using EdgeStore already configured)

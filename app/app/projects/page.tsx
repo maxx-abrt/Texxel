@@ -14,7 +14,7 @@ import {
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "@/components/ui/select";
-import { Briefcase, Add, More } from "iconsax-reactjs";
+import { Briefcase, Add, More, Calendar } from "iconsax-reactjs";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -37,9 +37,7 @@ export default function ProjectsPage() {
 
   useEffect(() => { if (search.get("new") === "1") setOpen(true); }, [search]);
 
-  const currency = activeWorkspace?.currency ?? "EUR";
-
-  return (
+    return (
     <PageContainer>
       <PageHeader title="Projects" subtitle="Organize work into projects" icon={Briefcase} testId="projects-header"
         actions={<button onClick={() => setOpen(true)} className={btnPrimary} data-testid="new-project-btn"><Add variant="Bulk" size={18} /> New project</button>} />
@@ -47,14 +45,15 @@ export default function ProjectsPage() {
       {projects === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-36 animate-pulse rounded-2xl bg-muted" />)}</div>
       ) : projects.length === 0 ? (
-        <EmptyState icon={Briefcase} title="No projects yet" description="Create a project to group tasks, budgets and documents." testId="projects-empty"
+        <EmptyState icon={Briefcase} title="No projects yet" description="Create a project to group tasks and documents." testId="projects-empty"
           action={<button onClick={() => setOpen(true)} className={btnPrimary}><Add variant="Bulk" size={18} /> New project</button>} />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="projects-grid">
           {projects.map((p: any) => {
             const st = STATUS[p.status] ?? STATUS.planning;
-            const pct = p.budget > 0 ? Math.min(100, Math.round((p.spent / p.budget) * 100)) : 0;
             const taskPct = p.taskTotal > 0 ? Math.round((p.taskDone / p.taskTotal) * 100) : 0;
+            const deadlineStr = p.endDate ? new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : null;
+            const daysLeft = p.endDate ? Math.max(0, Math.ceil((p.endDate - Date.now()) / 86_400_000)) : null;
             return (
               <div key={p._id} data-testid="project-card" onClick={() => router.push(`/app/projects/${p._id}`)} className="group flex cursor-pointer flex-col rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:shadow-md">
                 <div className="flex items-start justify-between">
@@ -70,12 +69,13 @@ export default function ProjectsPage() {
                 {/* Task progression */}
                 <div className="mt-3">
                   <div className="flex justify-between text-xs text-muted-foreground"><span>{p.taskDone}/{p.taskTotal} tasks</span><span>{taskPct}%</span></div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-[var(--accent-mint)] transition-all" style={{ width: `${taskPct}%` }} /></div>
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-(--accent-mint) transition-all" style={{ width: `${taskPct}%` }} /></div>
                 </div>
-                {p.budget > 0 && (
-                  <div className="mt-2">
-                    <div className="flex justify-between text-xs text-muted-foreground"><span>{p.spent?.toLocaleString()} {currency}</span><span>{p.budget?.toLocaleString()} {currency}</span></div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
+                {deadlineStr && (
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar variant="Bulk" size={14} className={cn(daysLeft !== null && daysLeft <= 7 && "text-destructive")} />
+                    <span className={cn(daysLeft !== null && daysLeft <= 7 && "text-destructive font-medium")}>Deadline {deadlineStr}</span>
+                    {daysLeft !== null && <span className="ml-auto">{daysLeft}d left</span>}
                   </div>
                 )}
               </div>
@@ -93,15 +93,15 @@ function ProjectDialog({ open, onOpenChange, onCreate }: any) {
   const [name, setName] = useState("");
   const [client, setClient] = useState("");
   const [status, setStatus] = useState("planning");
-  const [budget, setBudget] = useState("");
+  const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) { setName(""); setClient(""); setStatus("planning"); setBudget(""); } }, [open]);
+  useEffect(() => { if (open) { setName(""); setClient(""); setStatus("planning"); setDeadline(undefined); } }, [open]);
 
   const submit = async () => {
     if (!name.trim()) return toast.error("Add a project name");
     setBusy(true);
     try {
-      await onCreate({ name: name.trim(), client: client.trim() || "Internal", status, budget: budget ? Number(budget) : undefined });
+      await onCreate({ name: name.trim(), client: client.trim() || "Internal", status, endDate: deadline ? deadline.getTime() : undefined });
     } finally { setBusy(false); }
   };
 
@@ -118,8 +118,14 @@ function ProjectDialog({ open, onOpenChange, onCreate }: any) {
               <Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}</SelectContent></Select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Budget</label>
-              <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="0" className={inputBase} />
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">Deadline</label>
+              <input
+                type="date"
+                value={deadline ? deadline.toISOString().split("T")[0] : ""}
+                onChange={(e) => setDeadline(e.target.value ? new Date(e.target.value) : undefined)}
+                className={inputBase}
+                data-testid="project-deadline-input"
+              />
             </div>
           </div>
         </div>

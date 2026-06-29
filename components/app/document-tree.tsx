@@ -109,7 +109,7 @@ function TreeNode({
   };
 
   const style = {
-    paddingLeft: `${level * 12 + 4}px`,
+    paddingLeft: `${level * 12 + 12}px`,
     transform: transform ? CSS.Translate.toString(transform) : undefined,
   };
 

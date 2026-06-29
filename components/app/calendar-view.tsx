@@ -8,21 +8,17 @@ import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { PageContainer, btnPrimary, btnOutline, btnGhost, inputBase } from "@/components/app/common";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat, Location, Clock } from "iconsax-reactjs";
+import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat } from "iconsax-reactjs";
 
 const EVENT_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const DAY_MS = 86_400_000;
-
-const RECUR_LABEL: Record<string, string> = {
-  none: "Does not repeat", daily: "Daily", weekly: "Weekly", biweekly: "Every 2 weeks", monthly: "Monthly",
-};
 
 function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function startOfDay(d: Date) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
@@ -30,7 +26,6 @@ function startOfWeek(d: Date) { const s = startOfDay(d); const off = (s.getDay()
 function sameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
 function addMonths(d: Date, n: number) { return new Date(d.getFullYear(), d.getMonth() + n, d.getDate()); }
 function dayKey(d: Date) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
-function fmtTime(ts: number) { return new Date(ts).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); }
 
 /** Expand recurring events into concrete occurrences within [rangeStart, rangeEnd). */
 function expandEvents(events: any[], rangeStart: number, rangeEnd: number): any[] {
@@ -66,6 +61,9 @@ type ViewMode = "month" | "week" | "day";
 
 export function CalendarView() {
   const search = useSearchParams();
+  const locale = useLocale();
+  const t = useTranslations("calendar");
+  const tc = useTranslations("common");
   const { activeWorkspaceId } = useWorkspace();
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState(() => new Date());
@@ -77,6 +75,13 @@ export function CalendarView() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [seedDate, setSeedDate] = useState<Date | null>(null);
+
+  const WEEKDAYS = [t("weekdays.mon"), t("weekdays.tue"), t("weekdays.wed"), t("weekdays.thu"), t("weekdays.fri"), t("weekdays.sat"), t("weekdays.sun")];
+  const RECUR_LABEL: Record<string, string> = {
+    none: t("recurrence.none"), daily: t("recurrence.daily"), weekly: t("recurrence.weekly"), biweekly: t("recurrence.biweekly"), monthly: t("recurrence.monthly"),
+  };
+  const VIEW_LABEL: Record<ViewMode, string> = { month: t("month"), week: t("week"), day: t("day") };
+  const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
   useEffect(() => { if (search.get("new") === "1") { setSeedDate(new Date()); setEditing(null); setDialogOpen(true); } }, [search]);
 
@@ -101,10 +106,10 @@ export function CalendarView() {
   };
 
   const headerLabel = view === "day"
-    ? cursor.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    ? cursor.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric", year: "numeric" })
     : view === "week"
-      ? `Week of ${startOfWeek(cursor).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`
-      : cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+      ? t("weekOf", { date: startOfWeek(cursor).toLocaleDateString(locale, { month: "short", day: "numeric" }) })
+      : cursor.toLocaleDateString(locale, { month: "long", year: "numeric" });
 
   return (
     <PageContainer className="max-w-[1280px]">
@@ -116,40 +121,43 @@ export function CalendarView() {
         <div className="flex items-center gap-2">
           <div className="flex items-center rounded-full border border-border bg-card p-0.5" data-testid="calendar-view-switch">
             {(["month", "week", "day"] as ViewMode[]).map((v) => (
-              <button key={v} onClick={() => setView(v)} data-testid={`calendar-view-${v}`} className={cn("h-8 rounded-full px-3 text-sm capitalize", view === v ? "bg-muted font-medium" : "text-muted-foreground")}>{v}</button>
+              <button key={v} onClick={() => setView(v)} data-testid={`calendar-view-${v}`} className={cn("h-8 rounded-full px-3 text-sm", view === v ? "bg-muted font-medium" : "text-muted-foreground")}>{VIEW_LABEL[v]}</button>
             ))}
           </div>
           <div className="flex items-center rounded-full border border-border bg-card">
             <button onClick={() => navigate(-1)} className="flex h-9 w-9 items-center justify-center rounded-l-full hover:bg-muted" data-testid="calendar-prev"><ArrowLeft2 variant="Bulk" size={18} /></button>
-            <button onClick={() => setCursor(new Date())} className="h-9 px-3 text-sm font-medium hover:bg-muted">Today</button>
+            <button onClick={() => setCursor(new Date())} className="h-9 px-3 text-sm font-medium hover:bg-muted">{t("today")}</button>
             <button onClick={() => navigate(1)} className="flex h-9 w-9 items-center justify-center rounded-r-full hover:bg-muted" data-testid="calendar-next"><ArrowRight2 variant="Bulk" size={18} /></button>
           </div>
-          <button onClick={() => openNew(new Date())} className={btnPrimary} data-testid="new-event-btn"><Add variant="Bulk" size={18} /> New event</button>
+          <button onClick={() => openNew(new Date())} className={btnPrimary} data-testid="new-event-btn"><Add variant="Bulk" size={18} /> {t("newEvent")}</button>
         </div>
       </div>
 
-      {view === "month" && <MonthView cursor={cursor} events={expanded} onDay={openNew} onEvent={openEdit} />}
-      {view === "week" && <WeekTimeGrid days={7} startDate={startOfWeek(cursor)} events={expanded} onSlot={openNew} onEvent={openEdit} />}
-      {view === "day" && <WeekTimeGrid days={1} startDate={startOfDay(cursor)} events={expanded} onSlot={openNew} onEvent={openEdit} />}
+      {view === "month" && <MonthView cursor={cursor} events={expanded} onDay={openNew} onEvent={openEdit} weekdays={WEEKDAYS} t={t} tc={tc} fmtTime={fmtTime} />}
+      {view === "week" && <WeekTimeGrid days={7} startDate={startOfWeek(cursor)} events={expanded} onSlot={openNew} onEvent={openEdit} locale={locale} t={t} />}
+      {view === "day" && <WeekTimeGrid days={1} startDate={startOfDay(cursor)} events={expanded} onSlot={openNew} onEvent={openEdit} locale={locale} t={t} />}
 
       <EventDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         event={editing}
         seedDate={seedDate}
+        recurLabel={RECUR_LABEL}
+        t={t}
+        tc={tc}
         onSave={async (data: any) => {
-          if (editing) { await update({ eventId: editing._id, ...data }); toast.success("Event updated"); }
-          else { if (!activeWorkspaceId) return; await create({ workspaceId: activeWorkspaceId, ...data }); toast.success("Event created"); }
+          if (editing) { await update({ eventId: editing._id, ...data }); toast.success(t("eventUpdated")); }
+          else { if (!activeWorkspaceId) return; await create({ workspaceId: activeWorkspaceId, ...data }); toast.success(t("eventCreated")); }
           setDialogOpen(false);
         }}
-        onDelete={editing ? async () => { await remove({ eventId: editing._id }); toast.success("Event deleted"); setDialogOpen(false); } : undefined}
+        onDelete={editing ? async () => { await remove({ eventId: editing._id }); toast.success(t("eventDeleted")); setDialogOpen(false); } : undefined}
       />
     </PageContainer>
   );
 }
 
 /* ───────────────────────── Month view ───────────────────────── */
-function MonthView({ cursor, events, onDay, onEvent }: any) {
+function MonthView({ cursor, events, onDay, onEvent, weekdays, t, tc, fmtTime }: any) {
   const today = new Date();
   const weeks = useMemo(() => {
     const first = startOfMonth(cursor);
@@ -168,7 +176,7 @@ function MonthView({ cursor, events, onDay, onEvent }: any) {
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card">
       <div className="grid grid-cols-7 border-b border-border bg-muted/40">
-        {WEEKDAYS.map((d) => <div key={d} className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>)}
+        {weekdays.map((d: string) => <div key={d} className="px-2 py-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>)}
       </div>
       <div className="grid grid-cols-7">
         {weeks.map((day, idx) => {
@@ -186,7 +194,7 @@ function MonthView({ cursor, events, onDay, onEvent }: any) {
                     {e._recurring && <Repeat size={9} />}{!e.allDay && <span className="opacity-80">{fmtTime(e.start)}</span>} {e.title}
                   </span>
                 ))}
-                {dayEvents.length > 3 && <span className="px-1 text-[10px] text-muted-foreground">+{dayEvents.length - 3} more</span>}
+                {dayEvents.length > 3 && <span className="px-1 text-[10px] text-muted-foreground">{t("more", { count: dayEvents.length - 3 })}</span>}
               </div>
             </button>
           );
@@ -197,10 +205,11 @@ function MonthView({ cursor, events, onDay, onEvent }: any) {
 }
 
 /* ───────────────────────── Week / Day time grid ───────────────────────── */
-function WeekTimeGrid({ days, startDate, events, onSlot, onEvent }: any) {
+function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: any) {
   const today = new Date();
   const dayList = Array.from({ length: days }, (_, i) => new Date(startDate.getTime() + i * DAY_MS));
   const HOUR_H = 48; // px per hour
+  const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
   const allDayByDay = (d: Date) => events.filter((e: any) => e.allDay && sameDay(new Date(e.start), d));
   const timedByDay = (d: Date) => events.filter((e: any) => !e.allDay && sameDay(new Date(e.start), d));
@@ -212,14 +221,14 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent }: any) {
         <div className="border-r border-border" />
         {dayList.map((d, i) => (
           <div key={i} className={cn("border-r border-border px-2 py-2 text-center last:border-r-0", sameDay(d, today) && "bg-[var(--flux-coral-soft)]")}>
-            <div className="text-xs text-muted-foreground">{d.toLocaleDateString(undefined, { weekday: "short" })}</div>
+            <div className="text-xs text-muted-foreground">{d.toLocaleDateString(locale, { weekday: "short" })}</div>
             <div className={cn("text-lg font-semibold", sameDay(d, today) && "text-primary")}>{d.getDate()}</div>
           </div>
         ))}
       </div>
       {/* All-day row */}
       <div className="grid border-b border-border bg-muted/20" style={{ gridTemplateColumns: `56px repeat(${days}, 1fr)` }}>
-        <div className="border-r border-border px-1 py-1 text-right text-[10px] text-muted-foreground">all-day</div>
+        <div className="border-r border-border px-1 py-1 text-right text-[10px] text-muted-foreground">{t("allDay")}</div>
         {dayList.map((d, i) => (
           <div key={i} className="min-h-[28px] space-y-0.5 border-r border-border p-1 last:border-r-0">
             {allDayByDay(d).map((e: any) => (
@@ -261,7 +270,7 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent }: any) {
 }
 
 /* ───────────────────────── Event dialog ───────────────────────── */
-function EventDialog({ open, onOpenChange, event, seedDate, onSave, onDelete }: any) {
+function EventDialog({ open, onOpenChange, event, seedDate, recurLabel, t, tc, onSave, onDelete }: any) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
@@ -292,8 +301,8 @@ function EventDialog({ open, onOpenChange, event, seedDate, onSave, onDelete }: 
   }, [open, event, seedDate]);
 
   const submit = async () => {
-    if (!title.trim()) return toast.error("Add an event title");
-    if (!date) return toast.error("Pick a date");
+    if (!title.trim()) return toast.error(t("addEventTitle"));
+    if (!date) return toast.error(t("pickDate"));
     setBusy(true);
     try {
       const start = new Date(`${date}T${allDay ? "00:00" : time}`).getTime();
@@ -313,34 +322,34 @@ function EventDialog({ open, onOpenChange, event, seedDate, onSave, onDelete }: 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" data-testid="event-dialog">
-        <DialogHeader><DialogTitle>{event ? "Edit event" : "New event"}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{event ? t("editEvent") : t("newEvent")}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event title" className={inputBase} data-testid="event-title-input" />
+          <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("eventTitle")} className={inputBase} data-testid="event-title-input" />
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Starts</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputBase} data-testid="event-date-input" /></div>
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Start time</label><input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={allDay} className={cn(inputBase, allDay && "opacity-50")} data-testid="event-time-input" /></div>
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">Ends</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputBase} data-testid="event-end-date-input" /></div>
-            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">End time</label><input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} disabled={allDay} className={cn(inputBase, allDay && "opacity-50")} data-testid="event-end-time-input" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">{t("starts")}</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputBase} data-testid="event-date-input" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">{t("startTime")}</label><input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={allDay} className={cn(inputBase, allDay && "opacity-50")} data-testid="event-time-input" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">{t("ends")}</label><input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputBase} data-testid="event-end-date-input" /></div>
+            <div><label className="mb-1 block text-xs font-medium text-muted-foreground">{t("endTime")}</label><input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} disabled={allDay} className={cn(inputBase, allDay && "opacity-50")} data-testid="event-end-time-input" /></div>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-border px-3 py-2.5">
-            <span className="text-sm font-medium">All day</span>
+            <span className="text-sm font-medium">{t("allDay")}</span>
             <Switch checked={allDay} onCheckedChange={setAllDay} />
           </div>
           <div>
-            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Repeat size={13} /> Repeat</label>
+            <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Repeat size={13} /> {t("repeat")}</label>
             <div className="grid grid-cols-2 gap-2">
               <Select value={recurrence} onValueChange={setRecurrence}>
                 <SelectTrigger data-testid="event-recurrence-select"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(RECUR_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                <SelectContent>{Object.entries(recurLabel as Record<string, string>).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
               </Select>
               {recurrence !== "none" && (
-                <input type="date" value={recurUntil} onChange={(e) => setRecurUntil(e.target.value)} placeholder="Until" className={inputBase} data-testid="event-recur-until" title="Repeat until (optional)" />
+                <input type="date" value={recurUntil} onChange={(e) => setRecurUntil(e.target.value)} placeholder={t("untilPlaceholder")} className={inputBase} data-testid="event-recur-until" title={t("untilTitle")} />
               )}
             </div>
           </div>
-          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)" className={inputBase} />
+          <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("locationPlaceholder")} className={inputBase} />
           <div>
-            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Color</label>
+            <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t("color")}</label>
             <div className="flex gap-2">
               {EVENT_COLORS.map((c) => (
                 <button key={c} onClick={() => setColor(c)} className={cn("h-7 w-7 rounded-full transition-transform", color === c && "ring-2 ring-ring ring-offset-2 ring-offset-background")} style={{ backgroundColor: c }} />
@@ -349,9 +358,9 @@ function EventDialog({ open, onOpenChange, event, seedDate, onSave, onDelete }: 
           </div>
         </div>
         <DialogFooter className="items-center">
-          {onDelete && <button onClick={onDelete} className={cn(btnGhost, "mr-auto text-destructive")}><Trash variant="Bulk" size={16} /> Delete</button>}
-          <button onClick={() => onOpenChange(false)} className={btnOutline}>Cancel</button>
-          <button onClick={submit} disabled={busy} className={btnPrimary} data-testid="event-save">{busy ? "Saving\u2026" : event ? "Save" : "Create"}</button>
+          {onDelete && <button onClick={onDelete} className={cn(btnGhost, "mr-auto text-destructive")}><Trash variant="Bulk" size={16} /> {tc("delete")}</button>}
+          <button onClick={() => onOpenChange(false)} className={btnOutline}>{tc("cancel")}</button>
+          <button onClick={submit} disabled={busy} className={btnPrimary} data-testid="event-save">{busy ? tc("saving") : event ? tc("save") : t("createEvent")}</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

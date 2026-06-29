@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { HtmlLang } from "./html-lang";
 
 export const metadata: Metadata = {
   title: "Flux — your second brain",
@@ -25,6 +26,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <HtmlLang />
         <Providers>{children}</Providers>
       </body>
     </html>

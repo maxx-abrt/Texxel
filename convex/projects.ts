@@ -127,8 +127,8 @@ export const update = mutation({
         v.literal("on_hold"),
       ),
     ),
-    startDate: v.optional(v.number()),
-    endDate: v.optional(v.number()),
+    startDate: v.optional(v.union(v.number(), v.null())),
+    endDate: v.optional(v.union(v.number(), v.null())),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
   },
@@ -139,7 +139,7 @@ export const update = mutation({
     const { projectId, ...rest } = args as any;
     const patch: any = { updatedAt: Date.now() };
     for (const [k, v] of Object.entries(rest)) {
-      if (v !== undefined) patch[k] = v;
+      if (v !== undefined) patch[k] = v === null ? undefined : v;
     }
     await ctx.db.patch(args.projectId, patch);
     await logActivity(ctx, {

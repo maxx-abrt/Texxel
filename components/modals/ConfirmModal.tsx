@@ -11,12 +11,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useTranslations } from "next-intl";
 
 interface ConfirmmModalProps {
   children: React.ReactNode;
   onConfirm: () => void;
 }
 export const ConfirmModal = ({ children, onConfirm }: ConfirmmModalProps) => {
+  const t = useTranslations("confirmModal");
   const handleConfirm = (
     e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
   ) => {
@@ -31,17 +33,17 @@ export const ConfirmModal = ({ children, onConfirm }: ConfirmmModalProps) => {
       </AlertDialogTrigger>
       <AlertDialogContent className="dark:bg-dark">
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>{t("title")}</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone.
+            {t("description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-            Cancel
+            {t("cancel")}
           </AlertDialogCancel>
           <AlertDialogAction variant="destructive" onClick={handleConfirm}>
-            Confirm
+            {t("confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

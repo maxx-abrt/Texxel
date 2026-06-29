@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useLocale, useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Command,
@@ -25,14 +26,14 @@ import {
   Profile2User,
 } from "iconsax-reactjs";
 
-const PAGES = [
-  { label: "Home", href: "/app", Icon: Element3 },
-  { label: "Documents", href: "/app/documents", Icon: DocumentText },
-  { label: "Tasks", href: "/app/tasks", Icon: TaskSquare },
-  { label: "Projects", href: "/app/projects", Icon: Briefcase },
-  { label: "Calendar", href: "/app/calendar", Icon: Calendar },
-  { label: "Databases", href: "/app/databases", Icon: Data2 },
-  { label: "Settings", href: "/app/settings", Icon: Setting2 },
+const PAGES_KEYS = [
+  { key: "home", href: "/app", Icon: Element3 },
+  { key: "documents", href: "/app/documents", Icon: DocumentText },
+  { key: "tasks", href: "/app/tasks", Icon: TaskSquare },
+  { key: "projects", href: "/app/projects", Icon: Briefcase },
+  { key: "calendar", href: "/app/calendar", Icon: Calendar },
+  { key: "databases", href: "/app/databases", Icon: Data2 },
+  { key: "settings", href: "/app/settings", Icon: Setting2 },
 ];
 
 const STATUS_COLOR: Record<string, string> = {
@@ -56,8 +57,15 @@ function StatusDot({ status }: { status?: string }) {
 
 export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: boolean) => void }) {
   const router = useRouter();
+  const locale = useLocale();
   const { activeWorkspaceId } = useWorkspace();
   const [q, setQ] = useState("");
+  const t = useTranslations("commandPalette");
+  const tn = useTranslations("nav");
+  const tc = useTranslations("common");
+  const ttm = useTranslations("teams");
+
+  const PAGES = PAGES_KEYS.map((p) => ({ ...p, label: tn(p.key as any) }));
 
   const docResults = useQuery(
     api.flux_documents.search,
@@ -90,19 +98,19 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="overflow-hidden p-0 sm:max-w-xl" data-testid="command-palette" aria-describedby={undefined}>
-        <DialogTitle className="sr-only">Search and navigate</DialogTitle>
+        <DialogTitle className="sr-only">{t("title")}</DialogTitle>
         <Command shouldFilter={false} className="rounded-2xl">
           <CommandInput
             data-testid="global-search-input"
-            placeholder="Search anything — documents, tasks, projects…"
+            placeholder={t("searchPlaceholder")}
             value={q}
             onValueChange={setQ}
           />
           <CommandList className="max-h-[420px]">
-            <CommandEmpty>No results.</CommandEmpty>
+            <CommandEmpty>{tc("noResults")}</CommandEmpty>
 
             {hasDocResults && (
-              <CommandGroup heading="Documents">
+              <CommandGroup heading={tn("documents")}>
                 {docResults.map((d: any) => (
                   <CommandItem
                     key={d._id}
@@ -112,14 +120,14 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
                     className="gap-2"
                   >
                     <span className="w-5 shrink-0 text-center">{d.icon ?? "📄"}</span>
-                    <span className="truncate">{d.title || "Untitled"}</span>
+                    <span className="truncate">{d.title || tc("untitled")}</span>
                   </CommandItem>
                 ))}
               </CommandGroup>
             )}
 
             {hasTasks && (
-              <CommandGroup heading="Tasks">
+              <CommandGroup heading={tn("tasks")}>
                 {other.tasks.map((t: any) => (
                   <CommandItem
                     key={t._id}
@@ -136,7 +144,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
             )}
 
             {hasProjects && (
-              <CommandGroup heading="Projects">
+              <CommandGroup heading={tn("projects")}>
                 {other.projects.map((p: any) => (
                   <CommandItem
                     key={p._id}
@@ -156,7 +164,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
             )}
 
             {hasEvents && (
-              <CommandGroup heading="Events">
+              <CommandGroup heading={tn("events")}>
                 {other.events.map((e: any) => (
                   <CommandItem
                     key={e._id}
@@ -167,7 +175,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
                     <Calendar variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
                     <span className="truncate flex-1">{e.title}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {new Date(e.start).toLocaleDateString()}
+                      {new Date(e.start).toLocaleDateString(locale)}
                     </span>
                   </CommandItem>
                 ))}
@@ -175,7 +183,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
             )}
 
             {hasDatabases && (
-              <CommandGroup heading="Databases">
+              <CommandGroup heading={tn("databases")}>
                 {other.databases.map((d: any) => (
                   <CommandItem
                     key={d._id}
@@ -191,7 +199,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
             )}
 
             {hasMembers && (
-              <CommandGroup heading="Members">
+              <CommandGroup heading={ttm("membersTitle")}>
                 {other.members.map((m: any) => (
                   <CommandItem
                     key={m._id}
@@ -207,7 +215,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
               </CommandGroup>
             )}
 
-            <CommandGroup heading="Go to">
+            <CommandGroup heading={t("goTo")}>
               {PAGES.map(({ label, href, Icon }) => (
                 <CommandItem key={href} value={`page-${label}`} onSelect={() => go(href)} className="gap-2">
                   <Icon variant="Bulk" size={18} className="text-muted-foreground" /> {label}

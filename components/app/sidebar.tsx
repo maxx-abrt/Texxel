@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useTrashDnd } from "@/components/providers/dnd-trash-provider";
+import { useTranslations } from "next-intl";
 import {
   Element3,
   DocumentText,
@@ -39,15 +40,15 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 
-const NAV = [
-  { href: "/app", label: "Home", Icon: Element3, exact: true },
-  { href: "/app/documents", label: "Documents", Icon: DocumentText },
-  { href: "/app/tasks", label: "Tasks", Icon: TaskSquare },
-  { href: "/app/projects", label: "Projects", Icon: Briefcase },
-  { href: "/app/calendar", label: "Calendar", Icon: Calendar },
-  { href: "/app/databases", label: "Databases", Icon: Data2 },
-  { href: "/app/inbox", label: "Inbox", Icon: Notification },
-  { href: "/app/members", label: "Members", Icon: Profile2User },
+const NAV_KEYS = [
+  { href: "/app", key: "home", Icon: Element3, exact: true },
+  { href: "/app/documents", key: "documents", Icon: DocumentText },
+  { href: "/app/tasks", key: "tasks", Icon: TaskSquare },
+  { href: "/app/projects", key: "projects", Icon: Briefcase },
+  { href: "/app/calendar", key: "calendar", Icon: Calendar },
+  { href: "/app/databases", key: "databases", Icon: Data2 },
+  { href: "/app/inbox", key: "inbox", Icon: Notification },
+  { href: "/app/members", key: "members", Icon: Profile2User },
 ];
 
 export function Sidebar({
@@ -77,13 +78,18 @@ export function Sidebar({
   const { isOver: isOverRootTree, setNodeRef: setRootTreeRef } = useDroppable({ id: "sidebar-root-tree" });
   const { activeDrag } = useTrashDnd();
 
+  const t = useTranslations("nav");
+  const tc = useTranslations("common");
+  const tw = useTranslations("settings");
+  const NAV = NAV_KEYS.map((n) => ({ ...n, label: t(n.key as any) }));
+
   const onCreate = async (parentId?: Id<"flux_documents">) => {
     if (!activeWorkspaceId) return;
     try {
-      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled", parentId });
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: tc("untitled"), parentId });
       router.push(`/app/documents/${id}`);
     } catch {
-      toast.error("Could not create document");
+      toast.error(tc("createFailed"));
     }
   };
 
@@ -92,7 +98,7 @@ export function Sidebar({
     try {
       await createFolder({ workspaceId: activeWorkspaceId });
     } catch {
-      toast.error("Could not create folder");
+      toast.error(tc("createFailed"));
     }
   };
 
@@ -127,14 +133,14 @@ export function Sidebar({
                   )}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">{activeWorkspace?.name ?? "Workspace"}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{activeWorkspace?.role ?? ""} · {activeWorkspace?.memberCount ?? 0} member(s)</span>
+                  <span className="block truncate text-sm font-semibold">{activeWorkspace?.name ?? t("workspace")}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{activeWorkspace?.role ?? ""} · {t("memberCount", { count: activeWorkspace?.memberCount ?? 0 })}</span>
                 </span>
                 <ArrowDown2 variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("workspaces")}</DropdownMenuLabel>
               {workspaces.map((w) => (
                 <DropdownMenuItem key={w._id} data-testid="workspace-option" onClick={() => setActive(w._id)} className="gap-2">
                   <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-md bg-primary text-xs font-bold text-primary-foreground">{(w as any).avatar ? <img src={(w as any).avatar} alt="" className="h-full w-full object-cover" /> : w.name.charAt(0).toUpperCase()}</span>
@@ -144,7 +150,7 @@ export function Sidebar({
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push("/app/settings?new=1")} className="gap-2 text-primary">
-                <Add variant="Bulk" size={16} /> New workspace
+                <Add variant="Bulk" size={16} /> {t("newWorkspace")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -154,14 +160,14 @@ export function Sidebar({
         {/* Search */}
         <div className="px-3">
           <button data-testid="sidebar-search" onClick={onSearch} className="flex w-full items-center gap-2 rounded-xl border border-sidebar-border bg-background/60 px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent">
-            <SearchNormal1 variant="Bulk" size={18} /> Search
+            <SearchNormal1 variant="Bulk" size={18} /> {t("search")}
             <span className="ml-auto rounded-md border border-border px-1.5 text-xs">⌘K</span>
           </button>
         </div>
 
         <nav className="mt-3 space-y-0.5 px-3">
-          {NAV.map(({ href, label, Icon, exact }) => (
-            <Link key={href} href={href} data-testid={`sidebar-nav-${label.toLowerCase()}`} onClick={onClose}
+          {NAV.map(({ href, label, Icon, exact, key }) => (
+            <Link key={href} href={href} data-testid={`sidebar-nav-${key}`} onClick={onClose}
               className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent", isActive(href, exact) && "bg-sidebar-accent font-medium")}>
               <Icon variant="Bulk" size={20} className={cn("text-muted-foreground", isActive(href, exact) && "text-primary")} />
               {label}
@@ -172,7 +178,7 @@ export function Sidebar({
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3 no-scrollbar">
           {favorites && favorites.length > 0 && (
             <div className="mb-3">
-              <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Favorites</div>
+              <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("favorites")}</div>
               {favorites.map((d: any) => (
                 <DraggableFavorite key={d._id} doc={d} onNavigate={onClose} />
               ))}
@@ -185,16 +191,16 @@ export function Sidebar({
               isOverRoot && "bg-primary/10 ring-1 ring-primary/40",
             )}
           >
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Private</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("private")}</span>
             <div className="flex items-center">
-              <button data-testid="sidebar-new-folder" onClick={onCreateFolder} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title="New folder"><Folder variant="Bulk" size={16} /></button>
-              <button data-testid="sidebar-new-doc" onClick={() => onCreate()} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title="New page"><Add variant="Bulk" size={16} /></button>
+              <button data-testid="sidebar-new-folder" onClick={onCreateFolder} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title={t("newFolder")}><Folder variant="Bulk" size={16} /></button>
+              <button data-testid="sidebar-new-doc" onClick={() => onCreate()} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title={t("newPage")}><Add variant="Bulk" size={16} /></button>
             </div>
           </div>
           <DocumentTree docs={docs ?? []} parentId={null} onNavigate={onClose} onCreateChild={onCreate} level={0} />
           {docs && docs.length === 0 && (
             <button onClick={() => onCreate()} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent">
-              <Add variant="Bulk" size={16} /> New page
+              <Add variant="Bulk" size={16} /> {t("newPage")}
             </button>
           )}
           {activeDrag && (
@@ -205,7 +211,7 @@ export function Sidebar({
                 isOverRootTree && "bg-primary/10 ring-1 ring-primary/40 border-primary/60 text-primary",
               )}
             >
-              <DocumentText variant="Bulk" size={14} /> Move to root
+              <DocumentText variant="Bulk" size={14} /> {t("moveToRoot")}
             </div>
           )}
         </div>
@@ -228,11 +234,11 @@ export function Sidebar({
                 isOver && "scale-105 text-destructive",
               )}
             >
-              <Trash variant="Bulk" size={20} className={cn("text-muted-foreground", isOver && "text-destructive")} /> Trash
+              <Trash variant="Bulk" size={20} className={cn("text-muted-foreground", isOver && "text-destructive")} /> {t("trash")}
             </Link>
           </div>
           <Link href="/app/settings" onClick={onClose} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent", isActive("/app/settings") && "bg-sidebar-accent font-medium")}>
-            <Setting2 variant="Bulk" size={20} className="text-muted-foreground" /> Settings
+            <Setting2 variant="Bulk" size={20} className="text-muted-foreground" /> {t("settings")}
           </Link>
         </div>
       </aside>
@@ -241,6 +247,7 @@ export function Sidebar({
 }
 
 function DraggableFavorite({ doc, onNavigate }: { doc: any; onNavigate: () => void }) {
+  const tc = useTranslations("common");
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `favorite-${doc._id}`,
     data: { documentId: doc._id, title: doc.title, icon: doc.icon, type: "favorite" },
@@ -263,7 +270,7 @@ function DraggableFavorite({ doc, onNavigate }: { doc: any; onNavigate: () => vo
     >
       <Link href={`/app/documents/${doc._id}`} onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2">
         <span className="w-4 text-center">{doc.icon ?? "\ud83d\udcc4"}</span>
-        <span className="truncate">{doc.title || "Untitled"}</span>
+        <span className="truncate">{doc.title || tc("untitled")}</span>
       </Link>
     </div>
   );

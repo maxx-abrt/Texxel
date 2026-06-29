@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useLocale, useTranslations } from "next-intl";
 import { PageContainer, timeAgo, btnPrimary } from "@/components/app/common";
 import { ContributionGrid } from "@/components/app/contribution-grid";
 import { toast } from "sonner";
@@ -26,7 +27,14 @@ import {
 
 export default function HomePage() {
   const router = useRouter();
+  const locale = useLocale();
   const { activeWorkspaceId, activeWorkspace, me } = useWorkspace();
+  const t = useTranslations("dashboard");
+  const tn = useTranslations("nav");
+  const tc = useTranslations("common");
+  const te = useTranslations("editor");
+  const tp = useTranslations("projects");
+  const ti = useTranslations("inbox");
   const docs = useQuery(
     api.flux_documents.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
@@ -63,27 +71,27 @@ export default function HomePage() {
 
   const greeting = (() => {
     const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 18) return "Good afternoon";
-    return "Good evening";
+    if (h < 12) return t("greeting.morning");
+    if (h < 18) return t("greeting.afternoon");
+    return t("greeting.evening");
   })();
-  const firstName = (me?.name ?? me?.email ?? "there").split(" ")[0].split("@")[0];
+  const firstName = (me?.name ?? me?.email ?? t("there")).split(" ")[0].split("@")[0];
 
   const onNewDoc = async () => {
     if (!activeWorkspaceId) return;
     try {
-      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled" });
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: tc("untitled") });
       router.push(`/app/documents/${id}`);
     } catch {
-      toast.error("Could not create document");
+      toast.error(te("createFailed"));
     }
   };
 
   const QUICK = [
-    { label: "New document", desc: "Write & organize", Icon: DocumentText, onClick: onNewDoc, color: "var(--flux-coral)" },
-    { label: "New task", desc: "Track your work", Icon: TaskSquare, onClick: () => router.push("/app/tasks?new=1"), color: "var(--accent-ocean)" },
-    { label: "New event", desc: "Plan your week", Icon: CalendarAdd, onClick: () => router.push("/app/calendar?new=1"), color: "var(--accent-mint)" },
-    { label: "New database", desc: "Structure data", Icon: Data2, onClick: () => router.push("/app/databases?new=1"), color: "#d98324" },
+    { label: t("newDocument"), desc: t("writeOrganize"), Icon: DocumentText, onClick: onNewDoc, color: "var(--flux-coral)", testId: "document" },
+    { label: t("newTask"), desc: t("trackWork"), Icon: TaskSquare, onClick: () => router.push("/app/tasks?new=1"), color: "var(--accent-ocean)", testId: "task" },
+    { label: t("newEvent"), desc: t("planWeek"), Icon: CalendarAdd, onClick: () => router.push("/app/calendar?new=1"), color: "var(--accent-mint)", testId: "event" },
+    { label: t("newDatabase"), desc: t("structureData"), Icon: Data2, onClick: () => router.push("/app/databases?new=1"), color: "#d98324", testId: "database" },
   ];
 
   return (
@@ -93,7 +101,7 @@ export default function HomePage() {
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight md:text-4xl" data-testid="home-greeting">
           {greeting}, {firstName}
         </h1>
-        <p className="mt-1.5 text-muted-foreground">Here is what is happening in your second brain.</p>
+        <p className="mt-1.5 text-muted-foreground">{t("secondBrain")}</p>
       </div>
 
       {/* Quick actions */}
@@ -102,7 +110,7 @@ export default function HomePage() {
           <button
             key={q.label}
             onClick={q.onClick}
-            data-testid={`quick-${q.label.split(" ")[1]}`}
+            data-testid={`quick-${q.testId}`}
             className="group flex flex-col items-start rounded-2xl border border-border bg-card p-4 text-left transition-shadow hover:shadow-sm"
           >
             <span
@@ -130,14 +138,14 @@ export default function HomePage() {
         <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-events">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-              <Calendar variant="Bulk" size={16} className="text-[var(--accent-ocean)]" /> Upcoming
+              <Calendar variant="Bulk" size={16} className="text-[var(--accent-ocean)]" /> {t("upcoming")}
             </h2>
-            <Link href="/app/calendar" className="text-xs font-medium text-primary hover:underline">Calendar</Link>
+            <Link href="/app/calendar" className="text-xs font-medium text-primary hover:underline">{tn("calendar")}</Link>
           </div>
           {events === undefined ? (
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
           ) : upcomingEvents.length === 0 ? (
-            <p className="py-4 text-center text-xs text-muted-foreground">No events this week</p>
+            <p className="py-4 text-center text-xs text-muted-foreground">{t("noEventsThisWeek")}</p>
           ) : (
             <ul className="space-y-2">
               {upcomingEvents.map((e: any) => (
@@ -145,7 +153,7 @@ export default function HomePage() {
                   <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: e.color ?? "var(--accent-ocean)" }} />
                   <div className="min-w-0">
                     <p className="truncate text-xs font-medium">{e.title}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(e.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                    <p className="text-xs text-muted-foreground">{new Date(e.start).toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
                 </li>
               ))}
@@ -157,19 +165,19 @@ export default function HomePage() {
         <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-project-health">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-              <Briefcase variant="Bulk" size={16} className="text-[var(--flux-coral)]" /> Projects
+              <Briefcase variant="Bulk" size={16} className="text-[var(--flux-coral)]" /> {tp("title")}
             </h2>
-            <Link href="/app/projects" className="text-xs font-medium text-primary hover:underline">All</Link>
+            <Link href="/app/projects" className="text-xs font-medium text-primary hover:underline">{t("viewAll")}</Link>
           </div>
           {projects === undefined ? (
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
           ) : projectHealthData.total === 0 ? (
-            <p className="py-4 text-center text-xs text-muted-foreground">No projects yet</p>
+            <p className="py-4 text-center text-xs text-muted-foreground">{tp("empty.title")}</p>
           ) : (
             <div className="space-y-2">
               {Object.entries(projectHealthData.counts).map(([status, count]) => (
                 <div key={status} className="flex items-center gap-2">
-                  <span className="w-20 shrink-0 text-xs capitalize text-muted-foreground">{status.replace("_", " ")}</span>
+                  <span className="w-20 shrink-0 text-xs capitalize text-muted-foreground">{tp(`statuses.${status}`)}</span>
                   <div className="flex-1 overflow-hidden rounded-full bg-muted" style={{ height: 6 }}>
                     <div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((count / projectHealthData.total) * 100)}%` }} />
                   </div>
@@ -184,14 +192,14 @@ export default function HomePage() {
         <div className="rounded-2xl border border-border bg-card p-4" data-testid="widget-mentions">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-1.5 text-sm font-semibold">
-              <MessageText1 variant="Bulk" size={16} className="text-primary" /> Mentions
+              <MessageText1 variant="Bulk" size={16} className="text-primary" /> {t("mentions")}
             </h2>
-            <Link href="/app/inbox" className="text-xs font-medium text-primary hover:underline">Inbox</Link>
+            <Link href="/app/inbox" className="text-xs font-medium text-primary hover:underline">{tn("inbox")}</Link>
           </div>
           {notifications === undefined ? (
             <div className="space-y-2">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded-lg bg-muted" />)}</div>
           ) : recentMentions.length === 0 ? (
-            <p className="py-4 text-center text-xs text-muted-foreground">No recent mentions</p>
+            <p className="py-4 text-center text-xs text-muted-foreground">{t("noRecentMentions")}</p>
           ) : (
             <ul className="space-y-2">
               {recentMentions.map((n: any) => (
@@ -212,9 +220,9 @@ export default function HomePage() {
         {/* Recent documents */}
         <div className="lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recent documents</h2>
+            <h2 className="text-lg font-semibold">{t("recentDocuments")}</h2>
             <Link href="/app/documents" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-              View all <ArrowRight2 variant="Bulk" size={15} />
+              {t("viewAll")} <ArrowRight2 variant="Bulk" size={15} />
             </Link>
           </div>
           {docs === undefined ? (
@@ -226,9 +234,9 @@ export default function HomePage() {
           ) : recent.length === 0 ? (
             <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-12 text-center">
               <DocumentText variant="Bulk" size={30} className="text-muted-foreground" />
-              <p className="mt-3 text-sm font-medium">No documents yet</p>
+              <p className="mt-3 text-sm font-medium">{te("noDocuments")}</p>
               <button onClick={onNewDoc} className={cn(btnPrimary, "mt-4")} data-testid="home-create-doc">
-                <Add variant="Bulk" size={16} /> Create your first document
+                <Add variant="Bulk" size={16} /> {t("createFirstDocument")}
               </button>
             </div>
           ) : (
@@ -242,7 +250,7 @@ export default function HomePage() {
                 >
                   <span className="text-2xl leading-none">{d.icon ?? "\ud83d\udcc4"}</span>
                   <div className="min-w-0">
-                    <p className="truncate font-medium group-hover:text-primary">{d.title || "Untitled"}</p>
+                    <p className="truncate font-medium group-hover:text-primary">{d.title || tc("untitled")}</p>
                     <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock variant="Bulk" size={12} /> {timeAgo(d.updatedAt)}
                     </p>
@@ -257,12 +265,12 @@ export default function HomePage() {
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Open tasks</h2>
-              <Link href="/app/tasks" className="text-xs font-medium text-primary hover:underline">All</Link>
+              <h2 className="text-sm font-semibold">{t("openTasks")}</h2>
+              <Link href="/app/tasks" className="text-xs font-medium text-primary hover:underline">{t("viewAll")}</Link>
             </div>
             {openTasks.length === 0 ? (
               <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
-                <TickCircle variant="Bulk" size={18} className="text-[var(--accent-mint)]" /> You are all caught up
+                <TickCircle variant="Bulk" size={18} className="text-[var(--accent-mint)]" /> {t("allCaughtUp")}
               </p>
             ) : (
               <ul className="space-y-1.5">
@@ -280,12 +288,12 @@ export default function HomePage() {
 
           <div className="rounded-2xl border border-border bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Inbox</h2>
-              <Link href="/app/inbox" className="text-xs font-medium text-primary hover:underline">Open</Link>
+              <h2 className="text-sm font-semibold">{tn("inbox")}</h2>
+              <Link href="/app/inbox" className="text-xs font-medium text-primary hover:underline">{tc("open")}</Link>
             </div>
             {!notifications || notifications.length === 0 ? (
               <p className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
-                <Notification variant="Bulk" size={18} /> No notifications
+                <Notification variant="Bulk" size={18} /> {ti("empty.title")}
               </p>
             ) : (
               <ul className="space-y-2">

@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
 import { AiPanel } from "@/components/app/ai-panel";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
+import { useTranslations } from "next-intl";
 
 function UserStoreSync({ children }: { children: React.ReactNode }) {
   const storeUser = useMutation(api.users.store);
@@ -26,10 +27,11 @@ function UserStoreSync({ children }: { children: React.ReactNode }) {
 }
 
 function Loader() {
+  const t = useTranslations("home");
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3 text-muted-foreground">
-        <span className="text-2xl font-extrabold tracking-tight">flux<span className="text-primary">.</span></span>
+        <span className="text-2xl font-extrabold tracking-tight">{t("tagline")}</span>
         <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
           <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
         </div>

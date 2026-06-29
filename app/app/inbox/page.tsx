@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { PageContainer, PageHeader, EmptyState, btnOutline, timeAgo } from "@/components/app/common";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Notification, TickCircle, Trash, TaskSquare, Profile2User, DocumentText } from "iconsax-reactjs";
 
 const ICON: Record<string, any> = {
@@ -22,21 +23,23 @@ export default function InboxPage() {
   const markAllRead = useMutation(api.notifications.markAllRead);
   const remove = useMutation(api.notifications.remove);
   const clearAll = useMutation(api.notifications.clearAll);
+  const t = useTranslations("inbox");
+  const tc = useTranslations("common");
 
   return (
     <PageContainer className="max-w-[760px]">
-      <PageHeader title="Inbox" subtitle="Notifications across your workspace" icon={Notification} testId="inbox-header"
+      <PageHeader title={t("title")} subtitle={t("subtitle")} icon={Notification} testId="inbox-header"
         actions={
           <div className="flex items-center gap-2">
-            <button onClick={() => markAllRead({}).then(() => toast.success("All marked read"))} className={btnOutline} data-testid="inbox-mark-all"><TickCircle variant="Bulk" size={16} /> Mark all read</button>
-            <button onClick={() => clearAll({}).then(() => toast.success("Inbox cleared"))} className={btnOutline} data-testid="inbox-clear-all"><Trash variant="Bulk" size={16} /> Clear</button>
+            <button onClick={() => markAllRead({}).then(() => toast.success(t("markedAllRead")))} className={btnOutline} data-testid="inbox-mark-all"><TickCircle variant="Bulk" size={16} /> {t("markAllRead")}</button>
+            <button onClick={() => clearAll({}).then(() => toast.success(t("cleared")))} className={btnOutline} data-testid="inbox-clear-all"><Trash variant="Bulk" size={16} /> {t("clear")}</button>
           </div>
         } />
 
       {notifications === undefined ? (
         <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted" />)}</div>
       ) : notifications.length === 0 ? (
-        <EmptyState icon={Notification} title="You are all caught up" description="New notifications will show up here." testId="inbox-empty" />
+        <EmptyState icon={Notification} title={t("allCaughtUp")} description={t("empty.description")} testId="inbox-empty" />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card" data-testid="inbox-list">
           {notifications.map((n: any) => {
@@ -50,8 +53,8 @@ export default function InboxPage() {
                   <p className="mt-0.5 text-xs text-muted-foreground">{timeAgo(n.createdAt)}</p>
                 </button>
                 <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  {!n.read && <button onClick={() => markRead({ id: n._id })} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" title="Mark read"><TickCircle variant="Bulk" size={16} /></button>}
-                  <button onClick={() => remove({ id: n._id })} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" title="Remove"><Trash variant="Bulk" size={16} /></button>
+                  {!n.read && <button onClick={() => markRead({ id: n._id })} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" title={t("markRead")}><TickCircle variant="Bulk" size={16} /></button>}
+                  <button onClick={() => remove({ id: n._id })} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted" title={t("remove")}><Trash variant="Bulk" size={16} /></button>
                 </div>
               </div>
             );

@@ -24,12 +24,16 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTranslations } from "next-intl";
 
 export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { me, activeWorkspaceId } = useWorkspace();
   const unread = useQuery(api.notifications.unreadCount) as number | undefined;
+  const t = useTranslations("nav");
+  const ts = useTranslations("settings");
+  const ta = useTranslations("auth");
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur md:h-16 md:px-5">
@@ -43,7 +47,7 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
         className="flex h-9 w-full max-w-sm items-center gap-2 rounded-full border border-border bg-card px-3.5 text-sm text-muted-foreground hover:bg-muted"
       >
         <SearchNormal1 variant="Bulk" size={18} />
-        <span className="flex-1 text-left">Search documents…</span>
+        <span className="flex-1 text-left">{t("searchDocuments")}</span>
         <span className="hidden rounded-md border border-border px-1.5 text-xs sm:inline">⌘K</span>
       </button>
 
@@ -68,14 +72,14 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
-              <div className="truncate text-sm font-semibold">{me?.name ?? "Account"}</div>
+              <div className="truncate text-sm font-semibold">{me?.name ?? ts("tabs.profile")}</div>
               <div className="truncate text-xs font-normal text-muted-foreground">{me?.email}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Profile variant="Bulk" size={16} /> Profile</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Setting2 variant="Bulk" size={16} /> Settings</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Profile variant="Bulk" size={16} /> {ts("tabs.profile")}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Setting2 variant="Bulk" size={16} /> {t("settings")}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/api/auth/signout")} data-testid="signout" className="gap-2 text-destructive"><Logout variant="Bulk" size={16} /> Sign out</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/api/auth/signout")} data-testid="signout" className="gap-2 text-destructive"><Logout variant="Bulk" size={16} /> {ta("signOut")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

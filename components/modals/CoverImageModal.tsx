@@ -16,8 +16,10 @@ import { api } from "@/convex/_generated/api";
 import { useParams } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export const CoverImageModal = () => {
+  const t = useTranslations("coverImage");
   const params = useParams();
 
   const [file, setFile] = useState<File>();
@@ -52,7 +54,7 @@ export const CoverImageModal = () => {
       const files = e.dataTransfer?.files;
       if (files?.[0]) {
         if (!files[0].type.startsWith("image/")) {
-          toast.error("Only image files are allowed.");
+          toast.error(t("imageOnly"));
           return;
         }
         await onChange(files[0]);
@@ -100,14 +102,14 @@ export const CoverImageModal = () => {
   return (
     <Dialog open={coverImage.isOpen} onOpenChange={coverImage.onClose}>
       <DialogTitle>
-        <span className="sr-only">Change Cover Image</span>
+        <span className="sr-only">{t("title")}</span>
       </DialogTitle>
       <DialogContent className="dark:bg-dark">
         <DialogHeader>
-          <h2 className="text-center text-lg font-semibold">Cover Image</h2>
+          <h2 className="text-center text-lg font-semibold">{t("title")}</h2>
         </DialogHeader>
         <DialogDescription className="sr-only">
-          Upload a cover image for your document.
+          {t("description")}
         </DialogDescription>
         <SingleImageDropzone
           className="w-full outline-hidden"

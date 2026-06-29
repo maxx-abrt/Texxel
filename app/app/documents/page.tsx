@@ -7,6 +7,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useTranslations } from "next-intl";
 import { getBuiltinTemplates } from "@/lib/doc-templates";
 import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, timeAgo, inputBase } from "@/components/app/common";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -21,6 +22,8 @@ export default function DocumentsPage() {
   const router = useRouter();
   const { activeWorkspaceId } = useWorkspace();
   const { locale } = useLocale();
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
   const docs = useQuery(
     api.flux_documents.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
@@ -43,10 +46,10 @@ export default function DocumentsPage() {
   const onNew = async () => {
     if (!activeWorkspaceId) return;
     try {
-      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled" });
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: tc("untitled") });
       router.push(`/app/documents/${id}`);
     } catch {
-      toast.error("Could not create document");
+      toast.error(t("createFailed"));
     }
   };
 
@@ -57,7 +60,7 @@ export default function DocumentsPage() {
       setPickerOpen(false);
       router.push(`/app/documents/${id}`);
     } catch {
-      toast.error("Could not create document");
+      toast.error(t("createFailed"));
     }
   };
 
@@ -69,13 +72,13 @@ export default function DocumentsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Documents"
-        subtitle="All your notes, docs and pages"
+        title={t("documentsTitle")}
+        subtitle={t("documentsSubtitle")}
         icon={DocumentText}
         testId="documents-header"
         actions={
           <button onClick={() => setPickerOpen(true)} className={btnPrimary} data-testid="new-document-btn">
-            <Add variant="Bulk" size={18} /> New document
+            <Add variant="Bulk" size={18} /> {t("newDocument")}
           </button>
         }
       />
@@ -85,7 +88,7 @@ export default function DocumentsPage() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search documents…"
+          placeholder={t("searchDocuments")}
           data-testid="documents-search"
           className={cn(inputBase, "pl-10")}
         />
@@ -100,13 +103,13 @@ export default function DocumentsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={DocumentText}
-          title={q ? "No documents match your search" : "No documents yet"}
-          description={q ? "Try a different keyword." : "Create your first document to get started."}
+          title={q ? t("noDocumentsMatch") : t("noDocuments")}
+          description={q ? t("tryDifferentKeyword") : t("noDocumentsDesc")}
           testId="documents-empty"
           action={
             !q && (
               <button onClick={onNew} className={btnPrimary} data-testid="empty-new-document">
-                <Add variant="Bulk" size={18} /> New document
+                <Add variant="Bulk" size={18} /> {t("newDocument")}
               </button>
             )
           }
@@ -122,11 +125,11 @@ export default function DocumentsPage() {
       {/* Template picker */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
         <DialogContent className="sm:max-w-2xl" data-testid="template-picker">
-          <DialogHeader><DialogTitle>Start a new document</DialogTitle><DialogDescription>Choose a blank page or start from a template.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{t("templateDialogTitle")}</DialogTitle><DialogDescription>{t("templateDialogDesc")}</DialogDescription></DialogHeader>
           <div className="grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2">
             <button onClick={onNew} data-testid="template-blank" className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:shadow-sm">
               <span className="text-2xl">📄</span>
-              <span><span className="block font-semibold">Blank document</span><span className="text-xs text-muted-foreground">Start from scratch</span></span>
+              <span><span className="block font-semibold">{t("blankDocument")}</span><span className="text-xs text-muted-foreground">{t("startFromScratch")}</span></span>
             </button>
             {builtins.map((tpl) => (
               <button key={tpl.id} onClick={() => createFrom({ title: tpl.title, icon: tpl.icon, content: JSON.stringify(tpl.blocks) })} data-testid="template-builtin" className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:shadow-sm">
@@ -137,7 +140,7 @@ export default function DocumentsPage() {
           </div>
           {(savedTemplates ?? []).length > 0 && (
             <div className="mt-2 border-t border-border pt-3">
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">Saved templates</p>
+              <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("savedTemplates")}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {savedTemplates!.map((tpl: any) => (
                   <div key={tpl._id} className="group flex items-center gap-2 rounded-xl border border-border p-2.5">
@@ -166,6 +169,8 @@ function DraggableDocumentCard({ doc, isFavorite }: { doc: any; isFavorite: bool
   const { trashingIds } = useTrashDnd();
   const isTrashing = trashingIds.has(doc._id);
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+  const t = useTranslations("editor");
+  const tc = useTranslations("common");
 
   return (
     <div
@@ -186,11 +191,11 @@ function DraggableDocumentCard({ doc, isFavorite }: { doc: any; isFavorite: bool
           <span className="text-3xl leading-none">{doc.icon ?? (isFolder ? "\ud83d\udcc1" : "\ud83d\udcc4")}</span>
           {isFavorite && <Star1 variant="Bulk" size={16} className="text-primary" />}
         </div>
-        <p className="mt-3 truncate font-semibold group-hover:text-primary">{doc.title || "Untitled"}</p>
+        <p className="mt-3 truncate font-semibold group-hover:text-primary">{doc.title || tc("untitled")}</p>
         <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
           {isFolder ? (
             <>
-              <Folder variant="Bulk" size={12} /> Folder
+              <Folder variant="Bulk" size={12} /> {tc("folder")}
             </>
           ) : (
             <>

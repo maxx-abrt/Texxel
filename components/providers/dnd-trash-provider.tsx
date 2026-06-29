@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 type TrashDndContextValue = {
   trashingIds: Set<string>;
+  activeDrag: ActiveDrag | null;
 };
 
 type ActiveDrag = {
@@ -21,7 +22,7 @@ type ActiveDrag = {
   type: "card" | "tree" | "favorite";
 };
 
-const TrashDndContext = createContext<TrashDndContextValue>({ trashingIds: new Set() });
+const TrashDndContext = createContext<TrashDndContextValue>({ trashingIds: new Set(), activeDrag: null });
 
 export function useTrashDnd() {
   return useContext(TrashDndContext);
@@ -67,8 +68,8 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
       if (!activeId) return;
       const overId = String(over.id);
 
-      // Move to root (Private section header).
-      if (overId === "sidebar-private-root") {
+      // Move to root (Private section header or root tree drop zone).
+      if (overId === "sidebar-private-root" || overId.startsWith("sidebar-root-tree")) {
         try {
           await moveDoc({ documentId: activeId as Id<"flux_documents">, parentId: undefined });
           toast.success("Moved to root");
@@ -114,7 +115,7 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <TrashDndContext.Provider value={{ trashingIds }}>
+    <TrashDndContext.Provider value={{ trashingIds, activeDrag }}>
       <DndContext
         sensors={sensors}
         collisionDetection={pointerWithin}

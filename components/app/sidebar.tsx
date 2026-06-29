@@ -74,6 +74,8 @@ export function Sidebar({
   const createFolder = useMutation(api.flux_documents.createFolder);
   const { isOver, setNodeRef } = useDroppable({ id: "sidebar-trash" });
   const { isOver: isOverRoot, setNodeRef: setRootRef } = useDroppable({ id: "sidebar-private-root" });
+  const { isOver: isOverRootTree, setNodeRef: setRootTreeRef } = useDroppable({ id: "sidebar-root-tree" });
+  const { activeDrag } = useTrashDnd();
 
   const onCreate = async (parentId?: Id<"flux_documents">) => {
     if (!activeWorkspaceId) return;
@@ -194,6 +196,17 @@ export function Sidebar({
             <button onClick={() => onCreate()} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent">
               <Add variant="Bulk" size={16} /> New page
             </button>
+          )}
+          {activeDrag && (
+            <div
+              ref={setRootTreeRef}
+              className={cn(
+                "mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-3 py-1.5 text-xs text-primary/70 transition-all",
+                isOverRootTree && "bg-primary/10 ring-1 ring-primary/40 border-primary/60 text-primary",
+              )}
+            >
+              <DocumentText variant="Bulk" size={14} /> Move to root
+            </div>
           )}
         </div>
 

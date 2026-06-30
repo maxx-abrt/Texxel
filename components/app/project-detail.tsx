@@ -16,6 +16,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { DatePicker } from "@/components/ui/date-picker";
 import { GanttChart } from "@/components/gantt-chart";
 import { RetroPlanningPanel } from "@/components/retro-planning";
+import { TaskCreateDialog } from "@/components/app/tasks-view";
 import {
   ArrowLeft2, Briefcase, TaskSquare, Calendar, Chart, People, Clock, Activity,
   Add, TickCircle, Flag, Timer1, CloseCircle,
@@ -83,6 +84,7 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
   const tasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId, projectId } : "skip");
   const wsMembers = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const statuses = useQuery(api.flux_taskStatuses.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const labels = useQuery(api.flux_labels.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
 
   const updateProject = useMutation(api.projects.update);
   const addMember = useMutation(api.flux_projects.addMember);
@@ -92,6 +94,8 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
 
   const [tab, setTab] = useState("overview");
   const [newTask, setNewTask] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
 
   if (detail === undefined) {
     return <PageContainer><div className="flex h-64 items-center justify-center"><Spinner /></div></PageContainer>;
@@ -318,8 +322,9 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
       {tab === "tasks" && (
         <div data-testid="project-tasks">
           <div className="mb-3 flex gap-2">
-            <input value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={async (e) => { if (e.key === "Enter" && newTask.trim() && activeWorkspaceId) { await createTask({ workspaceId: activeWorkspaceId, title: newTask.trim(), projectId, status: cols[0]?.key ?? "todo" }); setNewTask(""); } }} placeholder={t("addTaskToProject")} className={inputBase} data-testid="project-new-task-input" />
-            <button onClick={async () => { if (newTask.trim() && activeWorkspaceId) { await createTask({ workspaceId: activeWorkspaceId, title: newTask.trim(), projectId, status: cols[0]?.key ?? "todo" }); setNewTask(""); toast.success(t("taskAdded")); } }} className={btnPrimary}><Add variant="Bulk" size={18} /> {t("add")}</button>
+            <input value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={async (e) => { if (e.key === "Enter" && newTask.trim() && activeWorkspaceId && !createBusy) { setCreateBusy(true); try { await createTask({ workspaceId: activeWorkspaceId, title: newTask.trim(), projectId, status: cols[0]?.key ?? "todo" }); setNewTask(""); toast.success(t("taskAdded")); } catch { toast.error(t("taskAddFailed") ?? "Failed to add task"); } finally { setCreateBusy(false); } } }} placeholder={t("addTaskToProject")} className={inputBase} data-testid="project-new-task-input" />
+            <button disabled={createBusy || !newTask.trim() || !activeWorkspaceId} onClick={async () => { if (!newTask.trim() || !activeWorkspaceId) return; setCreateBusy(true); try { await createTask({ workspaceId: activeWorkspaceId, title: newTask.trim(), projectId, status: cols[0]?.key ?? "todo" }); setNewTask(""); toast.success(t("taskAdded")); } catch { toast.error(t("taskAddFailed") ?? "Failed to add task"); } finally { setCreateBusy(false); } }} className={cn(btnPrimary, createBusy && "opacity-70")} data-testid="project-add-task-btn"><Add variant="Bulk" size={18} /> {t("add")}</button>
+            <button onClick={() => setCreateOpen(true)} className={cn(btnOutline, "ml-auto")} data-testid="project-new-task-dialog-btn">{t("newTask")}</button>
           </div>
           {(tasks ?? []).length === 0 ? <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{t("noTasksInProject")}</p> : (
             <div className="space-y-4">
@@ -347,6 +352,24 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
           )}
         </div>
       )}
+
+      <TaskCreateDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        members={wsMembers ?? []}
+        projects={[]}
+        labels={labels ?? []}
+        statuses={cols}
+        defaultStatus={cols[0]?.key ?? "todo"}
+        workspaceId={activeWorkspaceId}
+        defaultProjectId={projectId}
+        onCreate={async (data: any) => {
+          if (!activeWorkspaceId) return;
+          await createTask({ workspaceId: activeWorkspaceId, projectId, ...data });
+          toast.success(t("taskAdded"));
+          setCreateOpen(false);
+        }}
+      />
 
       {/* TIMELINE (Gantt) */}
       {tab === "timeline" && (

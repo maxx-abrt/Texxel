@@ -250,7 +250,54 @@
       "generating": "Génération…",
       "named": "nommé",
       "setDeadlineHint": "Définissez une échéance de projet pour utiliser le rétroplanning.",
-      "timeline": "Chronologie"
+      "timeline": "Chronologie",
+      "templates": "Modèles",
+      "loadTemplate": "Charger un modèle",
+      "loadTemplateConfirm": "Cela remplacera vos jalons actuels.",
+      "replaceOrAppend": "Remplacer ou ajouter",
+      "append": "Ajouter",
+      "replace": "Remplacer",
+      "generatedTasks": "Tâches générées",
+      "editTask": "Modifier",
+      "openTask": "Ouvrir la tâche",
+      "removeTask": "Supprimer",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "overlapWarning": "Certains jalons se chevauchent",
+      "noDeadlineAction": "Définir la date limite",
+      "dragHint": "Glissez les poignées pour ajuster les dates",
+      "todayMarker": "Aujourd’hui",
+      "deadlineMarker": "Date limite",
+      "clearAll": "Tout effacer",
+      "generateTasks": "Générer les tâches",
+      "updateTasks": "Mettre à jour les tâches",
+      "tasksCreated": "{count} tâche créée",
+      "tasksCreated_plural": "{count} tâches créées",
+      "warning": "Attention",
+      "minDuration": "La durée doit être d’au moins 1 jour",
+      "deadlinePassed": "La date limite est dépassée",
+      "presets": {
+        "productLaunch": {
+          "name": "Lancement produit",
+          "description": "Conception, développement, QA et lancement."
+        },
+        "clientDelivery": {
+          "name": "Livraison client",
+          "description": "Lancement, conception, développement, revue et livraison client."
+        },
+        "marketingLaunch": {
+          "name": "Lancement marketing",
+          "description": "Stratégie, contenus, revue et mise en ligne."
+        },
+        "contentCampaign": {
+          "name": "Campagne de contenu",
+          "description": "Brief, création, revue et publication de contenus."
+        },
+        "eventPlanning": {
+          "name": "Organisation d’événement",
+          "description": "Lieu, invitations, logistique et jour J."
+        }
+      }
     },
     "saveChanges": "Enregistrer",
     "saving": "Enregistrement...",
@@ -279,6 +326,8 @@
     "notFound": "Projet introuvable",
     "renamed": "Renommé",
     "statusUpdated": "Statut mis à jour",
+    "copyLink": "Copier le lien",
+    "linkCopied": "Lien copié",
     "overview": "Vue d'ensemble",
     "tasks": "Tâches",
     "timeline": "Chronologie",

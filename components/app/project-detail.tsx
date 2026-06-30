@@ -20,6 +20,7 @@ import {
   ArrowLeft2, Briefcase, TaskSquare, Calendar, Chart, People, Clock, Activity,
   Add, TickCircle, Flag, Timer1, CloseCircle,
 } from "iconsax-reactjs";
+import { Link2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   planning: "#2f7ea6",
@@ -65,11 +66,11 @@ function ProgressRing({ pct, size = 96, stroke = 9, color = "var(--flux-coral)",
 
 const TABS = [
   { key: "overview", labelKey: "overview", icon: Chart },
-  { key: "tasks", labelKey: "tasks", icon: TaskSquare },
+  { key: "tasks", labelKey: "tasks", icon: TaskSquare, count: (d: any) => d?.progress?.total ?? 0 },
   { key: "timeline", labelKey: "timeline", icon: Calendar },
   { key: "retro", labelKey: "retroPlanning", icon: Activity },
   { key: "time", labelKey: "time", icon: Clock },
-  { key: "activity", labelKey: "history", icon: Activity },
+  { key: "activity", labelKey: "history", icon: Activity, count: (d: any) => d?.recent?.length ?? 0 },
 ];
 
 export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
@@ -142,6 +143,13 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
                 {daysLeft !== null && <span className="ml-1 tabular-nums">· {t("daysLeft", { count: daysLeft })}</span>}
               </div>
             )}
+            <button
+              onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success(t("linkCopied") ?? "Link copied"); }}
+              className={cn(btnOutline, "h-9 px-2.5 text-xs hidden sm:flex items-center gap-1.5")}
+              aria-label={t("copyLink") ?? "Copy link"}
+            >
+              <Link2 size={14} /> {t("copyLink") ?? "Copy link"}
+            </button>
             <Select value={p.status} onValueChange={(v) => updateProject({ projectId, status: v as any }).then(() => toast.success(t("statusUpdated")))}>
               <SelectTrigger className="h-9 w-36" data-testid="project-status-select"><SelectValue /></SelectTrigger>
               <SelectContent>{Object.entries(STATUS_COLORS).map(([k]) => <SelectItem key={k} value={k}>{t(`projectStatuses.${k}`)}</SelectItem>)}</SelectContent>
@@ -151,13 +159,34 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
       </div>
 
       {/* Tabs */}
-      <div className="mb-5 flex gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((tabItem) => (
-          <button key={tabItem.key} onClick={() => setTab(tabItem.key)} data-testid={`project-tab-${tabItem.key}`}
-            className={cn("flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition", tab === tabItem.key ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
-            <tabItem.icon variant="Bulk" size={16} /> {t(tabItem.labelKey)}
-          </button>
-        ))}
+      <div className="sticky top-0 z-30 mb-5">
+        <div className="flex gap-1 overflow-x-auto rounded-xl border bg-card p-1 no-scrollbar">
+          {TABS.map((tabItem) => {
+            const count = tabItem.count ? tabItem.count(detail) : undefined;
+            const isActive = tab === tabItem.key;
+            return (
+              <button
+                key={tabItem.key}
+                onClick={() => setTab(tabItem.key)}
+                data-testid={`project-tab-${tabItem.key}`}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition whitespace-nowrap",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
+              >
+                <tabItem.icon variant="Bulk" size={15} />
+                {t(tabItem.labelKey)}
+                {count !== undefined && count > 0 && (
+                  <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums", isActive ? "bg-white/20 text-primary-foreground" : "bg-muted text-foreground")}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* OVERVIEW */}

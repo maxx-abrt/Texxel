@@ -250,7 +250,54 @@
       "generating": "Generating…",
       "named": "named",
       "setDeadlineHint": "Set a project deadline to use retro-planning.",
-      "timeline": "Timeline"
+      "timeline": "Timeline",
+      "templates": "Templates",
+      "loadTemplate": "Load template",
+      "loadTemplateConfirm": "This will replace your current milestones.",
+      "replaceOrAppend": "Replace or append",
+      "append": "Append",
+      "replace": "Replace",
+      "generatedTasks": "Generated tasks",
+      "editTask": "Edit",
+      "openTask": "Open task",
+      "removeTask": "Remove",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "overlapWarning": "Some milestones overlap",
+      "noDeadlineAction": "Set deadline",
+      "dragHint": "Drag the handles to adjust dates",
+      "todayMarker": "Today",
+      "deadlineMarker": "Deadline",
+      "clearAll": "Clear all",
+      "generateTasks": "Generate tasks",
+      "updateTasks": "Update tasks",
+      "tasksCreated": "{count} task created",
+      "tasksCreated_plural": "{count} tasks created",
+      "warning": "Warning",
+      "minDuration": "Duration must be at least 1 day",
+      "deadlinePassed": "Deadline has passed",
+      "presets": {
+        "productLaunch": {
+          "name": "Product launch",
+          "description": "Design, build, QA, and launch a product."
+        },
+        "clientDelivery": {
+          "name": "Client delivery",
+          "description": "Kick-off, design, build, review, and deliver to client."
+        },
+        "marketingLaunch": {
+          "name": "Marketing launch",
+          "description": "Strategy, assets, review, and go-live."
+        },
+        "contentCampaign": {
+          "name": "Content campaign",
+          "description": "Brief, create, review, and publish content."
+        },
+        "eventPlanning": {
+          "name": "Event planning",
+          "description": "Venue, invitations, logistics, and event day."
+        }
+      }
     },
     "saveChanges": "Save Changes",
     "saving": "Saving...",
@@ -279,6 +326,8 @@
     "notFound": "Project not found",
     "renamed": "Renamed",
     "statusUpdated": "Status updated",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
     "overview": "Overview",
     "tasks": "Tasks",
     "timeline": "Timeline",

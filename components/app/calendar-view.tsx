@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat } from "iconsax-reactjs";
+import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat, TaskSquare } from "iconsax-reactjs";
 
 const EVENT_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -33,19 +33,19 @@ function expandEvents(events: any[], rangeStart: number, rangeEnd: number): any[
   for (const e of events) {
     const dur = (e.end ?? e.start) - e.start;
     const rec = e.recurrence && e.recurrence !== "none" ? e.recurrence : null;
+    const exceptions: number[] = e.recurrenceExceptions ?? [];
     if (!rec) {
       if (e.start < rangeEnd && (e.end ?? e.start) >= rangeStart) out.push(e);
       continue;
     }
     const until = e.recurrenceUntil ?? rangeEnd;
-    const base = new Date(e.start);
     let occ = new Date(e.start);
     let guard = 0;
     while (occ.getTime() < rangeEnd && occ.getTime() <= until && guard < 750) {
       guard++;
       const t = occ.getTime();
-      if (t + dur >= rangeStart && t < rangeEnd) {
-        out.push({ ...e, start: t, end: t + dur, _occId: `${e._id}_${t}`, _recurring: true });
+      if (t + dur >= rangeStart && t < rangeEnd && !exceptions.includes(t)) {
+        out.push({ ...e, start: t, end: t + dur, _occId: `${e._id}_${t}`, _recurring: true, _occurrenceStart: t });
       }
       if (rec === "daily") occ = new Date(occ.getTime() + DAY_MS);
       else if (rec === "weekly") occ = new Date(occ.getTime() + 7 * DAY_MS);
@@ -75,6 +75,13 @@ export function CalendarView() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [seedDate, setSeedDate] = useState<Date | null>(null);
+  const [seedEnd, setSeedEnd] = useState<Date | null>(null);
+  const [recurOpts, setRecurOpts] = useState<any | null>(null);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [taskSeedDate, setTaskSeedDate] = useState<Date | null>(null);
+  const detachOccurrence = useMutation(api.flux_events.detachOccurrence);
+  const skipOccurrence = useMutation(api.flux_events.skipOccurrence);
+  const createTask = useMutation(api.flux_tasks.create);
 
   const WEEKDAYS = [t("weekdays.mon"), t("weekdays.tue"), t("weekdays.wed"), t("weekdays.thu"), t("weekdays.fri"), t("weekdays.sat"), t("weekdays.sun")];
   const RECUR_LABEL: Record<string, string> = {
@@ -83,7 +90,7 @@ export function CalendarView() {
   const VIEW_LABEL: Record<ViewMode, string> = { month: t("month"), week: t("week"), day: t("day") };
   const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
-  useEffect(() => { if (search.get("new") === "1") { setSeedDate(new Date()); setEditing(null); setDialogOpen(true); } }, [search]);
+  useEffect(() => { if (search.get("new") === "1") { setSeedDate(new Date()); setSeedEnd(null); setEditing(null); setDialogOpen(true); } }, [search]);
 
   // Visible range for the active view.
   const [rangeStart, rangeEnd] = useMemo(() => {
@@ -96,8 +103,12 @@ export function CalendarView() {
 
   const expanded = useMemo(() => expandEvents(events ?? [], rangeStart, rangeEnd), [events, rangeStart, rangeEnd]);
 
-  const openNew = (d: Date) => { setSeedDate(d); setEditing(null); setDialogOpen(true); };
-  const openEdit = (e: any) => { setEditing(e); setSeedDate(null); setDialogOpen(true); };
+  const openNew = (start: Date, end?: Date) => { setSeedDate(start); setSeedEnd(end ?? null); setEditing(null); setDialogOpen(true); };
+  const openEdit = (e: any) => {
+    if (e._recurring) { setRecurOpts(e); return; }
+    setEditing(e); setSeedDate(null); setSeedEnd(null); setDialogOpen(true);
+  };
+  const openTaskCreate = (d: Date) => { setTaskSeedDate(d); setTaskDialogOpen(true); };
 
   const navigate = (dir: number) => {
     if (view === "day") setCursor(new Date(cursor.getTime() + dir * DAY_MS));
@@ -133,7 +144,7 @@ export function CalendarView() {
         </div>
       </div>
 
-      {view === "month" && <MonthView cursor={cursor} events={expanded} onDay={openNew} onEvent={openEdit} weekdays={WEEKDAYS} t={t} tc={tc} fmtTime={fmtTime} />}
+      {view === "month" && <MonthView cursor={cursor} events={expanded} onDay={openNew} onEvent={openEdit} onTaskCreate={openTaskCreate} weekdays={WEEKDAYS} t={t} tc={tc} fmtTime={fmtTime} />}
       {view === "week" && <WeekTimeGrid days={7} startDate={startOfWeek(cursor)} events={expanded} onSlot={openNew} onEvent={openEdit} locale={locale} t={t} />}
       {view === "day" && <WeekTimeGrid days={1} startDate={startOfDay(cursor)} events={expanded} onSlot={openNew} onEvent={openEdit} locale={locale} t={t} />}
 
@@ -142,6 +153,7 @@ export function CalendarView() {
         onOpenChange={setDialogOpen}
         event={editing}
         seedDate={seedDate}
+        seedEnd={seedEnd}
         recurLabel={RECUR_LABEL}
         t={t}
         tc={tc}
@@ -152,12 +164,55 @@ export function CalendarView() {
         }}
         onDelete={editing ? async () => { await remove({ eventId: editing._id }); toast.success(t("eventDeleted")); setDialogOpen(false); } : undefined}
       />
+
+      {/* Recurring event occurrence options dialog */}
+      <Dialog open={!!recurOpts} onOpenChange={(o) => !o && setRecurOpts(null)}>
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader><DialogTitle>{t("editRecurring") ?? "Edit recurring event"}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{t("editRecurringDesc") ?? "Which occurrences do you want to modify?"}</p>
+          <div className="space-y-2">
+            <button className={cn(btnOutline, "w-full justify-start")} onClick={() => {
+              if (!recurOpts) return;
+              detachOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
+                .then((newId: any) => { setRecurOpts(null); setEditing({ ...recurOpts, _id: newId, _recurring: false }); setSeedDate(null); setSeedEnd(null); setDialogOpen(true); })
+                .catch(() => toast.error("Failed to detach occurrence"));
+            }}>{t("editThisOccurrence") ?? "Edit this occurrence only"}</button>
+            <button className={cn(btnOutline, "w-full justify-start")} onClick={() => {
+              const e = recurOpts; setRecurOpts(null);
+              setEditing(e); setSeedDate(null); setSeedEnd(null); setDialogOpen(true);
+            }}>{t("editAllOccurrences") ?? "Edit all occurrences"}</button>
+            <button className={cn(btnOutline, "w-full justify-start text-destructive border-destructive/40")} onClick={() => {
+              if (!recurOpts) return;
+              skipOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
+                .then(() => { toast.success(t("eventDeleted") ?? "Occurrence deleted"); setRecurOpts(null); })
+                .catch(() => toast.error("Failed"));
+            }}>{t("deleteThisOccurrence") ?? "Delete this occurrence only"}</button>
+            <button className={cn(btnOutline, "w-full justify-start text-destructive border-destructive/40")} onClick={() => {
+              if (!recurOpts) return;
+              remove({ eventId: recurOpts._id })
+                .then(() => { toast.success(t("eventDeleted") ?? "Event deleted"); setRecurOpts(null); })
+                .catch(() => toast.error("Failed"));
+            }}>{t("deleteAllOccurrences") ?? "Delete all occurrences"}</button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick task create from calendar day */}
+      <QuickTaskDialog
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        seedDate={taskSeedDate}
+        workspaceId={activeWorkspaceId}
+        onCreate={createTask}
+        t={t}
+        tc={tc}
+      />
     </PageContainer>
   );
 }
 
 /* ───────────────────────── Month view ───────────────────────── */
-function MonthView({ cursor, events, onDay, onEvent, weekdays, t, tc, fmtTime }: any) {
+function MonthView({ cursor, events, onDay, onEvent, onTaskCreate, weekdays, t, tc, fmtTime }: any) {
   const today = new Date();
   const weeks = useMemo(() => {
     const first = startOfMonth(cursor);
@@ -184,19 +239,25 @@ function MonthView({ cursor, events, onDay, onEvent, weekdays, t, tc, fmtTime }:
           const isCurrentMonth = day.getMonth() === cursor.getMonth();
           const isToday = sameDay(day, today);
           return (
-            <button key={idx} onClick={() => onDay(day)} data-testid="calendar-day"
-              className={cn("min-h-[92px] border-b border-r border-border p-1.5 text-left align-top transition-colors hover:bg-muted/40", !isCurrentMonth && "bg-muted/20 text-muted-foreground", idx % 7 === 6 && "border-r-0")}>
-              <span className={cn("inline-flex h-6 w-6 items-center justify-center rounded-full text-xs", isToday && "bg-primary font-bold text-primary-foreground")}>{day.getDate()}</span>
+            <div key={idx} data-testid="calendar-day"
+              className={cn("group relative min-h-[92px] border-b border-r border-border p-1.5 text-left align-top", !isCurrentMonth && "bg-muted/20 text-muted-foreground", idx % 7 === 6 && "border-r-0")}>
+              <div className="flex items-center justify-between">
+                <span onClick={() => onDay(day)} className={cn("inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs hover:bg-muted", isToday && "bg-primary font-bold text-primary-foreground hover:bg-primary")}>{day.getDate()}</span>
+                <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button onClick={() => onDay(day)} title={t("newEvent")} className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><Add size={12} /></button>
+                  <button onClick={(ev) => { ev.stopPropagation(); onTaskCreate(day); }} title="New task" className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><TaskSquare variant="Bulk" size={12} /></button>
+                </div>
+              </div>
               <div className="mt-1 space-y-1">
                 {dayEvents.slice(0, 3).map((e: any) => (
-                  <span key={e._occId ?? e._id} onClick={(ev) => { ev.stopPropagation(); onEvent(e); }}
-                    className="flex items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium text-white" style={{ backgroundColor: e.color ?? "var(--flux-coral)" }} data-testid="calendar-event">
+                  <span key={e._occId ?? e._id} onClick={() => onEvent(e)}
+                    className="flex cursor-pointer items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium text-white" style={{ backgroundColor: e.color ?? "var(--flux-coral)" }} data-testid="calendar-event">
                     {e._recurring && <Repeat size={9} />}{!e.allDay && <span className="opacity-80">{fmtTime(e.start)}</span>} {e.title}
                   </span>
                 ))}
                 {dayEvents.length > 3 && <span className="px-1 text-[10px] text-muted-foreground">{t("more", { count: dayEvents.length - 3 })}</span>}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -213,6 +274,47 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
 
   const allDayByDay = (d: Date) => events.filter((e: any) => e.allDay && sameDay(new Date(e.start), d));
   const timedByDay = (d: Date) => events.filter((e: any) => !e.allDay && sameDay(new Date(e.start), d));
+
+  // Drag-to-create state: { dayIndex, hour } for start and current hover
+  const [dragStart, setDragStart] = useState<{ dayIndex: number; hour: number } | null>(null);
+  const [dragCurrent, setDragCurrent] = useState<{ dayIndex: number; hour: number } | null>(null);
+  const isDragging = dragStart !== null;
+
+  const dragMin = dragStart && dragCurrent ? Math.min(dragStart.hour, dragCurrent.hour) : null;
+  const dragMax = dragStart && dragCurrent ? Math.max(dragStart.hour, dragCurrent.hour) + 1 : null;
+
+  const handleSlotMouseDown = (dayIndex: number, hour: number) => {
+    setDragStart({ dayIndex, hour });
+    setDragCurrent({ dayIndex, hour });
+  };
+
+  const handleSlotMouseEnter = (dayIndex: number, hour: number) => {
+    if (isDragging) setDragCurrent({ dayIndex, hour });
+  };
+
+  const handleMouseUp = useCallback(() => {
+    if (dragStart && dragCurrent) {
+      const d = dayList[dragStart.dayIndex];
+      const startH = Math.min(dragStart.hour, dragCurrent.hour);
+      const endH = Math.max(dragStart.hour, dragCurrent.hour) + 1;
+      const start = new Date(d); start.setHours(startH, 0, 0, 0);
+      const end = new Date(d); end.setHours(endH, 0, 0, 0);
+      if (dragStart.dayIndex === dragCurrent.dayIndex) {
+        onSlot(start, end);
+      } else {
+        onSlot(start);
+      }
+    }
+    setDragStart(null);
+    setDragCurrent(null);
+  }, [dragStart, dragCurrent, dayList, onSlot]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => window.removeEventListener("mouseup", handleMouseUp);
+    }
+  }, [isDragging, handleMouseUp]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card" data-testid={days === 1 ? "calendar-day-view" : "calendar-week-view"}>
@@ -247,9 +349,26 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
         </div>
         {dayList.map((d, di) => (
           <div key={di} className="relative border-r border-border last:border-r-0">
-            {HOURS.map((h) => (
-              <div key={h} onClick={() => { const nd = new Date(d); nd.setHours(h, 0, 0, 0); onSlot(nd); }} className="border-b border-border/60 hover:bg-muted/40" style={{ height: HOUR_H }} data-testid="calendar-slot" />
-            ))}
+            {HOURS.map((h) => {
+              const isInDrag = isDragging && dragStart!.dayIndex === di && dragMin !== null && dragMax !== null && h >= dragMin && h < dragMax;
+              return (
+                <div
+                  key={h}
+                  onMouseDown={() => handleSlotMouseDown(di, h)}
+                  onMouseEnter={() => handleSlotMouseEnter(di, h)}
+                  className={cn("select-none border-b border-border/60 hover:bg-muted/40 cursor-crosshair", isInDrag && "bg-primary/15")}
+                  style={{ height: HOUR_H }}
+                  data-testid="calendar-slot"
+                />
+              );
+            })}
+            {/* Drag preview */}
+            {isDragging && dragStart!.dayIndex === di && dragMin !== null && dragMax !== null && (
+              <div
+                className="pointer-events-none absolute left-1 right-1 rounded-md border-2 border-primary bg-primary/20"
+                style={{ top: dragMin * HOUR_H, height: (dragMax - dragMin) * HOUR_H - 2 }}
+              />
+            )}
             {timedByDay(d).map((e: any) => {
               const s = new Date(e.start);
               const top = (s.getHours() + s.getMinutes() / 60) * HOUR_H;
@@ -269,8 +388,31 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
   );
 }
 
+/* ───────────────────────── Quick task from calendar ───────────────────────── */
+function QuickTaskDialog({ open, onOpenChange, seedDate, workspaceId, onCreate, t, tc }: any) {
+  const [title, setTitle] = useState("");
+  const dstr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const [dueDate, setDueDate] = useState("");
+
+  useEffect(() => { if (open && seedDate) setDueDate(dstr(seedDate)); }, [open, seedDate]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader><DialogTitle><TaskSquare variant="Bulk" size={18} className="mr-2 inline text-primary" />New task</DialogTitle></DialogHeader>
+        <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task title…" className={inputBase} onKeyDown={(e) => e.key === "Enter" && title.trim() && onCreate({ workspaceId, title: title.trim(), status: "todo", dueDate: dueDate ? new Date(dueDate).getTime() : undefined }).then(() => { setTitle(""); onOpenChange(false); })} />
+        <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputBase} />
+        <DialogFooter>
+          <button onClick={() => onOpenChange(false)} className={btnOutline}>{tc("cancel")}</button>
+          <button onClick={() => { if (!title.trim()) return; onCreate({ workspaceId, title: title.trim(), status: "todo", dueDate: dueDate ? new Date(dueDate).getTime() : undefined }).then(() => { setTitle(""); onOpenChange(false); }); }} className={btnPrimary}>{tc("create") ?? "Create"}</button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ───────────────────────── Event dialog ───────────────────────── */
-function EventDialog({ open, onOpenChange, event, seedDate, recurLabel, t, tc, onSave, onDelete }: any) {
+function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel, t, tc, onSave, onDelete }: any) {
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("09:00");
@@ -289,7 +431,7 @@ function EventDialog({ open, onOpenChange, event, seedDate, recurLabel, t, tc, o
   useEffect(() => {
     if (!open) return;
     const base = event ? new Date(event.start) : (seedDate ?? new Date());
-    const endBase = event?.end ? new Date(event.end) : new Date(base.getTime() + 60 * 60000);
+    const endBase = event?.end ? new Date(event.end) : seedEnd ? seedEnd : new Date(base.getTime() + 60 * 60000);
     setTitle(event?.title ?? "");
     setDate(dstr(base)); setTime(tstr(base));
     setEndDate(dstr(endBase)); setEndTime(tstr(endBase));
@@ -298,7 +440,7 @@ function EventDialog({ open, onOpenChange, event, seedDate, recurLabel, t, tc, o
     setLocation(event?.location ?? "");
     setRecurrence(event?.recurrence ?? "none");
     setRecurUntil(event?.recurrenceUntil ? dstr(new Date(event.recurrenceUntil)) : "");
-  }, [open, event, seedDate]);
+  }, [open, event, seedDate, seedEnd]);
 
   const submit = async () => {
     if (!title.trim()) return toast.error(t("addEventTitle"));

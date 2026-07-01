@@ -18,6 +18,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { encryptContent, decryptContent } from "@/lib/crypto";
 import { PresenceAvatars } from "@/components/app/presence-avatars";
 import { DocumentComments } from "@/components/app/comments-panel";
+import { TableOfContents } from "@/components/table-of-contents";
+import { ActivityPanel } from "@/components/app/activity-panel";
 import {
   Popover,
   PopoverContent,
@@ -101,6 +103,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   }, [wsMembers, wsTasks, wsProjects]);
 
   const editorRef = useRef<any>(null);
+  const [editorInstance, setEditorInstance] = useState<any>(null);
   const mentionTimer = useRef<any>(null);
 
   const versions = useQuery(api.flux_documents.listVersions, { documentId });
@@ -108,6 +111,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyTab, setHistoryTab] = useState<"versions" | "activity">("versions");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [passphraseInput, setPassphraseInput] = useState("");
   const [passphraseHintInput, setPassphraseHintInput] = useState("");
@@ -495,13 +499,14 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               editable
               onChange={saveContent}
               mentionables={mentionables}
-              onEditorReady={(ed: any) => { editorRef.current = ed; }}
+              onEditorReady={(ed: any) => { editorRef.current = ed; setEditorInstance(ed); }}
               onMentions={(ids: string[]) => {
                 if (!ids.length) return;
                 if (mentionTimer.current) clearTimeout(mentionTimer.current);
                 mentionTimer.current = setTimeout(() => { processMentions({ documentId, userIds: ids as any }).catch(() => {}); }, 1500);
               }}
             />
+            <TableOfContents editor={editorInstance} />
           </div>
         )}
       </div>
@@ -615,38 +620,48 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         <SheetContent side="right" className="w-[360px] sm:w-[420px] overflow-y-auto" data-testid="doc-history-panel">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
-              <Clock variant="Bulk" size={18} className="text-primary" /> Version History
+              <Clock variant="Bulk" size={18} className="text-primary" /> History
             </SheetTitle>
           </SheetHeader>
-          <div className="mt-4 space-y-2">
-            {versions === undefined ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
-              ))
-            ) : versions.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No saved versions yet.<br />Use "Save version" to snapshot the current state.</p>
-            ) : (
-              versions.map((ver: any) => (
-                <div key={ver._id} className="flex items-start justify-between rounded-xl border border-border bg-card p-3 gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{ver.title || "Untitled"}</p>
-                    <p className="text-xs text-muted-foreground">{timeAgo(ver.savedAt)} · {ver.savedByName}</p>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      await restoreVersionFn({ versionId: ver._id });
-                      setHistoryOpen(false);
-                      toast.success("Version restored");
-                    }}
-                    className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
-                    data-testid="restore-version-btn"
-                  >
-                    <Refresh2 variant="Bulk" size={14} /> Restore
-                  </button>
-                </div>
-              ))
-            )}
+          <div className="mt-3 flex rounded-full border border-border bg-muted/40 p-0.5">
+            <button onClick={() => setHistoryTab("versions")} className={cn("flex-1 rounded-full py-1 text-xs font-medium transition", historyTab === "versions" ? "bg-card shadow-sm" : "text-muted-foreground")}>Versions</button>
+            <button onClick={() => setHistoryTab("activity")} className={cn("flex-1 rounded-full py-1 text-xs font-medium transition", historyTab === "activity" ? "bg-card shadow-sm" : "text-muted-foreground")}>Activity</button>
           </div>
+          {historyTab === "versions" ? (
+            <div className="mt-4 space-y-2">
+              {versions === undefined ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+                ))
+              ) : versions.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">No saved versions yet.<br />Use "Save version" to snapshot the current state.</p>
+              ) : (
+                versions.map((ver: any) => (
+                  <div key={ver._id} className="flex items-start justify-between rounded-xl border border-border bg-card p-3 gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{ver.title || "Untitled"}</p>
+                      <p className="text-xs text-muted-foreground">{timeAgo(ver.savedAt)} · {ver.savedByName}</p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        await restoreVersionFn({ versionId: ver._id });
+                        setHistoryOpen(false);
+                        toast.success("Version restored");
+                      }}
+                      className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
+                      data-testid="restore-version-btn"
+                    >
+                      <Refresh2 variant="Bulk" size={14} /> Restore
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <ActivityPanel targetType="flux_document" targetId={documentId} />
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </div>

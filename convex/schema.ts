@@ -108,6 +108,7 @@ export default defineSchema({
   tasks: defineTable({
     workspaceId: v.id("workspaces"),
     projectId: v.optional(v.id("projects")),
+    parentId: v.optional(v.id("tasks")), // subtask parent (null = root task)
     title: v.string(),
     description: v.optional(v.string()),
     // Status is a string key. Defaults: "todo" | "in_progress" | "done", but
@@ -122,7 +123,8 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_project", ["projectId"])
-    .index("by_assignee", ["assigneeId"]),
+    .index("by_assignee", ["assigneeId"])
+    .index("by_parent", ["parentId"]),
 
   activities: defineTable({
     workspaceId: v.id("workspaces"),
@@ -537,6 +539,7 @@ export default defineSchema({
     allDay: v.optional(v.boolean()),
     recurrence: v.optional(v.string()), // none|daily|weekly|biweekly|monthly
     recurrenceUntil: v.optional(v.number()),
+    recurrenceExceptions: v.optional(v.array(v.number())), // epoch ms of skipped occurrences
     color: v.optional(v.string()),
     location: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),

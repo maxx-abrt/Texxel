@@ -9,7 +9,8 @@
     "settings": "Paramètres",
     "trash": "Corbeille",
     "search": "Rechercher",
-    "searchDocuments": "Rechercher des documents…",
+    "searchDocuments": "Rechercher dans tout l’espace…",
+    "activity": "Activité",
     "newNote": "Nouvelle note",
     "calendar": "Calendrier",
     "workspace": "Espace de travail",
@@ -162,8 +163,13 @@
     "views": {
       "list": "Liste",
       "board": "Tableau",
-      "gantt": "Gantt"
+      "gantt": "Gantt",
+      "assignee": "Assigné"
     },
+    "filterByAssignee": "Assigné",
+    "filterByProject": "Projet",
+    "allAssignees": "Tous les assignés",
+    "allProjects": "Tous les projets",
     "subtasks": "Sous-tâches",
     "addSubtask": "Ajouter une sous-tâche",
     "subtaskPlaceholder": "Titre de la sous-tâche…",
@@ -415,6 +421,31 @@
       "active": "Actif",
       "on_hold": "En attente",
       "completed": "Terminé"
+    }
+  },
+  "activity": {
+    "title": "Activité",
+    "subtitle": "Journal d’activité de l’espace",
+    "empty": "Aucune activité pour l’instant.",
+    "actions": {
+      "task": {
+        "created": "a créé la tâche",
+        "deleted": "a supprimé la tâche",
+        "updated": "a mis à jour la tâche"
+      },
+      "event": {
+        "created": "a ajouté un événement"
+      },
+      "document": {
+        "created": "a créé le document",
+        "updated": "a mis à jour le document"
+      },
+      "project": {
+        "created": "a créé le projet"
+      },
+      "member": {
+        "joined": "a rejoint l'espace"
+      }
     }
   },
   "teams": {
@@ -1295,7 +1326,13 @@
     "pickDate": "Choisissez une date",
     "eventUpdated": "Événement mis à jour",
     "eventCreated": "Événement créé",
-    "eventDeleted": "Événement supprimé"
+    "eventDeleted": "Événement supprimé",
+    "editRecurring": "Modifier un événement récurrent",
+    "editRecurringDesc": "Quelles occurrences voulez-vous modifier ?",
+    "editThisOccurrence": "Modifier cette occurrence uniquement",
+    "editAllOccurrences": "Modifier toutes les occurrences",
+    "deleteThisOccurrence": "Supprimer cette occurrence uniquement",
+    "deleteAllOccurrences": "Supprimer toutes les occurrences"
   },
   "dashboard": {
     "greeting": {

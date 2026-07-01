@@ -9,7 +9,8 @@
     "settings": "Settings",
     "trash": "Trash",
     "search": "Search",
-    "searchDocuments": "Search documents…",
+    "searchDocuments": "Search everything…",
+    "activity": "Activity",
     "newNote": "New note",
     "calendar": "Calendar",
     "workspace": "Workspace",
@@ -162,8 +163,13 @@
     "views": {
       "list": "List",
       "board": "Board",
-      "gantt": "Gantt"
+      "gantt": "Gantt",
+      "assignee": "Assignee"
     },
+    "filterByAssignee": "Assignee",
+    "filterByProject": "Project",
+    "allAssignees": "All assignees",
+    "allProjects": "All projects",
     "subtasks": "Subtasks",
     "addSubtask": "Add subtask",
     "subtaskPlaceholder": "Subtask title…",
@@ -415,6 +421,31 @@
       "active": "Active",
       "on_hold": "On hold",
       "completed": "Completed"
+    }
+  },
+  "activity": {
+    "title": "Activity",
+    "subtitle": "Workspace activity log",
+    "empty": "No activity yet.",
+    "actions": {
+      "task": {
+        "created": "created task",
+        "deleted": "deleted task",
+        "updated": "updated task"
+      },
+      "event": {
+        "created": "added event"
+      },
+      "document": {
+        "created": "created document",
+        "updated": "updated document"
+      },
+      "project": {
+        "created": "created project"
+      },
+      "member": {
+        "joined": "joined workspace"
+      }
     }
   },
   "inbox": {
@@ -1266,7 +1297,13 @@
     "pickDate": "Pick a date",
     "eventUpdated": "Event updated",
     "eventCreated": "Event created",
-    "eventDeleted": "Event deleted"
+    "eventDeleted": "Event deleted",
+    "editRecurring": "Edit recurring event",
+    "editRecurringDesc": "Which occurrences do you want to modify?",
+    "editThisOccurrence": "Edit this occurrence only",
+    "editAllOccurrences": "Edit all occurrences",
+    "deleteThisOccurrence": "Delete this occurrence only",
+    "deleteAllOccurrences": "Delete all occurrences"
   },
   "dashboard": {
     "greeting": {

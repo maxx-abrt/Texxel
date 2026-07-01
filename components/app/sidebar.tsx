@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -12,6 +13,7 @@ import { toast } from "sonner";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useTrashDnd } from "@/components/providers/dnd-trash-provider";
+import { TemplatePickerDialog } from "@/components/app/template-picker-dialog";
 import { useTranslations } from "next-intl";
 import {
   Element3,
@@ -22,6 +24,7 @@ import {
   Data2,
   Notification,
   Profile2User,
+  Activity,
   Setting2,
   Trash,
   SearchNormal1,
@@ -48,6 +51,7 @@ const NAV_KEYS = [
   { href: "/app/calendar", key: "calendar", Icon: Calendar },
   { href: "/app/databases", key: "databases", Icon: Data2 },
   { href: "/app/inbox", key: "inbox", Icon: Notification },
+  { href: "/app/activity", key: "activity", Icon: Activity },
   { href: "/app/members", key: "members", Icon: Profile2User },
 ];
 
@@ -83,15 +87,25 @@ export function Sidebar({
   const tw = useTranslations("settings");
   const NAV = NAV_KEYS.map((n) => ({ ...n, label: t(n.key as any) }));
 
-  const onCreate = async (parentId?: Id<"flux_documents">) => {
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [templateParentId, setTemplateParentId] = useState<Id<"flux_documents"> | undefined>();
+
+  const openTemplatePicker = (parentId?: Id<"flux_documents">) => {
+    setTemplateParentId(parentId);
+    setTemplatePickerOpen(true);
+  };
+
+  const createDocFromTemplate = async (opts: { title: string; content?: string; icon?: string; parentId?: Id<"flux_documents"> }) => {
     if (!activeWorkspaceId) return;
     try {
-      const id = await createDoc({ workspaceId: activeWorkspaceId, title: tc("untitled"), parentId });
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: opts.title, content: opts.content, icon: opts.icon, parentId: opts.parentId });
       router.push(`/app/documents/${id}`);
     } catch {
       toast.error(tc("createFailed"));
     }
   };
+
+  const onCreate = openTemplatePicker;
 
   const onCreateFolder = async () => {
     if (!activeWorkspaceId) return;
@@ -242,6 +256,12 @@ export function Sidebar({
           </Link>
         </div>
       </aside>
+      <TemplatePickerDialog
+        open={templatePickerOpen}
+        onOpenChange={setTemplatePickerOpen}
+        parentId={templateParentId}
+        onSelect={createDocFromTemplate}
+      />
     </>
   );
 }

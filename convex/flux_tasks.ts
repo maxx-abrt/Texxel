@@ -40,7 +40,11 @@ async function hydrate(ctx: any, workspaceId: Id<"workspaces">, tasks: any[]) {
 }
 
 export const list = query({
-  args: { workspaceId: v.id("workspaces"), projectId: v.optional(v.id("projects")) },
+  args: {
+    workspaceId: v.id("workspaces"),
+    projectId: v.optional(v.id("projects")),
+    parentId: v.optional(v.union(v.id("tasks"), v.null())),
+  },
   handler: async (ctx, args) => {
     await assertWorkspaceMember(ctx, args.workspaceId);
     let tasks = await ctx.db
@@ -48,7 +52,27 @@ export const list = query({
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
     if (args.projectId) tasks = tasks.filter((t) => t.projectId === args.projectId);
+    // parentId === null → root tasks only; parentId = id → children of that task
+    if (args.parentId !== undefined) {
+      tasks = tasks.filter((t) =>
+        args.parentId === null ? !t.parentId : t.parentId === args.parentId
+      );
+    }
     return hydrate(ctx, args.workspaceId, tasks);
+  },
+})
+
+export const listChildren = query({
+  args: { parentId: v.id("tasks") },
+  handler: async (ctx, args) => {
+    const parent = await ctx.db.get(args.parentId);
+    if (!parent) return [];
+    await assertWorkspaceMember(ctx, parent.workspaceId);
+    const children = await ctx.db
+      .query("tasks")
+      .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
+      .collect();
+    return hydrate(ctx, parent.workspaceId, children);
   },
 });
 
@@ -83,6 +107,7 @@ export const create = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
+    parentId: v.optional(v.id("tasks")),
     status: v.optional(v.string()),
     priority: v.optional(
       v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
@@ -99,6 +124,7 @@ export const create = mutation({
     const taskId = await ctx.db.insert("tasks", {
       workspaceId: args.workspaceId,
       projectId: args.projectId,
+      parentId: args.parentId,
       title: args.title,
       description: args.description,
       status: args.status ?? "todo",
@@ -280,7 +306,27 @@ export const bulkUpdate = mutation({
   },
 });
 
-/** Bulk delete tasks (and their metas + comments). */
+/** Recursively delete a task and all its descendants. */
+async function deleteTaskTree(ctx: any, taskId: Id<"tasks">) {
+  const children = await ctx.db
+    .query("tasks")
+    .withIndex("by_parent", (q: any) => q.eq("parentId", taskId))
+    .collect();
+  for (const child of children) await deleteTaskTree(ctx, child._id);
+  const meta = await ctx.db
+    .query("flux_taskMeta")
+    .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
+    .unique();
+  if (meta) await ctx.db.delete(meta._id);
+  const comments = await ctx.db
+    .query("flux_taskComments")
+    .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
+    .collect();
+  for (const c of comments) await ctx.db.delete(c._id);
+  await ctx.db.delete(taskId);
+}
+
+/** Bulk delete tasks (and their metas + comments + subtrees). */
 export const bulkRemove = mutation({
   args: { taskIds: v.array(v.id("tasks")) },
   handler: async (ctx, args) => {
@@ -288,17 +334,7 @@ export const bulkRemove = mutation({
       const task = await ctx.db.get(taskId);
       if (!task) continue;
       await assertWorkspaceMember(ctx, task.workspaceId, "member");
-      const meta = await ctx.db
-        .query("flux_taskMeta")
-        .withIndex("by_task", (q) => q.eq("taskId", taskId))
-        .unique();
-      if (meta) await ctx.db.delete(meta._id);
-      const comments = await ctx.db
-        .query("flux_taskComments")
-        .withIndex("by_task", (q) => q.eq("taskId", taskId))
-        .collect();
-      for (const c of comments) await ctx.db.delete(c._id);
-      await ctx.db.delete(taskId);
+      await deleteTaskTree(ctx, taskId);
     }
     return args.taskIds.length;
   },
@@ -310,17 +346,7 @@ export const remove = mutation({
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
     const { userId } = await assertWorkspaceMember(ctx, task.workspaceId, "member");
-    const meta = await ctx.db
-      .query("flux_taskMeta")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
-      .unique();
-    if (meta) await ctx.db.delete(meta._id);
-    const comments = await ctx.db
-      .query("flux_taskComments")
-      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
-      .collect();
-    for (const c of comments) await ctx.db.delete(c._id);
-    await ctx.db.delete(args.taskId);
+    await deleteTaskTree(ctx, args.taskId);
     await logActivity(ctx, {
       workspaceId: task.workspaceId,
       actorId: userId,

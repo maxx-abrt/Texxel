@@ -17,6 +17,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { GanttChart } from "@/components/gantt-chart";
 import { RetroPlanningPanel } from "@/components/retro-planning";
 import { TaskCreateDialog } from "@/components/app/tasks-view";
+import { ActivityPanel } from "@/components/app/activity-panel";
 import {
   ArrowLeft2, Briefcase, TaskSquare, Calendar, Chart, People, Clock, Activity,
   Add, TickCircle, Flag, Timer1, CloseCircle,
@@ -425,17 +426,8 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
       {/* ACTIVITY */}
       {tab === "activity" && (
         <div className="rounded-2xl border border-border bg-card p-5" data-testid="project-activity">
-          <p className="mb-3 text-sm font-semibold">{t("recentActivity")}</p>
-          {detail.recent.length === 0 ? <p className="text-sm text-muted-foreground">{t("noActivity")}</p> : (
-            <div className="space-y-3">
-              {detail.recent.map((a: any) => (
-                <div key={a._id} className="flex items-start gap-3">
-                  <Avatar className="mt-0.5 h-7 w-7"><AvatarImage src={a.actor?.image} /><AvatarFallback className="bg-primary text-[10px] text-primary-foreground">{(a.actor?.name ?? "U").charAt(0).toUpperCase()}</AvatarFallback></Avatar>
-                  <div className="text-sm"><span className="font-medium">{a.actor?.name ?? t("someone")}</span> <span className="text-muted-foreground">{a.action.replace(/[._]/g, " ")}</span><p className="text-xs text-muted-foreground">{timeAgo(a.createdAt)}</p></div>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="mb-4 text-sm font-semibold">{t("recentActivity")}</p>
+          <ActivityPanel targetType="project" targetId={projectId} />
         </div>
       )}
     </PageContainer>

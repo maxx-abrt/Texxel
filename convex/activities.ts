@@ -61,6 +61,35 @@ export const list = query({
   },
 });
 
+/** Activity history for a specific document, project, task, etc. */
+export const listByTarget = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    targetType: v.string(),
+    targetId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await assertWorkspaceMember(ctx, args.workspaceId);
+    const rows = await ctx.db
+      .query("activities")
+      .withIndex("by_target", (q) =>
+        q.eq("targetType", args.targetType).eq("targetId", args.targetId),
+      )
+      .order("desc")
+      .take(args.limit ?? 50);
+    const out = [] as any[];
+    for (const a of rows) {
+      const u: any = await ctx.db.get(a.actorId);
+      out.push({
+        ...a,
+        actor: u ? { _id: u._id, name: u.name, email: u.email, image: u.image } : null,
+      });
+    }
+    return out;
+  },
+});
+
 /** GDPR-style workspace export: returns all data scoped to the workspace. */
 export const exportWorkspace = query({
   args: { workspaceId: v.id("workspaces") },

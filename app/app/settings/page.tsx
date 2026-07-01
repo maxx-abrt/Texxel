@@ -15,6 +15,59 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash } from "iconsax-reactjs";
 
+function ProfileAvatar({ me, updateProfile }: { me: any; updateProfile: any }) {
+  const convex = useConvex();
+  const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const t = useTranslations("settings");
+  const tc = useTranslations("common");
+
+  const onPick = async (file?: File) => {
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) return toast.error(t("imageTooLarge"));
+    setBusy(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type }, body: file });
+      const { storageId } = await res.json();
+      const url = await convex.query(api.flux_files.getUrl, { storageId });
+      await updateProfile({ image: url ?? undefined });
+      toast.success(t("profile.saved"));
+    } catch {
+      toast.error(t("uploadFailed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mb-4 flex items-center gap-4">
+      <Avatar className="h-16 w-16 rounded-2xl border border-border">
+        {me?.image && <AvatarImage src={me.image} className="rounded-2xl object-cover" />}
+        <AvatarFallback className="rounded-2xl bg-(--flux-coral-soft) text-xl font-semibold text-primary">
+          {(me?.name ?? me?.email ?? "U").charAt(0).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <div>
+        <p className="text-sm font-medium">{t("profile.displayName")}</p>
+        <p className="mb-2 text-xs text-muted-foreground">{t("workspaceLogoHint")}</p>
+        <div className="flex items-center gap-2">
+          <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onPick(e.target.files?.[0])} />
+          <button onClick={() => fileRef.current?.click()} disabled={busy} className={cn(btnOutline, "h-8 text-xs")}>
+            <Gallery variant="Bulk" size={15} /> {busy ? t("uploading") : t("uploadLogo")}
+          </button>
+          {me?.image && (
+            <button onClick={() => updateProfile({ image: "" }).then(() => toast.success(t("logoRemoved")))} className="flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10">
+              <Trash variant="Bulk" size={14} /> {tc("remove")}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WorkspaceBranding({ workspace, workspaceId, canManage }: any) {
   const convex = useConvex();
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
@@ -46,7 +99,7 @@ function WorkspaceBranding({ workspace, workspaceId, canManage }: any) {
     <div className="mb-5 flex items-center gap-4" data-testid="workspace-branding">
       <Avatar className="h-16 w-16 rounded-2xl border border-border">
         {workspace?.avatar && <AvatarImage src={workspace.avatar} className="rounded-2xl object-cover" />}
-        <AvatarFallback className="rounded-2xl bg-[var(--flux-coral-soft)] text-xl font-semibold text-primary">{(workspace?.name ?? "W").charAt(0).toUpperCase()}</AvatarFallback>
+        <AvatarFallback className="rounded-2xl bg-(--flux-coral-soft) text-xl font-semibold text-primary">{(workspace?.name ?? "W").charAt(0).toUpperCase()}</AvatarFallback>
       </Avatar>
       <div>
         <p className="text-sm font-medium">{t("workspaceLogo")}</p>
@@ -103,6 +156,7 @@ export default function SettingsPage() {
 
       <div className="space-y-5">
         <Section title={t("tabs.profile")} icon={Profile}>
+          <ProfileAvatar me={me} updateProfile={updateProfile} />
           <label className="mb-1.5 block text-sm font-medium">{t("profile.displayName")}</label>
           <div className="flex gap-2">
             <input value={name} onChange={(e) => setName(e.target.value)} className={inputBase} data-testid="settings-name-input" />

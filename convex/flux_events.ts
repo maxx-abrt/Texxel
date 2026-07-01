@@ -75,6 +75,7 @@ export const update = mutation({
     allDay: v.optional(v.boolean()),
     recurrence: v.optional(v.string()),
     recurrenceUntil: v.optional(v.number()),
+    recurrenceExceptions: v.optional(v.array(v.number())),
     color: v.optional(v.string()),
     location: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
@@ -88,6 +89,62 @@ export const update = mutation({
     for (const [k, val] of Object.entries(rest)) if (val !== undefined) patch[k] = val;
     await ctx.db.patch(args.eventId, patch);
     return args.eventId;
+  },
+});
+
+/** Detach a single occurrence from a recurring series.
+ *  Creates a standalone copy of the event at occurrenceStart, then marks
+ *  that timestamp as an exception so the original series skips it. */
+export const detachOccurrence = mutation({
+  args: {
+    eventId: v.id("flux_events"),
+    occurrenceStart: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const e = await ctx.db.get(args.eventId);
+    if (!e) throw new Error("Event not found");
+    const { userId } = await assertWorkspaceMember(ctx, e.workspaceId, "member");
+    const dur = e.end != null ? e.end - e.start : 60 * 60000;
+    const newId = await ctx.db.insert("flux_events", {
+      workspaceId: e.workspaceId,
+      title: e.title,
+      description: e.description,
+      start: args.occurrenceStart,
+      end: args.occurrenceStart + dur,
+      allDay: e.allDay,
+      color: e.color,
+      location: e.location,
+      projectId: e.projectId,
+      taskId: e.taskId,
+      createdBy: userId,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    const existing = (e as any).recurrenceExceptions ?? [];
+    await ctx.db.patch(args.eventId, {
+      recurrenceExceptions: [...existing, args.occurrenceStart],
+      updatedAt: Date.now(),
+    });
+    return newId;
+  },
+});
+
+/** Delete a single occurrence of a recurring event without touching the series. */
+export const skipOccurrence = mutation({
+  args: {
+    eventId: v.id("flux_events"),
+    occurrenceStart: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const e = await ctx.db.get(args.eventId);
+    if (!e) throw new Error("Event not found");
+    await assertWorkspaceMember(ctx, e.workspaceId, "member");
+    const existing = (e as any).recurrenceExceptions ?? [];
+    await ctx.db.patch(args.eventId, {
+      recurrenceExceptions: [...existing, args.occurrenceStart],
+      updatedAt: Date.now(),
+    });
+    return true;
   },
 });
 

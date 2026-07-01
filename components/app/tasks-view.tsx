@@ -31,6 +31,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import {
   TaskSquare, Add, Kanban, RowVertical, More, Trash, Flag, Calendar, TickCircle,
   Send2, Tag, Setting4, CloseCircle, TickSquare, Profile, Clock, DocumentDownload,
+  ArrowDown2,
 } from "iconsax-reactjs";
 
 const PRIORITIES: Record<string, { label: string; color: string }> = {
@@ -95,12 +96,14 @@ export function TasksView() {
   const remove = useMutation(api.flux_tasks.remove);
   const ensureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
 
-  const [view, setView] = useState<"board" | "list">("board");
+  const [view, setView] = useState<"board" | "list" | "assignee">("board");
   const [createOpen, setCreateOpen] = useState(false);
   const [createStatus, setCreateStatus] = useState<string>("todo");
   const [selected, setSelected] = useState<any>(null);
   const [statusMgrOpen, setStatusMgrOpen] = useState(false);
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
 
   useEffect(() => { if (search.get("new") === "1") setCreateOpen(true); }, [search]);
   useEffect(() => { if (activeWorkspaceId) ensureDefaults({ workspaceId: activeWorkspaceId }).catch(() => {}); }, [activeWorkspaceId, ensureDefaults]);
@@ -111,10 +114,12 @@ export function TasksView() {
   }, [statuses]);
 
   const filteredTasks = useMemo(() => {
-    let list = tasks ?? [];
+    let list = (tasks ?? []).filter((t: any) => !t.parentId);
     if (labelFilter) list = list.filter((t: any) => (t.labels ?? []).includes(labelFilter));
+    if (assigneeFilter) list = list.filter((t: any) => t.assigneeId === assigneeFilter);
+    if (projectFilter) list = list.filter((t: any) => t.projectId === projectFilter);
     return list;
-  }, [tasks, labelFilter]);
+  }, [tasks, labelFilter, assigneeFilter, projectFilter]);
 
   const labelColor = useMemo(() => {
     const m: Record<string, string> = {};
@@ -138,6 +143,9 @@ export function TasksView() {
               <button onClick={() => setView("list")} className={cn("flex h-8 items-center gap-1.5 rounded-full px-3 text-sm", view === "list" ? "bg-muted font-medium" : "text-muted-foreground")} data-testid="tasks-view-list">
                 <RowVertical variant="Bulk" size={16} /> {t("views.list")}
               </button>
+              <button onClick={() => setView("assignee")} className={cn("flex h-8 items-center gap-1.5 rounded-full px-3 text-sm", view === "assignee" ? "bg-muted font-medium" : "text-muted-foreground")} data-testid="tasks-view-assignee">
+                <Profile variant="Bulk" size={16} /> {t("views.assignee")}
+              </button>
             </div>
             <button
               onClick={() => exportTasksCSV(filteredTasks, cols)}
@@ -157,20 +165,53 @@ export function TasksView() {
         }
       />
 
-      {/* Label filter bar */}
-      {labels && labels.length > 0 && (
-        <div className="mb-4 flex flex-wrap items-center gap-2" data-testid="label-filter-bar">
-          <span className="text-xs font-medium text-muted-foreground"><Tag variant="Bulk" size={14} className="mr-1 inline" />{t("labels")}:</span>
-          <button onClick={() => setLabelFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !labelFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>{t("filters.all")}</button>
-          {labels.map((l: any) => (
-            <button key={l._id} onClick={() => setLabelFilter(labelFilter === l.name ? null : l.name)} data-testid="label-filter-chip"
-              className={cn("rounded-full px-2.5 py-1 text-xs font-medium transition", labelFilter === l.name ? "ring-2 ring-offset-1" : "opacity-90 hover:opacity-100")}
-              style={{ backgroundColor: `color-mix(in oklch, ${l.color} 18%, transparent)`, color: l.color }}>
-              {l.name}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Filter bars */}
+      <div className="mb-4 flex flex-wrap gap-3">
+        {/* Assignee filter */}
+        {members && members.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">{t("filterByAssignee")}:</span>
+            <button onClick={() => setAssigneeFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !assigneeFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>{t("allAssignees")}</button>
+            {members.map((m: any) => (
+              <button key={m.userId} onClick={() => setAssigneeFilter(assigneeFilter === m.userId ? null : m.userId)}
+                className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition", assigneeFilter === m.userId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70")}>
+                <Avatar className="h-4 w-4">
+                  <AvatarImage src={m.image} />
+                  <AvatarFallback className="text-[9px]">{(m.name ?? m.email ?? "?").charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                {m.name ?? m.email}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Project filter */}
+        {projects && projects.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">{t("filterByProject")}:</span>
+            <button onClick={() => setProjectFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !projectFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>{t("allProjects")}</button>
+            {projects.map((p: any) => (
+              <button key={p._id} onClick={() => setProjectFilter(projectFilter === p._id ? null : p._id)}
+                className={cn("rounded-full px-2.5 py-1 text-xs font-medium transition", projectFilter === p._id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70")}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Label filter */}
+        {labels && labels.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5" data-testid="label-filter-bar">
+            <span className="text-xs font-medium text-muted-foreground"><Tag variant="Bulk" size={14} className="mr-1 inline" />{t("labels")}:</span>
+            <button onClick={() => setLabelFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !labelFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>{t("filters.all")}</button>
+            {labels.map((l: any) => (
+              <button key={l._id} onClick={() => setLabelFilter(labelFilter === l.name ? null : l.name)} data-testid="label-filter-chip"
+                className={cn("rounded-full px-2.5 py-1 text-xs font-medium transition", labelFilter === l.name ? "ring-2 ring-offset-1" : "opacity-90 hover:opacity-100")}
+                style={{ backgroundColor: `color-mix(in oklch, ${l.color} 18%, transparent)`, color: l.color }}>
+                {l.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {tasks === undefined || statuses === undefined ? (
         <div className="grid gap-4 md:grid-cols-3">
@@ -184,6 +225,14 @@ export function TasksView() {
           onOpen={(t: any) => setSelected(t)}
           onAdd={(statusKey: string) => { setCreateStatus(statusKey); setCreateOpen(true); }}
           onMove={async (taskId: string, statusKey: string, order: number) => { await setStatus({ taskId: taskId as Id<"tasks">, status: statusKey, order }); }}
+        />
+      ) : view === "assignee" ? (
+        <AssigneeLanesView
+          tasks={filteredTasks}
+          members={members ?? []}
+          cols={cols}
+          labelColor={labelColor}
+          onOpen={(t: any) => setSelected(t)}
         />
       ) : (
         <ListView
@@ -374,14 +423,16 @@ function useSortableColumn(id: string) {
 
 function SortableTaskCard({ task, labelColor, onOpen }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
+  const didDragRef = useRef(false);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: transition ?? "transform 200ms cubic-bezier(0.25,1,0.5,1)",
     opacity: isDragging ? 0.4 : 1,
   };
+  useEffect(() => { if (isDragging) didDragRef.current = true; }, [isDragging]);
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
-      onClick={() => onOpen(task)}
+      onClick={() => { if (didDragRef.current) { didDragRef.current = false; return; } onOpen(task); }}
       data-testid="tasks-kanban-card"
       className="cursor-grab touch-none rounded-xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
       <TaskCardInner task={task} labelColor={labelColor} />
@@ -747,9 +798,14 @@ function TaskTimeTracking({ task, workspaceId, onUpdate }: any) {
 function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor, workspaceId, onUpdate, onDelete }: any) {
   const t = useTranslations("tasks");
   const comments = useQuery(api.flux_tasks.listComments, task ? { taskId: task._id } : "skip");
+  const subtasks = useQuery(api.flux_tasks.listChildren, task ? { parentId: task._id } : "skip");
   const addComment = useMutation(api.flux_tasks.addComment);
+  const createTask = useMutation(api.flux_tasks.create);
+  const setStatus = useMutation(api.flux_tasks.setStatus);
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
+  const [subtaskInput, setSubtaskInput] = useState("");
+  const [showSubtasks, setShowSubtasks] = useState(true);
 
   useEffect(() => { setTitle(task?.title ?? ""); }, [task]);
 
@@ -794,6 +850,60 @@ function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor,
 
           <LabelEditor workspaceId={workspaceId} labels={labels} selected={task.labels ?? []} onChange={(next: string[]) => onUpdate({ labels: next })} t={t} />
 
+          {/* Subtasks */}
+          <div>
+            <button
+              onClick={() => setShowSubtasks(!showSubtasks)}
+              className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <ArrowDown2 variant="Bulk" size={13} className={cn("transition-transform", !showSubtasks && "-rotate-90")} />
+              {t("subtasks")}
+              {subtasks && subtasks.length > 0 && (
+                <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px]">{subtasks.filter((s: any) => s.status !== "done").length}/{subtasks.length}</span>
+              )}
+            </button>
+            {showSubtasks && (
+              <div className="space-y-1 pl-2">
+                {(subtasks ?? []).map((st: any) => (
+                  <div key={st._id} className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStatus({ taskId: st._id, status: st.status === "done" ? "todo" : "done" })}
+                      className={cn("h-4 w-4 shrink-0 rounded border border-border transition-colors", st.status === "done" ? "bg-primary border-primary" : "hover:border-primary")}
+                    >
+                      {st.status === "done" && <TickCircle variant="Bulk" size={14} className="text-primary-foreground" />}
+                    </button>
+                    <span className={cn("flex-1 text-sm", st.status === "done" && "line-through text-muted-foreground")}>{st.title}</span>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    value={subtaskInput}
+                    onChange={(e) => setSubtaskInput(e.target.value)}
+                    placeholder={t("subtaskPlaceholder")}
+                    className={cn(inputBase, "h-8 text-sm")}
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && subtaskInput.trim() && workspaceId) {
+                        await createTask({ workspaceId, title: subtaskInput.trim(), parentId: task._id, status: "todo" });
+                        setSubtaskInput("");
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (subtaskInput.trim() && workspaceId) {
+                        await createTask({ workspaceId, title: subtaskInput.trim(), parentId: task._id, status: "todo" });
+                        setSubtaskInput("");
+                      }
+                    }}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
+                  >
+                    <Add variant="Bulk" size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <TaskTimeTracking task={task} workspaceId={workspaceId} onUpdate={onUpdate} />
 
           <div>
@@ -818,6 +928,67 @@ function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor,
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/* ───────────────────────── Assignee swim lanes ───────────────────── */
+
+function AssigneeLanesView({ tasks, members, cols, labelColor, onOpen }: any) {
+  const t = useTranslations("tasks");
+  const lanes: { member: any; tasks: any[] }[] = useMemo(() => {
+    const assignedMemberIds = new Set(tasks.map((task: any) => task.assigneeId).filter(Boolean));
+    const result: { member: any; tasks: any[] }[] = [];
+    for (const m of members) {
+      if (assignedMemberIds.has(m.userId)) {
+        result.push({ member: m, tasks: tasks.filter((task: any) => task.assigneeId === m.userId) });
+      }
+    }
+    const unassigned = tasks.filter((task: any) => !task.assigneeId);
+    if (unassigned.length) result.push({ member: null, tasks: unassigned });
+    return result;
+  }, [tasks, members]);
+
+  if (lanes.length === 0) {
+    return <EmptyState icon={Profile} title={t("empty.title")} description={t("empty.description")} />;
+  }
+
+  return (
+    <div className="space-y-6">
+      {lanes.map(({ member, tasks: laneTasks }) => (
+        <div key={member?.userId ?? "unassigned"}>
+          <div className="mb-2 flex items-center gap-2">
+            <Avatar className="h-7 w-7 border border-border">
+              <AvatarImage src={member?.image} />
+              <AvatarFallback className="text-xs font-semibold">
+                {member ? (member.name ?? member.email ?? "?").charAt(0).toUpperCase() : "?"}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-semibold">{member ? (member.name ?? member.email) : t("unassigned")}</span>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{laneTasks.length}</span>
+          </div>
+          <div className="space-y-1.5">
+            {laneTasks.map((task: any) => {
+              const col = cols.find((c: any) => c.key === task.status);
+              return (
+                <button key={task._id} onClick={() => onOpen(task)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 text-left hover:bg-muted/50 transition-colors">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: col?.color ?? "#888" }} />
+                  <span className="flex-1 truncate text-sm">{task.title}</span>
+                  {task.dueDate && (
+                    <span className={cn("text-xs", task.dueDate < Date.now() ? "text-destructive" : "text-muted-foreground")}>
+                      {fmtDate(task.dueDate)}
+                    </span>
+                  )}
+                  {task.labels?.map((lb: string) => (
+                    <span key={lb} className="hidden rounded-full px-1.5 py-0.5 text-xs sm:inline" style={{ background: `color-mix(in oklch, ${labelColor[lb] ?? "#888"} 18%, transparent)`, color: labelColor[lb] ?? "#888" }}>{lb}</span>
+                  ))}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

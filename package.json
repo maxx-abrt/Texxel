@@ -34,6 +34,7 @@
     "convex": "1.32.0",
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.7.10",
+    "framer-motion": "^12.42.2",
     "iconsax-reactjs": "^0.0.8",
     "iron-session": "^8.0.4",
     "jose": "^6.2.3",

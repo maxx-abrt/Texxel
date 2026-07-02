@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { assertWorkspaceMember, requireUserId } from "./lib/auth";
+import { assertWorkspaceAdmin, assertWorkspaceMember, requireUserId } from "./lib/auth";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -24,6 +24,135 @@ function generateSlug(name: string, existing: string[]) {
   return slug;
 }
 
+function isAdmin(role: string) {
+  return role === "owner" || role === "admin";
+}
+
+function isModerator(role: string) {
+  return role === "moderator";
+}
+
+async function getChannelMembership(
+  ctx: any,
+  channelId: string,
+  userId: string,
+) {
+  return await ctx.db
+    .query("flux_channelMembers")
+    .withIndex("by_channel_user", (q: any) =>
+      q.eq("channelId", channelId).eq("userId", userId),
+    )
+    .unique();
+}
+
+async function canViewChannel(
+  ctx: any,
+  channel: any,
+  userId: string,
+  workspaceRole: string,
+) {
+  if (isAdmin(workspaceRole)) return true;
+  if (channel.visibility === "public") return true;
+  const member = await getChannelMembership(ctx, channel._id, userId);
+  return !!member;
+}
+
+async function canPostInChannel(
+  ctx: any,
+  channel: any,
+  userId: string,
+  workspaceRole: string,
+) {
+  if (isAdmin(workspaceRole)) return true;
+  // Workspace viewers cannot post anywhere.
+  if (workspaceRole === "viewer") return false;
+  const member = await getChannelMembership(ctx, channel._id, userId);
+  if (channel.postPermission === "admin") return false;
+  if (channel.postPermission === "moderator") {
+    return member?.role === "moderator";
+  }
+  // "all" or unset: public channel allows any workspace member, private requires poster/moderator.
+  if (channel.visibility === "public") return true;
+  return member?.role === "poster" || member?.role === "moderator";
+}
+
+async function canManageChannel(
+  ctx: any,
+  channel: any,
+  userId: string,
+  workspaceRole: string,
+) {
+  if (isAdmin(workspaceRole)) return true;
+  const member = await getChannelMembership(ctx, channel._id, userId);
+  return member?.role === "moderator";
+}
+
+async function getWorkspaceRole(
+  ctx: any,
+  workspaceId: string,
+  userId: string,
+): Promise<string> {
+  const m = await ctx.db
+    .query("memberships")
+    .withIndex("by_user_workspace", (q: any) =>
+      q.eq("userId", userId).eq("workspaceId", workspaceId),
+    )
+    .unique();
+  return m?.role ?? "viewer";
+}
+
+export async function addProjectMemberToChannel(
+  ctx: any,
+  projectId: string,
+  userId: string,
+  addedBy: string,
+) {
+  const channel = await ctx.db
+    .query("flux_chatChannels")
+    .withIndex("by_project", (q: any) => q.eq("projectId", projectId))
+    .unique();
+  if (!channel) return;
+  await addChannelMemberInternal(ctx, channel, userId, "poster", addedBy);
+}
+
+export async function removeProjectMemberFromChannel(
+  ctx: any,
+  projectId: string,
+  userId: string,
+) {
+  const channel = await ctx.db
+    .query("flux_chatChannels")
+    .withIndex("by_project", (q: any) => q.eq("projectId", projectId))
+    .unique();
+  if (!channel) return;
+  const existing = await getChannelMembership(ctx, channel._id, userId);
+  if (existing) await ctx.db.delete(existing._id);
+}
+
+async function addChannelMemberInternal(
+  ctx: any,
+  channel: any,
+  userId: string,
+  role: "viewer" | "poster" | "moderator",
+  addedBy?: string,
+) {
+  const existing = await getChannelMembership(ctx, channel._id, userId);
+  if (existing) {
+    if (existing.role !== role) {
+      await ctx.db.patch(existing._id, { role, updatedAt: Date.now() });
+    }
+    return existing._id;
+  }
+  return await ctx.db.insert("flux_channelMembers", {
+    channelId: channel._id,
+    workspaceId: channel.workspaceId,
+    userId,
+    role,
+    addedBy,
+    joinedAt: Date.now(),
+  });
+}
+
 export async function ensureChannel(
   ctx: any,
   workspaceId: string,
@@ -31,6 +160,7 @@ export async function ensureChannel(
   type: "workspace" | "project" | "custom",
   createdBy: string,
   projectId?: string,
+  defaults?: { visibility?: "public" | "private"; postPermission?: "all" | "admin" | "moderator" },
 ) {
   const existing = await ctx.db
     .query("flux_chatChannels")
@@ -38,7 +168,13 @@ export async function ensureChannel(
       q.eq("workspaceId", workspaceId).eq("slug", slugify(name)),
     )
     .unique();
-  if (existing) return existing._id;
+  if (existing) {
+    // If a project channel already existed before permissions, ensure the creator is a member.
+    if (type === "project" && projectId) {
+      await addChannelMemberInternal(ctx, existing, createdBy, "moderator", createdBy);
+    }
+    return existing._id;
+  }
   const now = Date.now();
   const allSlugs = (
     await ctx.db
@@ -47,16 +183,22 @@ export async function ensureChannel(
       .collect()
   ).map((c: any) => c.slug);
   const slug = generateSlug(name, allSlugs);
-  return await ctx.db.insert("flux_chatChannels", {
+  const visibility = defaults?.visibility ?? (type === "project" ? "private" : "public");
+  const postPermission = defaults?.postPermission ?? "all";
+  const id = await ctx.db.insert("flux_chatChannels", {
     workspaceId,
     name,
     slug,
     type,
     projectId,
+    visibility,
+    postPermission,
     createdBy,
     createdAt: now,
     updatedAt: now,
   });
+  await addChannelMemberInternal(ctx, { _id: id, workspaceId }, createdBy, "moderator", createdBy);
+  return id;
 }
 
 export const ensureWorkspaceChannel = mutation({
@@ -83,6 +225,17 @@ export const ensureProjectChannel = mutation({
       args.projectId as any,
     );
     await ctx.db.patch(id, { name: `project-${p.name}`, updatedAt: Date.now() });
+    // Ensure all current project members are in the channel.
+    const projectMembers = await ctx.db
+      .query("flux_projectMembers")
+      .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
+      .collect();
+    const channel = await ctx.db.get(id);
+    if (channel) {
+      for (const m of projectMembers) {
+        await addChannelMemberInternal(ctx, channel, m.userId, "poster", userId);
+      }
+    }
     return id;
   },
 });
@@ -92,6 +245,9 @@ export const createChannel = mutation({
     workspaceId: v.id("workspaces"),
     name: v.string(),
     type: v.optional(v.union(v.literal("workspace"), v.literal("custom"))),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+    postPermission: v.optional(v.union(v.literal("all"), v.literal("admin"), v.literal("moderator"))),
+    description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
@@ -103,15 +259,21 @@ export const createChannel = mutation({
     ).map((c: any) => c.slug);
     const now = Date.now();
     const slug = generateSlug(args.name, allSlugs);
-    return await ctx.db.insert("flux_chatChannels", {
+    const type = args.type ?? "custom";
+    const id = await ctx.db.insert("flux_chatChannels", {
       workspaceId: args.workspaceId,
       name: args.name,
       slug,
-      type: args.type ?? "custom",
+      type,
+      visibility: args.visibility ?? "public",
+      postPermission: args.postPermission ?? "all",
+      description: args.description,
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
     });
+    await addChannelMemberInternal(ctx, { _id: id, workspaceId: args.workspaceId }, userId, "moderator", userId);
+    return id;
   },
 });
 
@@ -120,19 +282,25 @@ export const getChannelByProject = query({
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.projectId);
     if (!p) return null;
-    await assertWorkspaceMember(ctx, p.workspaceId);
+    const { userId, role } = await assertWorkspaceMember(ctx, p.workspaceId);
     const channel = await ctx.db
       .query("flux_chatChannels")
       .withIndex("by_project", (q: any) => q.eq("projectId", args.projectId))
       .unique();
-    return channel;
+    if (!channel) return null;
+    const ok = await canViewChannel(ctx, channel, userId, role);
+    if (!ok) return null;
+    const member = await getChannelMembership(ctx, channel._id, userId);
+    const canManage = isAdmin(role) || member?.role === "moderator";
+    const canPost = await canPostInChannel(ctx, channel, userId, role);
+    return { ...channel, membership: member ? { role: member.role } : null, canManage, canPost };
   },
 });
 
 export const listChannels = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
-    await assertWorkspaceMember(ctx, args.workspaceId);
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, args.workspaceId);
     const channels = (
       await ctx.db
         .query("flux_chatChannels")
@@ -140,7 +308,16 @@ export const listChannels = query({
         .collect()
     ).sort((a: any, b: any) => b.updatedAt - a.updatedAt);
     const out: any[] = [];
+    const memberships = await ctx.db
+      .query("flux_channelMembers")
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
+      .collect();
+    const membershipMap = new Map(memberships.map((m: any) => [m.channelId, m]));
     for (const c of channels) {
+      if (c.archived && !isAdmin(workspaceRole)) continue;
+      if (c.visibility === "private" && !isAdmin(workspaceRole) && !membershipMap.has(c._id)) {
+        continue;
+      }
       const lastMessage = await ctx.db
         .query("flux_chatMessages")
         .withIndex("by_channel", (q: any) => q.eq("channelId", c._id))
@@ -148,8 +325,14 @@ export const listChannels = query({
         .take(1);
       const last = lastMessage[0];
       const author = last ? await ctx.db.get(last.userId) : null;
+      const member = membershipMap.get(c._id);
+      const canManage = isAdmin(workspaceRole) || member?.role === "moderator";
+      const canPost = await canPostInChannel(ctx, c, userId, workspaceRole);
       out.push({
         ...c,
+        membership: member ? { role: member.role } : null,
+        canManage,
+        canPost,
         lastMessage: last
           ? {
               ...last,
@@ -169,8 +352,134 @@ export const getChannel = query({
   handler: async (ctx, args) => {
     const c = await ctx.db.get(args.channelId);
     if (!c) return null;
-    await assertWorkspaceMember(ctx, c.workspaceId);
-    return c;
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canViewChannel(ctx, c, userId, workspaceRole);
+    if (!ok) return null;
+    const member = await getChannelMembership(ctx, c._id, userId);
+    const canManage = isAdmin(workspaceRole) || member?.role === "moderator";
+    const canPost = await canPostInChannel(ctx, c, userId, workspaceRole);
+    return { ...c, membership: member ? { role: member.role } : null, canManage, canPost };
+  },
+});
+
+export const updateChannel = mutation({
+  args: {
+    channelId: v.id("flux_chatChannels"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+    postPermission: v.optional(v.union(v.literal("all"), v.literal("admin"), v.literal("moderator"))),
+    archived: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.channelId);
+    if (!c) throw new Error("Channel not found");
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canManageChannel(ctx, c, userId, workspaceRole);
+    if (!ok) throw new Error("Forbidden");
+    const patch: any = { updatedAt: Date.now() };
+    if (args.name !== undefined) patch.name = args.name;
+    if (args.description !== undefined) patch.description = args.description;
+    if (args.visibility !== undefined) patch.visibility = args.visibility;
+    if (args.postPermission !== undefined) patch.postPermission = args.postPermission;
+    if (args.archived !== undefined) patch.archived = args.archived;
+    await ctx.db.patch(args.channelId, patch);
+    return true;
+  },
+});
+
+export const deleteChannel = mutation({
+  args: { channelId: v.id("flux_chatChannels") },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.channelId);
+    if (!c) throw new Error("Channel not found");
+    await assertWorkspaceAdmin(ctx, c.workspaceId);
+    await ctx.db.patch(args.channelId, { archived: true, updatedAt: Date.now() });
+    return true;
+  },
+});
+
+export const listChannelMembers = query({
+  args: { channelId: v.id("flux_chatChannels") },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.channelId);
+    if (!c) return [];
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canViewChannel(ctx, c, userId, workspaceRole);
+    if (!ok) return [];
+    const rows = await ctx.db
+      .query("flux_channelMembers")
+      .withIndex("by_channel", (q: any) => q.eq("channelId", args.channelId))
+      .collect();
+    const out = [];
+    for (const r of rows) {
+      const u = await ctx.db.get(r.userId);
+      if (u) {
+        out.push({
+          ...r,
+          name: u.name ?? u.email,
+          email: u.email,
+          image: u.image,
+        });
+      }
+    }
+    return out;
+  },
+});
+
+export const addChannelMember = mutation({
+  args: {
+    channelId: v.id("flux_chatChannels"),
+    userId: v.id("users"),
+    role: v.optional(v.union(v.literal("viewer"), v.literal("poster"), v.literal("moderator"))),
+  },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.channelId);
+    if (!c) throw new Error("Channel not found");
+    const { userId: actorId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canManageChannel(ctx, c, actorId, workspaceRole);
+    if (!ok) throw new Error("Forbidden");
+    const targetRole = args.role ?? "poster";
+    await addChannelMemberInternal(ctx, c, args.userId, targetRole, actorId);
+    return true;
+  },
+});
+
+export const removeChannelMember = mutation({
+  args: {
+    channelId: v.id("flux_chatChannels"),
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.channelId);
+    if (!c) throw new Error("Channel not found");
+    const { userId: actorId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canManageChannel(ctx, c, actorId, workspaceRole);
+    if (!ok) throw new Error("Forbidden");
+    // Prevent removing the creator/moderator if no other moderator exists.
+    const existing = await getChannelMembership(ctx, c._id, args.userId);
+    if (!existing) throw new Error("Member not found");
+    await ctx.db.delete(existing._id);
+    return true;
+  },
+});
+
+export const updateChannelMemberRole = mutation({
+  args: {
+    channelId: v.id("flux_chatChannels"),
+    userId: v.id("users"),
+    role: v.union(v.literal("viewer"), v.literal("poster"), v.literal("moderator")),
+  },
+  handler: async (ctx, args) => {
+    const c = await ctx.db.get(args.channelId);
+    if (!c) throw new Error("Channel not found");
+    const { userId: actorId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canManageChannel(ctx, c, actorId, workspaceRole);
+    if (!ok) throw new Error("Forbidden");
+    const existing = await getChannelMembership(ctx, c._id, args.userId);
+    if (!existing) throw new Error("Member not found");
+    await ctx.db.patch(existing._id, { role: args.role, updatedAt: Date.now() });
+    return true;
   },
 });
 
@@ -212,8 +521,9 @@ export const listMessages = query({
   handler: async (ctx, args) => {
     const c = await ctx.db.get(args.channelId);
     if (!c) return [];
-    await assertWorkspaceMember(ctx, c.workspaceId);
-    const userId = await requireUserId(ctx);
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canViewChannel(ctx, c, userId, workspaceRole);
+    if (!ok) return [];
     const limit = Math.min(200, args.limit ?? 100);
     const q = args.parentId
       ? ctx.db
@@ -255,7 +565,9 @@ export const sendMessage = mutation({
   handler: async (ctx, args) => {
     const c = await ctx.db.get(args.channelId);
     if (!c) throw new Error("Channel not found");
-    const { userId } = await assertWorkspaceMember(ctx, c.workspaceId, "member");
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId, "member");
+    const ok = await canPostInChannel(ctx, c, userId, workspaceRole);
+    if (!ok) throw new Error("You do not have permission to post in this channel");
     const text = args.content.trim();
     if (!text && !args.attachments?.length) throw new Error("Empty message");
     const now = Date.now();
@@ -415,8 +727,9 @@ export const markRead = mutation({
   handler: async (ctx, args) => {
     const c = await ctx.db.get(args.channelId);
     if (!c) throw new Error("Channel not found");
-    const userId = await requireUserId(ctx);
-    await assertWorkspaceMember(ctx, c.workspaceId);
+    const { userId, role: workspaceRole } = await assertWorkspaceMember(ctx, c.workspaceId);
+    const ok = await canViewChannel(ctx, c, userId, workspaceRole);
+    if (!ok) throw new Error("Forbidden");
     const now = Date.now();
     await markReadInternal(ctx, userId, args.channelId, now);
     return true;
@@ -424,6 +737,7 @@ export const markRead = mutation({
 });
 
 async function getUnreadCounts(ctx: any, workspaceId: string, userId: string) {
+  const workspaceRole = await getWorkspaceRole(ctx, workspaceId, userId);
   const channels = await ctx.db
     .query("flux_chatChannels")
     .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
@@ -432,9 +746,18 @@ async function getUnreadCounts(ctx: any, workspaceId: string, userId: string) {
     .query("flux_chatUserReads")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .collect();
+  const memberships = await ctx.db
+    .query("flux_channelMembers")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .collect();
+  const membershipMap = new Map(memberships.map((m: any) => [m.channelId, m]));
   const readMap = new Map(reads.map((r: any) => [r.channelId, r.lastReadAt]));
   const out: { channelId: string; count: number }[] = [];
   for (const c of channels) {
+    if (c.archived && !isAdmin(workspaceRole)) continue;
+    if (c.visibility === "private" && !isAdmin(workspaceRole) && !membershipMap.has(c._id)) {
+      continue;
+    }
     const lastRead = readMap.get(c._id) ?? 0;
     const messages = await ctx.db
       .query("flux_chatMessages")

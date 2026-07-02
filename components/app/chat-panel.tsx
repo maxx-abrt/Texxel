@@ -16,6 +16,9 @@ import {
 import { ChatMentionPicker, MentionChip, Mentionable } from "./chat-mention";
 import { formatDistanceToNow } from "date-fns";
 import { useTranslations } from "next-intl";
+import { ChannelCreateDialog } from "./channel-create-dialog";
+import { ChannelSettingsDialog } from "./channel-settings-dialog";
+import { ChannelMembersDialog } from "./channel-members-dialog";
 import {
   Hash,
   MessageSquare,
@@ -29,6 +32,11 @@ import {
   Edit2,
   Check,
   ChevronLeft,
+  Plus,
+  Settings,
+  Users,
+  Lock,
+  MoreVertical,
 } from "lucide-react";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -113,6 +121,10 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [showEmojiFor, setShowEmojiFor] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
+  const [selectedChannel, setSelectedChannel] = useState<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -311,38 +323,80 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
             <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <MessageSquare size={14} /> {t("channels")}
             </h3>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setCreateOpen(true)}
+              title={t("createChannel")}
+            >
+              <Plus size={14} />
+            </Button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
             {(channels ?? []).map((c: any) => {
               const unread = unreadMap.get(c._id) ?? 0;
               const active = c._id === activeChannel?._id;
               return (
-                <button
+                <div
                   key={c._id}
-                  onClick={() => {
-                    setActiveChannelId(c._id);
-                    setThreadId(null);
-                  }}
                   className={cn(
-                    "flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition-colors",
+                    "group flex items-center rounded-lg transition-colors",
                     active ? "bg-primary/10 text-primary" : "hover:bg-muted",
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <Hash size={14} className="shrink-0 text-muted-foreground" />
-                    <span className="truncate font-medium">{c.name}</span>
-                    {unread > 0 && (
-                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-                        {unread > 99 ? "99+" : unread}
-                      </span>
+                  <button
+                    onClick={() => {
+                      setActiveChannelId(c._id);
+                      setThreadId(null);
+                    }}
+                    className="flex min-w-0 flex-1 flex-col gap-0.5 px-2.5 py-2 text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Hash size={14} className="shrink-0 text-muted-foreground" />
+                      <span className="truncate font-medium">{c.name}</span>
+                      {c.visibility === "private" && (
+                        <Lock size={10} className="shrink-0 text-muted-foreground" />
+                      )}
+                      {unread > 0 && (
+                        <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </div>
+                    {c.lastMessage && (
+                      <p className="truncate pl-5 text-[11px] text-muted-foreground">
+                        {c.lastMessage.author?.name}: {c.lastMessage.content}
+                      </p>
                     )}
-                  </div>
-                  {c.lastMessage && (
-                    <p className="truncate pl-5 text-[11px] text-muted-foreground">
-                      {c.lastMessage.author?.name}: {c.lastMessage.content}
-                    </p>
+                  </button>
+                  {c.canManage && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          onClick={(e) => e.stopPropagation()}
+                          className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-muted"
+                        >
+                          <MoreVertical size={14} />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-40 p-1" align="end">
+                        <button
+                          onClick={() => { setSelectedChannel(c); setSettingsOpen(true); }}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                        >
+                          <Settings size={14} /> {t("editChannel")}
+                        </button>
+                        <button
+                          onClick={() => { setSelectedChannel(c); setMembersOpen(true); }}
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                        >
+                          <Users size={14} /> {t("members")}
+                        </button>
+                      </PopoverContent>
+                    </Popover>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
@@ -353,25 +407,57 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
       <div className="flex flex-1 flex-col min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="flex items-center gap-2 min-w-0">
-            {threadId ? (
-              <button
-                onClick={() => setThreadId(null)}
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <ChevronLeft size={14} /> {t("thread")}
-              </button>
-            ) : (
-              <>
-                <Hash size={16} className="text-muted-foreground" />
-                <span className="truncate font-semibold">{activeChannel?.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {activeChannel?.type === "project" && "· project"}
-                </span>
-              </>
+          <div className="flex min-w-0 flex-col">
+            <div className="flex items-center gap-2 min-w-0">
+              {threadId ? (
+                <button
+                  onClick={() => setThreadId(null)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronLeft size={14} /> {t("thread")}
+                </button>
+              ) : (
+                <>
+                  <Hash size={16} className="text-muted-foreground" />
+                  <span className="truncate font-semibold">{activeChannel?.name}</span>
+                  {activeChannel?.visibility === "private" && (
+                    <span className="flex items-center gap-0.5 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      <Lock size={8} /> {t("private")}
+                    </span>
+                  )}
+                  {activeChannel?.type === "project" && (
+                    <span className="text-xs text-muted-foreground">· project</span>
+                  )}
+                </>
+              )}
+            </div>
+            {activeChannel?.description && !threadId && (
+              <p className="truncate text-[11px] text-muted-foreground">{activeChannel.description}</p>
             )}
           </div>
           <div className="flex items-center gap-1">
+            {!threadId && activeChannel?.canManage && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title={t("members")}
+                  onClick={() => { setSelectedChannel(activeChannel); setMembersOpen(true); }}
+                >
+                  <Users size={16} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  title={t("channelSettings")}
+                  onClick={() => { setSelectedChannel(activeChannel); setSettingsOpen(true); }}
+                >
+                  <Settings size={16} />
+                </Button>
+              </>
+            )}
             {onClose && (
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
                 <X size={16} />
@@ -582,13 +668,18 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
                 value={draft}
                 onChange={handleInputChange}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
+                  if (e.key === "Enter" && !e.shiftKey && activeChannel.canPost) {
                     e.preventDefault();
                     handleSend();
                   }
                 }}
-                placeholder={threadId ? t("replyPlaceholder") : t("newMessagePlaceholder")}
-                className="min-h-14 resize-none pr-20 py-3 text-sm"
+                placeholder={
+                  activeChannel.canPost
+                    ? (threadId ? t("replyPlaceholder") : t("newMessagePlaceholder"))
+                    : t("readOnlyPlaceholder")
+                }
+                disabled={!activeChannel.canPost}
+                className="min-h-14 resize-none pr-20 py-3 text-sm disabled:opacity-60"
               />
               <div className="absolute bottom-2 right-2 flex items-center gap-1">
                 <Button
@@ -596,6 +687,7 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => fileRef.current?.click()}
+                  disabled={!activeChannel.canPost}
                 >
                   <Paperclip size={16} />
                 </Button>
@@ -603,17 +695,20 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
                   size="icon"
                   className="h-8 w-8"
                   onClick={handleSend}
-                  disabled={!draft.trim() && !attachments.length}
+                  disabled={!activeChannel.canPost || (!draft.trim() && !attachments.length)}
                 >
                   <Send size={16} />
                 </Button>
               </div>
-              {mentionQuery !== null && (
+              {mentionQuery !== null && activeChannel.canPost && (
                 <div className="absolute bottom-full left-0 mb-2">
                   <ChatMentionPicker query={mentionQuery} onSelect={insertMention} />
                 </div>
               )}
             </div>
+            {!activeChannel.canPost && (
+              <p className="mt-1 text-[11px] text-muted-foreground">{t("readOnlyHint")}</p>
+            )}
             <input
               ref={fileRef}
               type="file"
@@ -624,6 +719,29 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
           </div>
         )}
       </div>
+
+      <ChannelCreateDialog
+        workspaceId={workspaceId ?? ""}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+      />
+      <ChannelSettingsDialog
+        channel={selectedChannel}
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        onDeleted={() => {
+          if (selectedChannel?._id === activeChannelId) {
+            setActiveChannelId(null);
+          }
+          setSelectedChannel(null);
+        }}
+      />
+      <ChannelMembersDialog
+        channelId={selectedChannel?._id ?? null}
+        workspaceId={workspaceId ?? null}
+        open={membersOpen}
+        onOpenChange={setMembersOpen}
+      />
     </div>
   );
 }

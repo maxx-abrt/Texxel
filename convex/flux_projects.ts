@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember, logActivity } from "./lib/auth";
+import { ensureChannel, addProjectMemberToChannel, removeProjectMemberFromChannel } from "./flux_chat";
 
 async function shapeUser(ctx: any, id?: any) {
   if (!id) return null;
@@ -50,6 +51,7 @@ export const addMember = mutation({
       addedBy: actorId,
       addedAt: Date.now(),
     });
+    await addProjectMemberToChannel(ctx, args.projectId as any, args.userId as any, actorId as any);
     if (args.userId !== actorId) {
       await ctx.db.insert("notifications", {
         userId: args.userId,
@@ -83,7 +85,10 @@ export const removeMember = mutation({
       .query("flux_projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.userId))
       .unique();
-    if (existing) await ctx.db.delete(existing._id);
+    if (existing) {
+      await ctx.db.delete(existing._id);
+      await removeProjectMemberFromChannel(ctx, args.projectId as any, args.userId as any);
+    }
     return true;
   },
 });

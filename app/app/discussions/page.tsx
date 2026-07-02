@@ -4,12 +4,14 @@ import { useSearchParams } from "next/navigation";
 import { ChatPanel } from "@/components/app/chat-panel";
 import { ShowChatBubbleButton } from "@/components/app/chat-bubble";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
 export default function DiscussionsPage() {
   const searchParams = useSearchParams();
   const channelId = searchParams.get("channel");
   const { activeWorkspaceId } = useWorkspace();
+  const t = useTranslations("chat");
 
   useEffect(() => {
     // Reveal the floating bubble when visiting the discussions page.
@@ -30,7 +32,7 @@ export default function DiscussionsPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-6 py-3">
-        <h1 className="text-lg font-semibold">Discussions</h1>
+        <h1 className="text-lg font-semibold">{t("discussions")}</h1>
         <ShowChatBubbleButton />
       </div>
       <div className="flex-1 overflow-hidden">

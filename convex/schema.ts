@@ -664,6 +664,10 @@ export default defineSchema({
       v.literal("custom"),
     ),
     projectId: v.optional(v.id("projects")),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+    postPermission: v.optional(v.union(v.literal("all"), v.literal("admin"), v.literal("moderator"))),
+    description: v.optional(v.string()),
+    archived: v.optional(v.boolean()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -671,6 +675,20 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_slug", ["workspaceId", "slug"])
     .index("by_project", ["projectId"]),
+
+  // Channel membership (visibility, posting rights, moderation roles).
+  flux_channelMembers: defineTable({
+    channelId: v.id("flux_chatChannels"),
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    role: v.union(v.literal("viewer"), v.literal("poster"), v.literal("moderator")),
+    addedBy: v.optional(v.id("users")),
+    joinedAt: v.number(),
+  })
+    .index("by_channel", ["channelId"])
+    .index("by_channel_user", ["channelId", "userId"])
+    .index("by_user", ["userId"])
+    .index("by_workspace", ["workspaceId"]),
 
   // Chat messages.
   flux_chatMessages: defineTable({

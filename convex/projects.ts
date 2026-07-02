@@ -2,16 +2,19 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember, logActivity } from "./lib/auth";
 import { ensureChannel } from "./flux_chat";
+import { assertPermission, getUserPermissions } from "./flux_roles";
 
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
   handler: async (ctx, args) => {
-    await assertWorkspaceMember(ctx, args.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId);
     const projects = await ctx.db
       .query("projects")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .order("desc")
       .collect();
+    const perms = await getUserPermissions(ctx, args.workspaceId, userId);
+    const canViewAll = perms.has("projects:view");
 
     // Task progress per project.
     const allTasks = await ctx.db
@@ -30,14 +33,46 @@ export const list = query({
       .query("flux_projectMembers")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
+    const membershipByProject = new Map<string, string[]>();
+    for (const m of memberRows) {
+      const list = membershipByProject.get(m.projectId) ?? [];
+      list.push(m.userId);
+      membershipByProject.set(m.projectId, list);
+    }
 
-    return projects.map((p) => {
-      const projTasks = allTasks.filter((t) => t.projectId === p._id);
-      const taskTotal = projTasks.length;
-      const taskDone = projTasks.filter((t) => doneKeys.has(t.status)).length;
-      const memberCount = memberRows.filter((m) => m.projectId === p._id).length;
-      return { ...p, taskTotal, taskDone, memberCount };
-    });
+    return projects
+      .filter((p) => {
+        if (canViewAll) return true;
+        const members = membershipByProject.get(p._id) ?? [];
+        return members.includes(userId);
+      })
+      .map((p) => {
+        const projTasks = allTasks.filter((t) => t.projectId === p._id);
+        const taskTotal = projTasks.length;
+        const taskDone = projTasks.filter((t) => doneKeys.has(t.status)).length;
+        const memberCount = (membershipByProject.get(p._id) ?? []).length;
+        const isMember = (membershipByProject.get(p._id) ?? []).includes(userId);
+        return { ...p, taskTotal, taskDone, memberCount, isMember };
+      });
+  },
+});
+
+export const listMine = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId);
+    const memberRows = await ctx.db
+      .query("flux_projectMembers")
+      .withIndex("by_workspace_user", (q: any) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", userId),
+      )
+      .collect();
+    const projectIds = new Set(memberRows.map((m) => m.projectId));
+    const projects = await ctx.db
+      .query("projects")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    return projects.filter((p) => projectIds.has(p._id));
   },
 });
 
@@ -70,7 +105,7 @@ export const create = mutation({
     locale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
+    const { userId } = await assertPermission(ctx, args.workspaceId, "projects:manage");
     const now = Date.now();
     const id = await ctx.db.insert("projects", {
       workspaceId: args.workspaceId,
@@ -146,7 +181,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.projectId);
     if (!p) throw new Error("Project not found");
-    const { userId } = await assertWorkspaceMember(ctx, p.workspaceId, "member");
+    const { userId } = await assertPermission(ctx, p.workspaceId, "projects:manage");
     const { projectId, ...rest } = args as any;
     const patch: any = { updatedAt: Date.now() };
     for (const [k, v] of Object.entries(rest)) {
@@ -169,7 +204,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.projectId);
     if (!p) throw new Error("Project not found");
-    const { userId } = await assertWorkspaceMember(ctx, p.workspaceId, "admin");
+    const { userId } = await assertPermission(ctx, p.workspaceId, "projects:manage");
     await ctx.db.delete(args.projectId);
     await logActivity(ctx, {
       workspaceId: p.workspaceId,

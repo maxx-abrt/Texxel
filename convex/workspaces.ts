@@ -11,6 +11,7 @@ import {
   requireUserId,
 } from "./lib/auth";
 import { ensureChannel } from "./flux_chat";
+import { assertPermission, getUserPermissions, seedDefaultRoles } from "./flux_roles";
 
 /** List workspaces the current user is a member of. */
 export const listMine = query({
@@ -110,6 +111,7 @@ export const create = mutation({
       role: "owner",
       joinedAt: now,
     });
+    await seedDefaultRoles(ctx, workspaceId as any, userId as any);
     await ensureChannel(ctx, workspaceId as any, "general", "workspace", userId as any);
     await logActivity(ctx, {
       workspaceId,
@@ -140,7 +142,7 @@ export const update = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { userId } = await assertWorkspaceAdmin(ctx, args.workspaceId);
+    const { userId } = await assertPermission(ctx, args.workspaceId, "workspace:manage");
     const patch: any = { updatedAt: Date.now() };
     for (const k of [
       "name",
@@ -212,6 +214,16 @@ export const listMembers = query({
       .query("memberships")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
+    const assignments = await ctx.db
+      .query("flux_roleAssignments")
+      .withIndex("by_workspace", (q: any) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    const assignmentMap = new Map<string, string[]>();
+    for (const a of assignments) {
+      const list = assignmentMap.get(a.userId) ?? [];
+      list.push(a.roleId);
+      assignmentMap.set(a.userId, list);
+    }
     const out: Array<{
       _id: Id<"memberships">;
       userId: Id<"users">;
@@ -220,9 +232,12 @@ export const listMembers = query({
       name: string | null;
       email: string | null;
       image: string | null;
+      roleIds: string[];
+      permissions: string[];
     }> = [];
     for (const m of memberships) {
       const u: any = await ctx.db.get(m.userId);
+      const perms = await getUserPermissions(ctx, args.workspaceId, m.userId);
       out.push({
         _id: m._id,
         userId: m.userId,
@@ -231,6 +246,8 @@ export const listMembers = query({
         name: u?.name ?? null,
         email: u?.email ?? null,
         image: u?.image ?? null,
+        roleIds: assignmentMap.get(m.userId) ?? [],
+        permissions: Array.from(perms),
       });
     }
     return out;
@@ -248,7 +265,7 @@ export const updateMemberRole = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { userId } = await assertWorkspaceAdmin(ctx, args.workspaceId);
+    const { userId } = await assertPermission(ctx, args.workspaceId, "members:manage");
     const m = await ctx.db.get(args.memberId);
     if (!m || m.workspaceId !== args.workspaceId) {
       throw new Error("Member not found");
@@ -270,7 +287,7 @@ export const updateMemberRole = mutation({
 export const removeMember = mutation({
   args: { workspaceId: v.id("workspaces"), memberId: v.id("memberships") },
   handler: async (ctx, args) => {
-    const { userId } = await assertWorkspaceAdmin(ctx, args.workspaceId);
+    const { userId } = await assertPermission(ctx, args.workspaceId, "members:manage");
     const m = await ctx.db.get(args.memberId);
     if (!m || m.workspaceId !== args.workspaceId) {
       throw new Error("Member not found");

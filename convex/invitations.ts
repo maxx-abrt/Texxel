@@ -7,6 +7,7 @@ import {
   logActivity,
   notifyWorkspaceMembers,
 } from "./lib/auth";
+import { assertPermission } from "./flux_roles";
 
 function makeToken() {
   const a = Math.random().toString(36).slice(2);
@@ -37,7 +38,7 @@ export const invite = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const { userId } = await assertWorkspaceAdmin(ctx, args.workspaceId);
+    const { userId } = await assertPermission(ctx, args.workspaceId, "invites:manage");
     const token = makeToken();
     const now = Date.now();
     const id = await ctx.db.insert("invitations", {
@@ -67,7 +68,7 @@ export const revoke = mutation({
   handler: async (ctx, args) => {
     const inv = await ctx.db.get(args.invitationId);
     if (!inv) throw new Error("Invitation not found");
-    const { userId } = await assertWorkspaceAdmin(ctx, inv.workspaceId);
+    const { userId } = await assertPermission(ctx, inv.workspaceId, "invites:manage");
     await ctx.db.patch(args.invitationId, { status: "revoked" });
     await logActivity(ctx, {
       workspaceId: inv.workspaceId,

@@ -83,7 +83,7 @@ type Status = { _id: Id<"flux_taskStatuses"> | null; key: string; label: string;
 export function TasksView() {
   const t = useTranslations("tasks");
   const search = useSearchParams();
-  const { activeWorkspaceId } = useWorkspace();
+  const { activeWorkspaceId, me } = useWorkspace();
   const tasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const statuses = useQuery(api.flux_taskStatuses.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip") as Status[] | undefined;
   const members = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
@@ -127,6 +127,8 @@ export function TasksView() {
     return m;
   }, [labels]);
 
+  const showAssigneeFilter = (members?.length ?? 0) > 0 || !!me?._id;
+
   return (
     <PageContainer>
       <PageHeader
@@ -168,11 +170,27 @@ export function TasksView() {
       {/* Filter bars */}
       <div className="mb-4 flex flex-wrap gap-3">
         {/* Assignee filter */}
-        {members && members.length > 0 && (
+        {showAssigneeFilter ? (
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-medium text-muted-foreground">{t("filterByAssignee")}:</span>
             <button onClick={() => setAssigneeFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !assigneeFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>{t("allAssignees")}</button>
-            {members.map((m: any) => (
+            {me?._id && (
+              <button
+                onClick={() => setAssigneeFilter(assigneeFilter === me._id ? null : me._id)}
+                className={cn(
+                  "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition",
+                  assigneeFilter === me._id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+                )}
+                data-testid="tasks-filter-me"
+              >
+                <Avatar className="h-4 w-4">
+                  <AvatarImage src={me.image} />
+                  <AvatarFallback className="text-[9px]">{(me.name ?? me.email ?? "?").charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                {t("me")}
+              </button>
+            )}
+            {(members ?? []).map((m: any) => (
               <button key={m.userId} onClick={() => setAssigneeFilter(assigneeFilter === m.userId ? null : m.userId)}
                 className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition", assigneeFilter === m.userId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70")}>
                 <Avatar className="h-4 w-4">
@@ -183,7 +201,7 @@ export function TasksView() {
               </button>
             ))}
           </div>
-        )}
+        ) : null}
         {/* Project filter */}
         {projects && projects.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">

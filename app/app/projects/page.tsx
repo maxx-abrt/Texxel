@@ -16,7 +16,7 @@ import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Briefcase, Add, More, Calendar } from "iconsax-reactjs";
+import { Briefcase, Add, More, Calendar, Profile } from "iconsax-reactjs";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
@@ -31,8 +31,11 @@ const STATUS_COLORS: Record<string, string> = {
 export default function ProjectsPage() {
   const router = useRouter();
   const search = useSearchParams();
-  const { activeWorkspaceId, activeWorkspace } = useWorkspace();
-  const projects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const { activeWorkspaceId, activeWorkspace, me } = useWorkspace();
+  const [mineOnly, setMineOnly] = useState(false);
+  const allProjects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const myProjects = useQuery(api.projects.listMine, activeWorkspaceId && mineOnly ? { workspaceId: activeWorkspaceId } : "skip");
+  const projects = mineOnly ? myProjects : allProjects;
   const create = useMutation(api.projects.create);
   const remove = useMutation(api.projects.remove);
   const [open, setOpen] = useState(false);
@@ -44,7 +47,21 @@ export default function ProjectsPage() {
     return (
     <PageContainer>
       <PageHeader title={t("title")} subtitle={t("subtitle")} icon={Briefcase} testId="projects-header"
-        actions={<button onClick={() => setOpen(true)} className={btnPrimary} data-testid="new-project-btn"><Add variant="Bulk" size={18} /> {t("newProject")}</button>} />
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMineOnly((v) => !v)}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition",
+                mineOnly ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+              )}
+              data-testid="projects-mine-only"
+            >
+              <Profile variant="Bulk" size={14} /> {t("onlyMine")}
+            </button>
+            <button onClick={() => setOpen(true)} className={btnPrimary} data-testid="new-project-btn"><Add variant="Bulk" size={18} /> {t("newProject")}</button>
+          </div>
+        } />
 
       {projects === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-36 animate-pulse rounded-2xl bg-muted" />)}</div>

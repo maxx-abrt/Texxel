@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember, logActivity } from "./lib/auth";
 import { ensureChannel, addProjectMemberToChannel, removeProjectMemberFromChannel } from "./flux_chat";
+import { assertPermission } from "./flux_roles";
 
 async function shapeUser(ctx: any, id?: any) {
   if (!id) return null;
@@ -34,7 +35,7 @@ export const addMember = mutation({
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.projectId);
     if (!p) throw new Error("Project not found");
-    const { userId: actorId } = await assertWorkspaceMember(ctx, p.workspaceId, "member");
+    const { userId: actorId } = await assertPermission(ctx, p.workspaceId, "projects:assign");
     const existing = await ctx.db
       .query("flux_projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.userId))
@@ -80,7 +81,7 @@ export const removeMember = mutation({
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.projectId);
     if (!p) throw new Error("Project not found");
-    await assertWorkspaceMember(ctx, p.workspaceId, "member");
+    await assertPermission(ctx, p.workspaceId, "projects:assign");
     const existing = await ctx.db
       .query("flux_projectMembers")
       .withIndex("by_project_user", (q) => q.eq("projectId", args.projectId).eq("userId", args.userId))

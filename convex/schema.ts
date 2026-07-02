@@ -651,6 +651,7 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"])
+    .index("by_workspace_user", ["workspaceId", "userId"])
     .index("by_project_user", ["projectId", "userId"]),
 
   // Chat / Discussion channels (workspace global, per-project, or custom).
@@ -761,6 +762,32 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"]),
+
+  // Discord-style custom workspace roles and their permissions.
+  flux_roles: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    color: v.string(),
+    permissions: v.array(v.string()),
+    isDefault: v.optional(v.boolean()),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_default", ["workspaceId", "isDefault"]),
+
+  // Role assignments: a user can have multiple roles in a workspace.
+  flux_roleAssignments: defineTable({
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    roleId: v.id("flux_roles"),
+    assignedBy: v.optional(v.id("users")),
+    assignedAt: v.number(),
+  })
+    .index("by_user_workspace", ["userId", "workspaceId"])
+    .index("by_role", ["roleId"])
+    .index("by_workspace", ["workspaceId"]),
 }, {
   // SHARED A2E Suite deployment: other apps in the suite own and extend some
   // tables (e.g. `notifications` gets extra fields like `relatedId` and legacy

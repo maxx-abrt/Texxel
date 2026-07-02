@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useMutation, useConvex } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale } from "@/components/providers/locale-provider";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash } from "iconsax-reactjs";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People } from "iconsax-reactjs";
 
 function ProfileAvatar({ me, updateProfile }: { me: any; updateProfile: any }) {
   const convex = useConvex();
@@ -134,6 +134,7 @@ export default function SettingsPage() {
   const t = useTranslations("settings");
   const tc = useTranslations("common");
   const ta = useTranslations("auth");
+  const myPermissions = useQuery(api.flux_roles.myPermissions, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
 
   const updateProfile = useMutation(api.users.updateProfile);
   const updateWorkspace = useMutation(api.workspaces.update);
@@ -148,7 +149,7 @@ export default function SettingsPage() {
   useEffect(() => { setWsName(activeWorkspace?.name ?? ""); }, [activeWorkspace]);
   useEffect(() => { if (search.get("new") === "1") document.getElementById("create-workspace")?.scrollIntoView({ behavior: "smooth" }); }, [search]);
 
-  const canManageWs = activeWorkspace?.role === "owner" || activeWorkspace?.role === "admin";
+  const canManageWs = (myPermissions ?? []).includes("workspace:manage");
 
   return (
     <PageContainer className="max-w-[760px]">
@@ -187,6 +188,13 @@ export default function SettingsPage() {
             {canManageWs && <button onClick={() => updateWorkspace({ workspaceId: activeWorkspaceId!, name: wsName.trim() }).then(() => toast.success(t("workspaceUpdated")))} className={btnPrimary}>{t("profile.saveChanges")}</button>}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{t("yourRole", { role: activeWorkspace?.role ?? "" })}</p>
+        </Section>
+
+        <Section title={t("roles")} icon={Crown}>
+          <p className="mb-3 text-xs text-muted-foreground">{t("rolesHint")}</p>
+          <button onClick={() => router.push("/app/settings/roles")} className={cn(btnOutline, "h-9 text-xs")} data-testid="settings-roles-link">
+            <People variant="Bulk" size={15} /> {t("manageRoles")}
+          </button>
         </Section>
 
         <Section title={t("createNewWorkspace")} icon={Add}>

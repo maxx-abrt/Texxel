@@ -6,6 +6,7 @@ import {
   notifyWorkspaceMembers,
   requireUserId,
 } from "./lib/auth";
+import { assertPermission, getUserPermissions, hasPermission } from "./flux_roles";
 import { Id } from "./_generated/dataModel";
 
 async function hydrate(ctx: any, workspaceId: Id<"workspaces">, tasks: any[]) {
@@ -46,7 +47,7 @@ export const list = query({
     parentId: v.optional(v.union(v.id("tasks"), v.null())),
   },
   handler: async (ctx, args) => {
-    await assertWorkspaceMember(ctx, args.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId);
     let tasks = await ctx.db
       .query("tasks")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
@@ -58,20 +59,50 @@ export const list = query({
         args.parentId === null ? !t.parentId : t.parentId === args.parentId
       );
     }
+    const perms = await getUserPermissions(ctx, args.workspaceId, userId);
+    const canViewAll = perms.has("tasks:view");
+    if (!canViewAll) {
+      tasks = tasks.filter((t) => t.assigneeId === userId || t.createdBy === userId);
+    }
     return hydrate(ctx, args.workspaceId, tasks);
   },
-})
+});
+
+export const listMine = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId);
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    return hydrate(
+      ctx,
+      args.workspaceId,
+      tasks.filter((t) => t.assigneeId === userId || t.createdBy === userId),
+    );
+  },
+});
 
 export const listChildren = query({
   args: { parentId: v.id("tasks") },
   handler: async (ctx, args) => {
     const parent = await ctx.db.get(args.parentId);
     if (!parent) return [];
-    await assertWorkspaceMember(ctx, parent.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, parent.workspaceId);
     const children = await ctx.db
       .query("tasks")
       .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
       .collect();
+    const perms = await getUserPermissions(ctx, parent.workspaceId, userId);
+    const canViewAll = perms.has("tasks:view");
+    if (!canViewAll) {
+      return hydrate(
+        ctx,
+        parent.workspaceId,
+        children.filter((t) => t.assigneeId === userId || t.createdBy === userId),
+      );
+    }
     return hydrate(ctx, parent.workspaceId, children);
   },
 });
@@ -81,7 +112,12 @@ export const get = query({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) return null;
-    await assertWorkspaceMember(ctx, task.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, task.workspaceId);
+    const perms = await getUserPermissions(ctx, task.workspaceId, userId);
+    const canViewAll = perms.has("tasks:view");
+    if (!canViewAll && task.assigneeId !== userId && task.createdBy !== userId) {
+      return null;
+    }
     const meta = await ctx.db
       .query("flux_taskMeta")
       .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
@@ -119,7 +155,7 @@ export const create = mutation({
     estimateMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
+    const { userId } = await assertPermission(ctx, args.workspaceId, "tasks:manage");
     const now = Date.now();
     const taskId = await ctx.db.insert("tasks", {
       workspaceId: args.workspaceId,
@@ -187,8 +223,13 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
-    const { userId } = await assertWorkspaceMember(ctx, task.workspaceId, "member");
+    const { userId } = await assertPermission(ctx, task.workspaceId, "tasks:manage");
     const now = Date.now();
+    const assigneeChanged = args.assigneeId !== undefined && args.assigneeId !== task.assigneeId;
+    if (assigneeChanged) {
+      const canAssign = await hasPermission(ctx, task.workspaceId, userId, "tasks:assign");
+      if (!canAssign) throw new Error("Forbidden: requires tasks:assign");
+    }
     const taskPatch: any = { updatedAt: now };
     for (const k of ["title", "description", "status", "assigneeId", "dueDate", "projectId"] as const) {
       if ((args as any)[k] !== undefined) taskPatch[k] = (args as any)[k];
@@ -240,7 +281,7 @@ export const setStatus = mutation({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
-    await assertWorkspaceMember(ctx, task.workspaceId, "member");
+    await assertPermission(ctx, task.workspaceId, "tasks:manage");
     await ctx.db.patch(args.taskId, { status: args.status, updatedAt: Date.now() });
     if (args.order !== undefined) {
       const meta = await ctx.db
@@ -278,7 +319,7 @@ export const bulkUpdate = mutation({
     for (const taskId of args.taskIds) {
       const task = await ctx.db.get(taskId);
       if (!task) continue;
-      await assertWorkspaceMember(ctx, task.workspaceId, "member");
+      await assertPermission(ctx, task.workspaceId, "tasks:manage");
       const taskPatch: any = { updatedAt: now };
       if (args.status !== undefined) taskPatch.status = args.status;
       if (args.assigneeId !== undefined) taskPatch.assigneeId = args.assigneeId ?? undefined;
@@ -333,7 +374,7 @@ export const bulkRemove = mutation({
     for (const taskId of args.taskIds) {
       const task = await ctx.db.get(taskId);
       if (!task) continue;
-      await assertWorkspaceMember(ctx, task.workspaceId, "member");
+      await assertPermission(ctx, task.workspaceId, "tasks:manage");
       await deleteTaskTree(ctx, taskId);
     }
     return args.taskIds.length;
@@ -345,7 +386,7 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
-    const { userId } = await assertWorkspaceMember(ctx, task.workspaceId, "member");
+    const { userId } = await assertPermission(ctx, task.workspaceId, "tasks:manage");
     await deleteTaskTree(ctx, args.taskId);
     await logActivity(ctx, {
       workspaceId: task.workspaceId,
@@ -363,7 +404,12 @@ export const listComments = query({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) return [];
-    await assertWorkspaceMember(ctx, task.workspaceId);
+    const { userId } = await assertWorkspaceMember(ctx, task.workspaceId);
+    const perms = await getUserPermissions(ctx, task.workspaceId, userId);
+    const canViewAll = perms.has("tasks:view");
+    if (!canViewAll && task.assigneeId !== userId && task.createdBy !== userId) {
+      return [];
+    }
     const comments = await ctx.db
       .query("flux_taskComments")
       .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
@@ -383,7 +429,12 @@ export const addComment = mutation({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
-    const { userId } = await assertWorkspaceMember(ctx, task.workspaceId, "member");
+    const { userId } = await assertWorkspaceMember(ctx, task.workspaceId);
+    const perms = await getUserPermissions(ctx, task.workspaceId, userId);
+    const canView = perms.has("tasks:view");
+    if (!canView && task.assigneeId !== userId && task.createdBy !== userId) {
+      throw new Error("Forbidden");
+    }
     await ctx.db.insert("flux_taskComments", {
       workspaceId: task.workspaceId,
       taskId: args.taskId,

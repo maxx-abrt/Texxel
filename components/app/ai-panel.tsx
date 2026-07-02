@@ -63,8 +63,13 @@ const ICON_FOR: Record<string, React.ElementType> = {
   create_project: FolderPlus,
 };
 
-export function AiPanel() {
-  const [open, setOpen] = useState(false);
+export function AiPanel({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -184,17 +189,6 @@ export function AiPanel() {
 
   return (
     <>
-      {/* Floating trigger */}
-      {!open && (
-        <button
-          data-testid="ai-fab"
-          onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95"
-        >
-          <Sparkles size={18} /> <span className="hidden sm:inline">{t("askAi")}</span>
-        </button>
-      )}
-
       {/* Panel */}
       {open && (
         <div className="fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-2xl border border-border bg-card shadow-2xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:h-[640px] sm:w-[420px] sm:rounded-2xl">
@@ -203,7 +197,7 @@ export function AiPanel() {
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary"><Sparkles size={16} /></span>
               <div className="text-sm font-bold">{t("panelTitle")}</div>
             </div>
-            <button data-testid="ai-close" onClick={() => setOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"><X size={18} /></button>
+            <button data-testid="ai-close" onClick={() => onOpenChange(false)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"><X size={18} /></button>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">

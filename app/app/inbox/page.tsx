@@ -16,6 +16,8 @@ const ICON: Record<string, any> = {
   task_comment: Messages2,
   task_completed: TickCircle,
   mention: Messages2,
+  chat_mention: Messages2,
+  chat_reply: Messages2,
   member_joined: Profile2User,
   member_left: Profile2User,
   project_invitation: Profile2User,
@@ -37,7 +39,7 @@ const FILTER_TABS: { key: FilterTab; label: string }[] = [
 function matchesTab(type: string, tab: FilterTab): boolean {
   if (tab === "all") return true;
   if (tab === "tasks") return type.startsWith("task") || type === "deadline_alert" || type === "reminder";
-  if (tab === "mentions") return type === "mention" || type === "task_comment";
+  if (tab === "mentions") return type === "mention" || type === "task_comment" || type === "chat_mention" || type === "chat_reply";
   if (tab === "members") return type.startsWith("member") || type.includes("invitation");
   return true;
 }

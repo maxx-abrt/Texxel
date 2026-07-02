@@ -15,6 +15,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat, TaskSquare } from "iconsax-reactjs";
+import { expandEvents } from "@/lib/recurrence";
 
 const EVENT_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -27,37 +28,8 @@ function sameDay(a: Date, b: Date) { return a.getFullYear() === b.getFullYear() 
 function addMonths(d: Date, n: number) { return new Date(d.getFullYear(), d.getMonth() + n, d.getDate()); }
 function dayKey(d: Date) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
 
-/** Expand recurring events into concrete occurrences within [rangeStart, rangeEnd). */
-function expandEvents(events: any[], rangeStart: number, rangeEnd: number): any[] {
-  const out: any[] = [];
-  for (const e of events) {
-    const dur = (e.end ?? e.start) - e.start;
-    const rec = e.recurrence && e.recurrence !== "none" ? e.recurrence : null;
-    const exceptions: number[] = e.recurrenceExceptions ?? [];
-    if (!rec) {
-      if (e.start < rangeEnd && (e.end ?? e.start) >= rangeStart) out.push(e);
-      continue;
-    }
-    const until = e.recurrenceUntil ?? rangeEnd;
-    let occ = new Date(e.start);
-    let guard = 0;
-    while (occ.getTime() < rangeEnd && occ.getTime() <= until && guard < 750) {
-      guard++;
-      const t = occ.getTime();
-      if (t + dur >= rangeStart && t < rangeEnd && !exceptions.includes(t)) {
-        out.push({ ...e, start: t, end: t + dur, _occId: `${e._id}_${t}`, _recurring: true, _occurrenceStart: t });
-      }
-      if (rec === "daily") occ = new Date(occ.getTime() + DAY_MS);
-      else if (rec === "weekly") occ = new Date(occ.getTime() + 7 * DAY_MS);
-      else if (rec === "biweekly") occ = new Date(occ.getTime() + 14 * DAY_MS);
-      else if (rec === "monthly") { occ = new Date(occ); occ.setMonth(occ.getMonth() + 1); }
-      else break;
-    }
-  }
-  return out.sort((a, b) => a.start - b.start);
-}
-
 type ViewMode = "month" | "week" | "day";
+const RECUR_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
 
 export function CalendarView() {
   const search = useSearchParams();
@@ -85,7 +57,11 @@ export function CalendarView() {
 
   const WEEKDAYS = [t("weekdays.mon"), t("weekdays.tue"), t("weekdays.wed"), t("weekdays.thu"), t("weekdays.fri"), t("weekdays.sat"), t("weekdays.sun")];
   const RECUR_LABEL: Record<string, string> = {
-    none: t("recurrence.none"), daily: t("recurrence.daily"), weekly: t("recurrence.weekly"), biweekly: t("recurrence.biweekly"), monthly: t("recurrence.monthly"),
+    none: t("recurrence.none"),
+    daily: t("recurrence.daily"),
+    weekly: t("recurrence.weekly"),
+    monthly: t("recurrence.monthly"),
+    biweekly: t("recurrence.biweekly"), // legacy read-only label
   };
   const VIEW_LABEL: Record<ViewMode, string> = { month: t("month"), week: t("week"), day: t("day") };
   const fmtTime = (ts: number) => new Date(ts).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
@@ -422,11 +398,22 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
   const [color, setColor] = useState(EVENT_COLORS[0]);
   const [location, setLocation] = useState("");
   const [recurrence, setRecurrence] = useState("none");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceDaysOfWeek, setRecurrenceDaysOfWeek] = useState<number[]>([]);
+  const [recurrenceMonthlyPosition, setRecurrenceMonthlyPosition] = useState("same_day");
+  const [endType, setEndType] = useState<"never" | "until" | "after">("never");
   const [recurUntil, setRecurUntil] = useState("");
+  const [endAfter, setEndAfter] = useState(10);
   const [busy, setBusy] = useState(false);
 
   const dstr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const tstr = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  const WEEKDAYS = [t("weekdays.mon"), t("weekdays.tue"), t("weekdays.wed"), t("weekdays.thu"), t("weekdays.fri"), t("weekdays.sat"), t("weekdays.sun")];
+  const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+  const monthWeekday = (date ? new Date(`${date}T00:00`) : new Date()).getDay();
+  const monthWeekdayLabel = WEEKDAYS[(monthWeekday + 6) % 7];
+  const MONTHLY_POSITIONS = ["same_day", "first", "second", "third", "fourth", "last"] as const;
 
   useEffect(() => {
     if (!open) return;
@@ -438,9 +425,36 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
     setAllDay(event?.allDay ?? false);
     setColor(event?.color ?? EVENT_COLORS[0]);
     setLocation(event?.location ?? "");
-    setRecurrence(event?.recurrence ?? "none");
-    setRecurUntil(event?.recurrenceUntil ? dstr(new Date(event.recurrenceUntil)) : "");
-  }, [open, event, seedDate, seedEnd]);
+
+    const legacyFreq = event?.recurrence ?? "none";
+    const isLegacy = !event?.recurrenceFreq;
+    let freq = event?.recurrenceFreq ?? legacyFreq;
+    let interval = event?.recurrenceInterval ?? 1;
+    let days = event?.recurrenceDaysOfWeek ?? [];
+    let monthPos = event?.recurrenceMonthlyPosition ?? "same_day";
+    let end: "never" | "until" | "after" = "never";
+    let until = "";
+    let after = 10;
+    if (isLegacy && legacyFreq === "biweekly") {
+      freq = "weekly";
+      interval = 2;
+    }
+    if (event?.recurrenceEndAfter) {
+      end = "after";
+      after = event.recurrenceEndAfter;
+    } else if (event?.recurrenceUntil) {
+      end = "until";
+      until = dstr(new Date(event.recurrenceUntil));
+    }
+    if (!RECUR_OPTIONS.includes(freq)) freq = "none";
+    setRecurrence(freq);
+    setRecurrenceInterval(interval);
+    setRecurrenceDaysOfWeek(days);
+    setRecurrenceMonthlyPosition(MONTHLY_POSITIONS.includes(monthPos) ? monthPos : "same_day");
+    setEndType(end);
+    setRecurUntil(until);
+    setEndAfter(after);
+  }, [open, event, seedDate, seedEnd, t]);
 
   const submit = async () => {
     if (!title.trim()) return toast.error(t("addEventTitle"));
@@ -452,13 +466,34 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
       if (allDay) end = new Date(`${endDate || date}T23:59`).getTime();
       else if (endDate && endTime) end = new Date(`${endDate}T${endTime}`).getTime();
       if (end != null && end < start) end = start + 30 * 60000;
-      await onSave({
+      const payload: any = {
         title: title.trim(), start, end, allDay, color,
         location: location.trim() || undefined,
-        recurrence,
-        recurrenceUntil: recurrence !== "none" && recurUntil ? new Date(`${recurUntil}T23:59`).getTime() : undefined,
-      });
+      };
+      if (recurrence !== "none") {
+        payload.recurrence = recurrence;
+        payload.recurrenceFreq = recurrence;
+        payload.recurrenceInterval = recurrenceInterval;
+        if (recurrence === "weekly") {
+          payload.recurrenceDaysOfWeek = recurrenceDaysOfWeek.length ? recurrenceDaysOfWeek : [new Date(start).getDay()];
+        }
+        if (recurrence === "monthly") {
+          payload.recurrenceMonthlyPosition = recurrenceMonthlyPosition;
+        }
+        if (endType === "after") payload.recurrenceEndAfter = Number(endAfter);
+        if (endType === "until" && recurUntil) payload.recurrenceUntil = new Date(`${recurUntil}T23:59`).getTime();
+      } else {
+        payload.recurrence = "none";
+        payload.recurrenceFreq = "none";
+      }
+      await onSave(payload);
     } finally { setBusy(false); }
+  };
+
+  const toggleWeekday = (day: number) => {
+    setRecurrenceDaysOfWeek((prev: number[]) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b),
+    );
   };
 
   return (
@@ -479,13 +514,93 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
           </div>
           <div>
             <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Repeat size={13} /> {t("repeat")}</label>
-            <div className="grid grid-cols-2 gap-2">
-              <Select value={recurrence} onValueChange={setRecurrence}>
-                <SelectTrigger data-testid="event-recurrence-select"><SelectValue /></SelectTrigger>
-                <SelectContent>{Object.entries(recurLabel as Record<string, string>).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Select value={recurrence} onValueChange={setRecurrence}>
+                  <SelectTrigger data-testid="event-recurrence-select"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RECUR_OPTIONS.map((k) => (
+                      <SelectItem key={k} value={k}>{recurLabel[k] ?? k}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {recurrence !== "none" && (
+                  <div className="flex items-center gap-2 rounded-lg border border-border px-2">
+                    <span className="text-xs text-muted-foreground">{t("recurrence.every")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={recurrenceInterval}
+                      onChange={(e) => setRecurrenceInterval(Math.max(1, Number(e.target.value)))}
+                      className="w-12 bg-transparent text-center text-sm outline-none"
+                    />
+                    <span className="text-xs text-muted-foreground">{t(`recurrence.${recurrence}Unit`)}</span>
+                  </div>
+                )}
+              </div>
+
+              {recurrence === "weekly" && (
+                <div className="flex flex-wrap gap-1">
+                  {WEEKDAY_ORDER.map((day) => (
+                    <button
+                      key={day}
+                      onClick={() => toggleWeekday(day)}
+                      className={cn(
+                        "h-8 w-8 rounded-full text-xs font-medium transition",
+                        recurrenceDaysOfWeek.includes(day)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80",
+                      )}
+                    >
+                      {WEEKDAYS[(day + 6) % 7].charAt(0)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {recurrence === "monthly" && (
+                <Select value={recurrenceMonthlyPosition} onValueChange={setRecurrenceMonthlyPosition}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHLY_POSITIONS.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {t(`recurrence.monthlyPositions.${k}`, { weekday: monthWeekdayLabel })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
               {recurrence !== "none" && (
-                <input type="date" value={recurUntil} onChange={(e) => setRecurUntil(e.target.value)} placeholder={t("untilPlaceholder")} className={inputBase} data-testid="event-recur-until" title={t("untilTitle")} />
+                <div className="space-y-2">
+                  <Select value={endType} onValueChange={(v) => setEndType(v as any)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="never">{t("recurrence.endNever")}</SelectItem>
+                      <SelectItem value="until">{t("recurrence.endUntil")}</SelectItem>
+                      <SelectItem value="after">{t("recurrence.endAfter")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {endType === "until" && (
+                    <input type="date" value={recurUntil} onChange={(e) => setRecurUntil(e.target.value)} className={inputBase} />
+                  )}
+                  {endType === "after" && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        value={endAfter}
+                        onChange={(e) => setEndAfter(Math.max(1, Number(e.target.value)))}
+                        className={cn(inputBase, "w-20")}
+                      />
+                      <span className="text-xs text-muted-foreground">{t("recurrence.occurrences")}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>

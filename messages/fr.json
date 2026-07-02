@@ -19,6 +19,7 @@
     "extensions": "Extensions",
     "aiAssistant": "A2E IA",
     "members": "Membres",
+    "discussions": "Discussions",
     "memberCount": "{count} membre(s)",
     "workspaces": "Espaces",
     "newWorkspace": "Nouvel espace",
@@ -366,6 +367,7 @@
     "tasks": "Tâches",
     "timeline": "Chronologie",
     "retroPlanning": "Rétro-planification",
+    "discussion": "Discussion",
     "time": "Temps",
     "history": "Historique",
     "progress": "Avancement",
@@ -422,6 +424,20 @@
       "on_hold": "En attente",
       "completed": "Terminé"
     }
+  },
+  "chat": {
+    "newMessagePlaceholder": "Écrivez un message…",
+    "replyPlaceholder": "Répondre dans le fil…",
+    "thread": "Fil",
+    "replies": "{count} réponses",
+    "reply": "Répondre",
+    "edited": "(modifié)",
+    "messageDeleted": "Message supprimé",
+    "uploading": "Envoi en cours…",
+    "deleteMessage": "Supprimer ce message",
+    "mention": "Mention",
+    "showBubble": "Afficher la bulle de chat",
+    "channels": "Canaux"
   },
   "activity": {
     "title": "Activité",
@@ -1303,7 +1319,23 @@
       "daily": "Tous les jours",
       "weekly": "Toutes les semaines",
       "biweekly": "Toutes les 2 semaines",
-      "monthly": "Tous les mois"
+      "monthly": "Tous les mois",
+      "every": "Tous les",
+      "dailyUnit": "jours",
+      "weeklyUnit": "semaines",
+      "monthlyUnit": "mois",
+      "endNever": "Jamais",
+      "endUntil": "Jusqu'à une date",
+      "endAfter": "Après un nombre d'occurrences",
+      "occurrences": "occurrences",
+      "monthlyPositions": {
+        "same_day": "Même jour du mois",
+        "first": "Premier {weekday}",
+        "second": "Deuxième {weekday}",
+        "third": "Troisième {weekday}",
+        "fourth": "Quatrième {weekday}",
+        "last": "Dernier {weekday}"
+      }
     },
     "newEvent": "Nouvel événement",
     "editEvent": "Modifier l'événement",

@@ -10,6 +10,7 @@ import { Topbar } from "@/components/app/topbar";
 import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
 import { AiPanel } from "@/components/app/ai-panel";
+import { ChatBubble } from "@/components/app/chat-bubble";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
 import { useTranslations } from "next-intl";
 
@@ -69,6 +70,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <CommandPalette open={searchOpen} setOpen={setSearchOpen} />
         <AiPanel />
+        <ChatBubble />
       </div>
     </TrashDndProvider>
   );

@@ -18,9 +18,11 @@ import { GanttChart } from "@/components/gantt-chart";
 import { RetroPlanningPanel } from "@/components/retro-planning";
 import { TaskCreateDialog } from "@/components/app/tasks-view";
 import { ActivityPanel } from "@/components/app/activity-panel";
+import { ChatPanel } from "@/components/app/chat-panel";
 import {
   ArrowLeft2, Briefcase, TaskSquare, Calendar, Chart, People, Clock, Activity,
   Add, TickCircle, Flag, Timer1, CloseCircle,
+  Messages3,
 } from "iconsax-reactjs";
 import { Link2 } from "lucide-react";
 
@@ -71,6 +73,7 @@ const TABS = [
   { key: "tasks", labelKey: "tasks", icon: TaskSquare, count: (d: any) => d?.progress?.total ?? 0 },
   { key: "timeline", labelKey: "timeline", icon: Calendar },
   { key: "retro", labelKey: "retroPlanning", icon: Activity },
+  { key: "discussion", labelKey: "discussion", icon: Messages3 },
   { key: "time", labelKey: "time", icon: Clock },
   { key: "activity", labelKey: "history", icon: Activity, count: (d: any) => d?.recent?.length ?? 0 },
 ];
@@ -420,6 +423,13 @@ export function ProjectDetail({ projectId }: { projectId: Id<"projects"> }) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* DISCUSSION */}
+      {tab === "discussion" && (
+        <div className="h-[calc(100vh-16rem)] overflow-hidden rounded-2xl border border-border bg-card" data-testid="project-discussion">
+          <ChatPanel projectId={projectId} className="h-full" />
         </div>
       )}
 

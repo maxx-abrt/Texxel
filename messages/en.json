@@ -19,6 +19,7 @@
     "extensions": "Extensions",
     "aiAssistant": "A2E AI",
     "members": "Members",
+    "discussions": "Discussions",
     "memberCount": "{count} member(s)",
     "workspaces": "Workspaces",
     "newWorkspace": "New workspace",
@@ -366,6 +367,7 @@
     "tasks": "Tasks",
     "timeline": "Timeline",
     "retroPlanning": "Retro Planning",
+    "discussion": "Discussion",
     "time": "Time",
     "history": "History",
     "progress": "Progress",
@@ -422,6 +424,20 @@
       "on_hold": "On hold",
       "completed": "Completed"
     }
+  },
+  "chat": {
+    "newMessagePlaceholder": "Type a message…",
+    "replyPlaceholder": "Reply in thread…",
+    "thread": "Thread",
+    "replies": "{count} replies",
+    "reply": "Reply",
+    "edited": "(edited)",
+    "messageDeleted": "Message deleted",
+    "uploading": "Uploading…",
+    "deleteMessage": "Delete this message",
+    "mention": "Mention",
+    "showBubble": "Show chat bubble",
+    "channels": "Channels"
   },
   "activity": {
     "title": "Activity",
@@ -1274,7 +1290,23 @@
       "daily": "Daily",
       "weekly": "Weekly",
       "biweekly": "Every 2 weeks",
-      "monthly": "Monthly"
+      "monthly": "Monthly",
+      "every": "Every",
+      "dailyUnit": "days",
+      "weeklyUnit": "weeks",
+      "monthlyUnit": "months",
+      "endNever": "Never",
+      "endUntil": "Until a date",
+      "endAfter": "After a number of occurrences",
+      "occurrences": "occurrences",
+      "monthlyPositions": {
+        "same_day": "Same day of month",
+        "first": "First {weekday}",
+        "second": "Second {weekday}",
+        "third": "Third {weekday}",
+        "fourth": "Fourth {weekday}",
+        "last": "Last {weekday}"
+      }
     },
     "newEvent": "New event",
     "editEvent": "Edit event",

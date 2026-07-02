@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember, logActivity } from "./lib/auth";
+import { ensureChannel } from "./flux_chat";
 
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
@@ -84,6 +85,16 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Auto-create project discussion channel
+    await ensureChannel(
+      ctx,
+      args.workspaceId as any,
+      `project-${args.name}`,
+      "project",
+      userId as any,
+      id as any,
+    );
 
     // Auto-create project sheet (fiche projet)
     if (args.autoCreateFiche) {

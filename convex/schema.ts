@@ -537,7 +537,28 @@ export default defineSchema({
     start: v.number(),
     end: v.optional(v.number()),
     allDay: v.optional(v.boolean()),
-    recurrence: v.optional(v.string()), // none|daily|weekly|biweekly|monthly
+    recurrence: v.optional(v.string()), // legacy simple freq: none|daily|weekly|biweekly|monthly
+    recurrenceFreq: v.optional(
+      v.union(
+        v.literal("none"),
+        v.literal("daily"),
+        v.literal("weekly"),
+        v.literal("monthly"),
+      ),
+    ),
+    recurrenceInterval: v.optional(v.number()), // every N weeks/months/days
+    recurrenceDaysOfWeek: v.optional(v.array(v.number())), // 0=Sun..6=Sat
+    recurrenceMonthlyPosition: v.optional(
+      v.union(
+        v.literal("same_day"),
+        v.literal("first"),
+        v.literal("second"),
+        v.literal("third"),
+        v.literal("fourth"),
+        v.literal("last"),
+      ),
+    ),
+    recurrenceEndAfter: v.optional(v.number()), // number of occurrences
     recurrenceUntil: v.optional(v.number()),
     recurrenceExceptions: v.optional(v.array(v.number())), // epoch ms of skipped occurrences
     color: v.optional(v.string()),
@@ -631,6 +652,81 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"])
     .index("by_project_user", ["projectId", "userId"]),
+
+  // Chat / Discussion channels (workspace global, per-project, or custom).
+  flux_chatChannels: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    slug: v.string(),
+    type: v.union(
+      v.literal("workspace"),
+      v.literal("project"),
+      v.literal("custom"),
+    ),
+    projectId: v.optional(v.id("projects")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_slug", ["workspaceId", "slug"])
+    .index("by_project", ["projectId"]),
+
+  // Chat messages.
+  flux_chatMessages: defineTable({
+    channelId: v.id("flux_chatChannels"),
+    workspaceId: v.id("workspaces"),
+    userId: v.id("users"),
+    content: v.string(),
+    attachments: v.optional(
+      v.array(
+        v.object({
+          storageId: v.id("_storage"),
+          name: v.string(),
+          size: v.number(),
+          contentType: v.optional(v.string()),
+        }),
+      ),
+    ),
+    mentionedUserIds: v.optional(v.array(v.id("users"))),
+    mentionedEntities: v.optional(
+      v.array(
+        v.object({
+          type: v.string(),
+          id: v.string(),
+          name: v.optional(v.string()),
+        }),
+      ),
+    ),
+    parentId: v.optional(v.id("flux_chatMessages")), // thread reply
+    editedAt: v.optional(v.number()),
+    deletedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_channel", ["channelId", "createdAt"])
+    .index("by_parent", ["parentId", "createdAt"])
+    .index("by_workspace", ["workspaceId", "createdAt"]),
+
+  // Message reactions (emoji per user per message).
+  flux_chatReactions: defineTable({
+    messageId: v.id("flux_chatMessages"),
+    userId: v.id("users"),
+    emoji: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_message", ["messageId"]),
+
+  // Per-user read cursors for each channel.
+  flux_chatUserReads: defineTable({
+    userId: v.id("users"),
+    channelId: v.id("flux_chatChannels"),
+    lastReadAt: v.number(),
+    lastMessageId: v.optional(v.id("flux_chatMessages")),
+    updatedAt: v.number(),
+  })
+    .index("by_user_channel", ["userId", "channelId"])
+    .index("by_user", ["userId"]),
 
   // Time tracking entries (logged against a task and/or project).
   flux_timeEntries: defineTable({

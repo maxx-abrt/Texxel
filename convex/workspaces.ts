@@ -10,6 +10,7 @@ import {
   notifyWorkspaceMembers,
   requireUserId,
 } from "./lib/auth";
+import { ensureChannel } from "./flux_chat";
 
 /** List workspaces the current user is a member of. */
 export const listMine = query({
@@ -109,6 +110,7 @@ export const create = mutation({
       role: "owner",
       joinedAt: now,
     });
+    await ensureChannel(ctx, workspaceId as any, "general", "workspace", userId as any);
     await logActivity(ctx, {
       workspaceId,
       actorId: userId,

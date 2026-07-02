@@ -33,6 +33,7 @@ import {
   ArrowDown2,
   CloseCircle,
   Folder,
+  Messages3,
 } from "iconsax-reactjs";
 import {
   DropdownMenu,
@@ -48,6 +49,7 @@ const NAV_KEYS = [
   { href: "/app/documents", key: "documents", Icon: DocumentText },
   { href: "/app/tasks", key: "tasks", Icon: TaskSquare },
   { href: "/app/projects", key: "projects", Icon: Briefcase },
+  { href: "/app/discussions", key: "discussions", Icon: Messages3 },
   { href: "/app/calendar", key: "calendar", Icon: Calendar },
   { href: "/app/databases", key: "databases", Icon: Data2 },
   { href: "/app/inbox", key: "inbox", Icon: Notification },

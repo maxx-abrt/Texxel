@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { assertWorkspaceMember, logActivity } from "./lib/auth";
+import { expandEvents } from "../lib/recurrence";
 
 export const list = query({
   args: {
@@ -29,6 +30,22 @@ export const create = mutation({
     end: v.optional(v.number()),
     allDay: v.optional(v.boolean()),
     recurrence: v.optional(v.string()),
+    recurrenceFreq: v.optional(
+      v.union(v.literal("none"), v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
+    ),
+    recurrenceInterval: v.optional(v.number()),
+    recurrenceDaysOfWeek: v.optional(v.array(v.number())),
+    recurrenceMonthlyPosition: v.optional(
+      v.union(
+        v.literal("same_day"),
+        v.literal("first"),
+        v.literal("second"),
+        v.literal("third"),
+        v.literal("fourth"),
+        v.literal("last"),
+      ),
+    ),
+    recurrenceEndAfter: v.optional(v.number()),
     recurrenceUntil: v.optional(v.number()),
     color: v.optional(v.string()),
     location: v.optional(v.string()),
@@ -45,6 +62,11 @@ export const create = mutation({
       end: args.end,
       allDay: args.allDay,
       recurrence: args.recurrence,
+      recurrenceFreq: args.recurrenceFreq,
+      recurrenceInterval: args.recurrenceInterval,
+      recurrenceDaysOfWeek: args.recurrenceDaysOfWeek,
+      recurrenceMonthlyPosition: args.recurrenceMonthlyPosition,
+      recurrenceEndAfter: args.recurrenceEndAfter,
       recurrenceUntil: args.recurrenceUntil,
       color: args.color,
       location: args.location,
@@ -74,6 +96,22 @@ export const update = mutation({
     end: v.optional(v.number()),
     allDay: v.optional(v.boolean()),
     recurrence: v.optional(v.string()),
+    recurrenceFreq: v.optional(
+      v.union(v.literal("none"), v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
+    ),
+    recurrenceInterval: v.optional(v.number()),
+    recurrenceDaysOfWeek: v.optional(v.array(v.number())),
+    recurrenceMonthlyPosition: v.optional(
+      v.union(
+        v.literal("same_day"),
+        v.literal("first"),
+        v.literal("second"),
+        v.literal("third"),
+        v.literal("fourth"),
+        v.literal("last"),
+      ),
+    ),
+    recurrenceEndAfter: v.optional(v.number()),
     recurrenceUntil: v.optional(v.number()),
     recurrenceExceptions: v.optional(v.array(v.number())),
     color: v.optional(v.string()),
@@ -145,6 +183,25 @@ export const skipOccurrence = mutation({
       updatedAt: Date.now(),
     });
     return true;
+  },
+});
+
+/** List events with their recurrence expanded into concrete occurrences.
+ *  Useful for server-side consumers that need ready-to-render occurrences.
+ */
+export const listExpanded = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+    start: v.number(),
+    end: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await assertWorkspaceMember(ctx, args.workspaceId);
+    const events = await ctx.db
+      .query("flux_events")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    return expandEvents(events, args.start, args.end);
   },
 });
 

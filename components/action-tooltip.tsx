@@ -21,13 +21,11 @@ export const ActionTooltip = ({
   align,
 }: ActionTooltipProps) => {
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} align={align}>
-          <p className="text-xs font-medium capitalize">
-            {label.toLowerCase()}
-          </p>
+        <TooltipContent side={side} align={align} sideOffset={6}>
+          <p className="text-xs font-medium">{label}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

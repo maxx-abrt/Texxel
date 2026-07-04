@@ -328,28 +328,32 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
             }))}
           />
           {doc.isPublished && (
-            <button onClick={copyShareLink} className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-primary hover:bg-muted" data-testid="doc-copy-link">
-              <Link21 variant="Bulk" size={16} /> Live
-            </button>
+            <ActionTooltip label={te("tooltipCopyLink")} side="bottom">
+              <button onClick={copyShareLink} className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-primary hover:bg-muted" data-testid="doc-copy-link">
+                <Link21 variant="Bulk" size={16} /> Live
+              </button>
+            </ActionTooltip>
           )}
-          <button onClick={() => toggleFavorite({ documentId })} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", isFavorite ? "text-primary" : "text-muted-foreground")} data-testid="doc-favorite">
-            <Star1 variant="Bulk" size={18} />
-          </button>
-          <button
-            onClick={() => { setPassphraseInput(""); setPassphraseHintInput(doc.passphraseHint ?? ""); setLockError(""); setLockDialogOpen(true); }}
-            className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isLocked ? "text-primary" : "text-muted-foreground")}
-            data-testid="doc-lock-btn"
-            title={doc.isLocked ? "Secured" : "Secure document"}
-          >
-            <Lock1 variant="Bulk" size={18} />
-          </button>
+          <ActionTooltip label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")} side="bottom">
+            <button onClick={() => toggleFavorite({ documentId })} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", isFavorite ? "text-primary" : "text-muted-foreground")} data-testid="doc-favorite" aria-label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")}>
+              <Star1 variant="Bulk" size={18} />
+            </button>
+          </ActionTooltip>
+          <ActionTooltip label={doc.isLocked ? te("tooltipLocked") : te("tooltipLock")} side="bottom">
+            <button
+              onClick={() => { setPassphraseInput(""); setPassphraseHintInput(doc.passphraseHint ?? ""); setLockError(""); setLockDialogOpen(true); }}
+              className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isLocked ? "text-primary" : "text-muted-foreground")}
+              data-testid="doc-lock-btn"
+              aria-label={doc.isLocked ? te("tooltipLocked") : te("tooltipLock")}
+            >
+              <Lock1 variant="Bulk" size={18} />
+            </button>
+          </ActionTooltip>
           <DocPermissions doc={doc} documentId={documentId} update={update} members={wsMembers ?? []} />
-          <button onClick={onTogglePublish} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isPublished ? "text-primary" : "text-muted-foreground")} data-testid="doc-publish" title="Publish & share">
-            <Global variant="Bulk" size={18} />
-          </button>
+          <PublishPopover doc={doc} documentId={documentId} update={update} onTogglePublish={onTogglePublish} te={te} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-more">
+              <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-more" aria-label={te("tooltipMore")} title={te("tooltipMore")}>
                 <More variant="Bulk" size={18} />
               </button>
             </DropdownMenuTrigger>

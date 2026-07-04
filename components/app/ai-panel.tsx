@@ -27,6 +27,8 @@ import {
   ListTodo,
   FolderPlus,
   Wand2,
+  PanelRight,
+  Minimize2,
 } from "lucide-react";
 
 type ChatRole = "user" | "ai";
@@ -68,14 +70,17 @@ export function AiPanel({
   open,
   onOpenChange,
   shifted = false,
+  drawerWidth = 420,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   shifted?: boolean;
+  drawerWidth?: number;
 }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [docked, setDocked] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const t = useTranslations("ai");
   const locale = useLocale();
@@ -198,19 +203,35 @@ export function AiPanel({
           initial={{ opacity: 0, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 28, scale: 0.97 }}
-          transition={{ type: "spring", stiffness: 340, damping: 28 }}
+          transition={{ type: "spring", stiffness: 380, damping: 34 }}
           className={cn(
-            "fixed inset-x-0 bottom-0 z-50 flex h-[85dvh] flex-col rounded-t-2xl border border-border bg-card shadow-2xl transition-[right] duration-300 sm:inset-x-auto sm:bottom-5 sm:h-[640px] sm:max-h-[calc(100dvh-6rem)] sm:w-[420px] sm:rounded-2xl",
-            shifted ? "sm:right-[452px] lg:right-[552px]" : "sm:right-5",
+            "fixed inset-x-0 bottom-0 z-40 flex h-[85dvh] flex-col border border-border bg-card shadow-2xl sm:inset-x-auto sm:w-[420px] sm:right-(--ai-right) sm:transition-[right] sm:duration-300",
+            docked
+              ? "rounded-t-2xl sm:bottom-0 sm:top-0 sm:h-dvh sm:max-h-none sm:rounded-none sm:border-y-0 sm:border-r-0"
+              : "rounded-t-2xl sm:bottom-5 sm:h-[640px] sm:max-h-[calc(100dvh-6rem)] sm:rounded-2xl",
           )}
+          style={{
+            ["--ai-right" as any]: shifted ? `${drawerWidth + (docked ? 0 : 12)}px` : docked ? "0px" : "1.25rem",
+          }}
           data-testid="ai-panel"
+          data-docked={docked}
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary"><Sparkles size={16} /></span>
               <div className="text-sm font-bold">{t("panelTitle")}</div>
             </div>
-            <button data-testid="ai-close" onClick={() => onOpenChange(false)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"><X size={18} /></button>
+            <div className="flex items-center gap-1">
+              <button
+                data-testid="ai-dock-toggle"
+                onClick={() => setDocked((d) => !d)}
+                title={docked ? t("floatPanel") : t("dockPanel")}
+                className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
+              >
+                {docked ? <Minimize2 size={16} /> : <PanelRight size={16} />}
+              </button>
+              <button data-testid="ai-close" onClick={() => onOpenChange(false)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted"><X size={18} /></button>
+            </div>
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">

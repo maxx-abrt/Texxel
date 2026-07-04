@@ -1337,7 +1337,9 @@
     "promptPlanProject": "Aidez-moi à planifier un nouveau projet. Créez le projet, une note de plan et les premières tâches.",
     "promptBreakDownWork": "Découpez mon objectif en tâches claires et priorisées avec des dates d'échéance.",
     "promptDraftDoc": "Rédigez un document bien structuré pour moi.",
-    "promptWhatsOnMyPlate": "Résumez mes tâches ouvertes et ce sur quoi je devrais me concentrer aujourd'hui."
+    "promptWhatsOnMyPlate": "Résumez mes tâches ouvertes et ce sur quoi je devrais me concentrer aujourd'hui.",
+    "dockPanel": "Ancrer sur le côté",
+    "floatPanel": "Fenêtre flottante"
   },
   "workspace": {
     "title": "Espaces de travail",

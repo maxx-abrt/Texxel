@@ -796,6 +796,13 @@
       "individual": "Personnel",
       "business": "Équipe / Entreprise",
       "association": "Association"
+    },
+    "accent": {
+      "title": "Couleur d'accent",
+      "desc": "Personnalisez les boutons et les accents dans toute l'application.",
+      "custom": "Personnalisée",
+      "reset": "Réinitialiser",
+      "saved": "Accent mis à jour"
     }
   },
   "roles": {
@@ -968,7 +975,24 @@
     "coverAlt": "couverture",
     "shareNotAvailable": "Cette page n'est pas disponible",
     "shareNotAvailableDesc": "Le lien est peut-être privé ou n'existe plus.",
-    "makeYourOwn": "Créer le vôtre"
+    "makeYourOwn": "Créer le vôtre",
+    "editingAsGuest": "En édition : {name}",
+    "guestViewing": "en lecture",
+    "savingShort": "Enregistrement…",
+    "publishToWeb": "Publier sur le web",
+    "publishedDesc": "En ligne — toute personne avec le lien peut consulter.",
+    "allowGuestEdit": "Modifiable par toute personne avec le lien",
+    "allowGuestEditDesc": "Les invités modifient en direct, sans compte.",
+    "lockedNoGuestEdit": "Les documents verrouillés ne sont pas modifiables par les invités.",
+    "liveOnWeb": "En ligne",
+    "tooltipBack": "Retour aux documents",
+    "tooltipFavoriteAdd": "Ajouter aux favoris",
+    "tooltipFavoriteRemove": "Retirer des favoris",
+    "tooltipLock": "Sécuriser par mot de passe",
+    "tooltipLocked": "Document sécurisé",
+    "tooltipPublish": "Partager et publier",
+    "tooltipMore": "Plus d'actions",
+    "tooltipCopyLink": "Copier le lien public"
   },
   "onboarding": {
     "step": "Étape",
@@ -1450,7 +1474,8 @@
     "editThisOccurrence": "Modifier cette occurrence uniquement",
     "editAllOccurrences": "Modifier toutes les occurrences",
     "deleteThisOccurrence": "Supprimer cette occurrence uniquement",
-    "deleteAllOccurrences": "Supprimer toutes les occurrences"
+    "deleteAllOccurrences": "Supprimer toutes les occurrences",
+    "customColor": "Personnalisée"
   },
   "dashboard": {
     "greeting": {

@@ -20,6 +20,9 @@ import { PresenceAvatars } from "@/components/app/presence-avatars";
 import { DocumentComments } from "@/components/app/comments-panel";
 import { TableOfContents } from "@/components/table-of-contents";
 import { ActivityPanel } from "@/components/app/activity-panel";
+import { ActionTooltip } from "@/components/action-tooltip";
+import { Switch } from "@/components/ui/switch";
+import { useTranslations } from "next-intl";
 import {
   Popover,
   PopoverContent,
@@ -69,6 +72,7 @@ const TAG_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#e54
 export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> }) {
   const router = useRouter();
   const convex = useConvex();
+  const te = useTranslations("editor");
   const { activeWorkspaceId, me } = useWorkspace();
   const doc = useQuery(api.flux_documents.get, { documentId });
   const favorites = useQuery(
@@ -295,9 +299,11 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     <div className="min-h-full pb-32" data-testid="document-view">
       {/* Toolbar */}
       <div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border bg-background/85 px-3 py-2 backdrop-blur md:px-6">
-        <button onClick={() => router.push("/app/documents")} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-back">
-          <ArrowLeft2 variant="Bulk" size={18} />
-        </button>
+        <ActionTooltip label={te("tooltipBack")} side="bottom">
+          <button onClick={() => router.push("/app/documents")} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-back" aria-label={te("tooltipBack")}>
+            <ArrowLeft2 variant="Bulk" size={18} />
+          </button>
+        </ActionTooltip>
         <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
           <span className="w-5 text-center">{doc.icon ?? "\ud83d\udcc4"}</span>
           <span className="truncate font-medium text-foreground">{title || "Untitled"}</span>
@@ -883,6 +889,61 @@ function DocPermissions({ doc, documentId, update, members }: any) {
               ))}
             </div>
           </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Publish-to-web popover: publish switch, share link and guest-edit toggle. */
+function PublishPopover({ doc, documentId, update, onTogglePublish, te }: any) {
+  const shareUrl = typeof window !== "undefined" && doc.shareToken ? `${window.location.origin}/share/${doc.shareToken}` : "";
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isPublished ? "text-primary" : "text-muted-foreground")} data-testid="doc-publish" aria-label={te("tooltipPublish")} title={te("tooltipPublish")}>
+          <Global variant="Bulk" size={18} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-3" data-testid="doc-publish-popover">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">{te("publishToWeb")}</p>
+            <p className="text-xs text-muted-foreground">{doc.isPublished ? te("publishedDesc") : te("publicDesc")}</p>
+          </div>
+          <Switch checked={!!doc.isPublished} onCheckedChange={onTogglePublish} data-testid="doc-publish-switch" />
+        </div>
+        {doc.isPublished && (
+          <>
+            {shareUrl && (
+              <div className="mt-3 flex items-center gap-1.5">
+                <input readOnly value={shareUrl} className="h-8 w-full truncate rounded-lg border border-border bg-muted px-2 text-xs outline-none" data-testid="doc-share-url" onFocus={(e) => e.target.select()} />
+                <button onClick={copy} className="flex h-8 shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 text-xs font-semibold text-primary-foreground" data-testid="doc-share-copy">
+                  {copied ? <TickCircle variant="Bold" size={14} /> : <Copy variant="Bulk" size={14} />}
+                  {copied ? te("copied") : te("copyLink")}
+                </button>
+              </div>
+            )}
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+              <div>
+                <p className="text-sm font-medium">{te("allowGuestEdit")}</p>
+                <p className="text-xs text-muted-foreground">{doc.isLocked ? te("lockedNoGuestEdit") : te("allowGuestEditDesc")}</p>
+              </div>
+              <Switch
+                checked={!!doc.allowGuestEdit && !doc.isLocked}
+                disabled={!!doc.isLocked}
+                onCheckedChange={(v) => update({ documentId, allowGuestEdit: v })}
+                data-testid="doc-guest-edit-toggle"
+              />
+            </div>
+          </>
         )}
       </PopoverContent>
     </Popover>

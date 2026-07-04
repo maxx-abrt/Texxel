@@ -13,7 +13,66 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People } from "iconsax-reactjs";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2 } from "iconsax-reactjs";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, applyAccent, cacheAccent } from "@/components/providers/accent-provider";
+
+function AccentPicker() {
+  const t = useTranslations("settings");
+  const prefs = useQuery(api.flux_userPrefs.get);
+  const updatePrefs = useMutation(api.flux_userPrefs.update);
+  const current = prefs?.accentColor ?? DEFAULT_ACCENT;
+
+  const pick = async (color: string) => {
+    applyAccent(color);
+    cacheAccent(color === DEFAULT_ACCENT ? null : color);
+    await updatePrefs({ accentColor: color });
+    toast.success(t("accent.saved"));
+  };
+
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <div className="mb-1 flex items-center gap-2">
+        <Brush2 variant="Bulk" size={16} className="text-primary" />
+        <span className="text-sm font-medium">{t("accent.title")}</span>
+      </div>
+      <p className="mb-3 text-xs text-muted-foreground">{t("accent.desc")}</p>
+      <div className="flex flex-wrap items-center gap-2" data-testid="accent-picker">
+        {ACCENT_PRESETS.map((p) => (
+          <button
+            key={p.name}
+            onClick={() => pick(p.color)}
+            aria-label={p.name}
+            data-testid={`accent-${p.name}`}
+            className={cn(
+              "h-8 w-8 rounded-full transition-transform hover:scale-110",
+              current.toLowerCase() === p.color.toLowerCase() && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+            )}
+            style={{ backgroundColor: p.color }}
+          />
+        ))}
+        <label
+          className={cn(
+            "relative flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-2.5 transition-colors hover:bg-muted",
+            !ACCENT_PRESETS.some((p) => p.color.toLowerCase() === current.toLowerCase()) && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+          )}
+          data-testid="accent-custom"
+        >
+          <span
+            className="h-4.5 w-4.5 rounded-full border border-border"
+            style={{ background: ACCENT_PRESETS.some((p) => p.color.toLowerCase() === current.toLowerCase()) ? "conic-gradient(#fb5648,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#fb5648)" : current }}
+          />
+          <span className="text-xs font-medium">{t("accent.custom")}</span>
+          <input type="color" value={current} onChange={(e) => pick(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" data-testid="accent-custom-input" />
+        </label>
+        {current.toLowerCase() !== DEFAULT_ACCENT && (
+          <button onClick={() => pick(DEFAULT_ACCENT)} className="h-8 rounded-full px-3 text-xs font-medium text-muted-foreground hover:bg-muted" data-testid="accent-reset">
+            {t("accent.reset")}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ProfileAvatar({ me, updateProfile }: { me: any; updateProfile: any }) {
   const convex = useConvex();
@@ -178,6 +237,7 @@ export default function SettingsPage() {
             <span className="text-sm">{t("tabs.language")}</span>
             <Select value={locale} onValueChange={(v) => setLocale(v as any)}><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="en">{t("language.languages.en")}</SelectItem><SelectItem value="fr">{t("language.languages.fr")}</SelectItem></SelectContent></Select>
           </div>
+          <AccentPicker />
         </Section>
 
         <Section title={t("workspace")} icon={Buildings}>

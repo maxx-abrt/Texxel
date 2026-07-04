@@ -11,6 +11,7 @@ import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
 import { DockedBubbles } from "@/components/app/docked-bubbles";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
+import { AccentProvider } from "@/components/providers/accent-provider";
 import { useTranslations } from "next-intl";
 
 function UserStoreSync({ children }: { children: React.ReactNode }) {
@@ -22,14 +23,14 @@ function UserStoreSync({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!synced) return <Loader />;
+  if (!synced) return <Loader stage="store" />;
   return <>{children}</>;
 }
 
-function Loader() {
+function Loader({ stage = "auth" }: { stage?: string }) {
   const t = useTranslations("home");
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex min-h-screen items-center justify-center bg-background" data-testid="app-loader" data-stage={stage}>
       <div className="flex flex-col items-center gap-3 text-muted-foreground">
         <span className="text-2xl font-extrabold tracking-tight">{t("tagline")}</span>
         <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
@@ -56,11 +57,12 @@ function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  if (isLoading) return <Loader />;
+  if (isLoading) return <Loader stage="workspace" />;
   if (needsOnboarding) return <Onboarding />;
 
   return (
     <TrashDndProvider>
+      <AccentProvider />
       <div className="flex h-screen overflow-hidden bg-background">
         <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} onSearch={() => setSearchOpen(true)} />
         <div className="flex min-w-0 flex-1 flex-col">

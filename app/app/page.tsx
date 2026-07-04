@@ -48,7 +48,9 @@ export default function HomePage() {
     api.projects.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
-  const now = Date.now();
+  // Stable 5-minute bucket — raw Date.now() changes every render, which would
+  // re-subscribe the events query in a loop ("Too many re-renders").
+  const now = Math.floor(Date.now() / 300_000) * 300_000;
   const events = useQuery(
     api.flux_events.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId, start: now, end: now + 7 * 24 * 60 * 60 * 1000 } : "skip",

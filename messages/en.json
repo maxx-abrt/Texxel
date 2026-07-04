@@ -692,6 +692,13 @@
       "individual": "Personal",
       "business": "Team / Business",
       "association": "Association"
+    },
+    "accent": {
+      "title": "Accent color",
+      "desc": "Personalize buttons, highlights and accents across the app.",
+      "custom": "Custom",
+      "reset": "Reset",
+      "saved": "Accent updated"
     }
   },
   "roles": {
@@ -968,7 +975,24 @@
     "coverAlt": "cover",
     "shareNotAvailable": "This page is not available",
     "shareNotAvailableDesc": "The link may be private or no longer exists.",
-    "makeYourOwn": "Make your own"
+    "makeYourOwn": "Make your own",
+    "editingAsGuest": "Editing as {name}",
+    "guestViewing": "viewing",
+    "savingShort": "Saving…",
+    "publishToWeb": "Publish to web",
+    "publishedDesc": "Live on the web — anyone with the link can view.",
+    "allowGuestEdit": "Anyone with the link can edit",
+    "allowGuestEditDesc": "Guests edit live, without an account.",
+    "lockedNoGuestEdit": "Locked documents can't be edited by guests.",
+    "liveOnWeb": "Live",
+    "tooltipBack": "Back to documents",
+    "tooltipFavoriteAdd": "Add to favorites",
+    "tooltipFavoriteRemove": "Remove from favorites",
+    "tooltipLock": "Secure with passphrase",
+    "tooltipLocked": "Secured document",
+    "tooltipPublish": "Share & publish",
+    "tooltipMore": "More actions",
+    "tooltipCopyLink": "Copy public link"
   },
   "onboarding": {
     "step": "Step",
@@ -1421,7 +1445,8 @@
     "editThisOccurrence": "Edit this occurrence only",
     "editAllOccurrences": "Edit all occurrences",
     "deleteThisOccurrence": "Delete this occurrence only",
-    "deleteAllOccurrences": "Delete all occurrences"
+    "deleteAllOccurrences": "Delete all occurrences",
+    "customColor": "Custom"
   },
   "dashboard": {
     "greeting": {

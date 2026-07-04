@@ -13,6 +13,7 @@ import {
 } from "@/lib/ai";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLocale, useTranslations } from "next-intl";
@@ -66,9 +67,11 @@ const ICON_FOR: Record<string, React.ElementType> = {
 export function AiPanel({
   open,
   onOpenChange,
+  shifted = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  shifted?: boolean;
 }) {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -188,10 +191,20 @@ export function AiPanel({
   }
 
   return (
-    <>
+    <AnimatePresence>
       {/* Panel */}
       {open && (
-        <div className="fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-2xl border border-border bg-card shadow-2xl sm:inset-x-auto sm:bottom-5 sm:right-5 sm:h-[640px] sm:w-[420px] sm:rounded-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 28, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 28, scale: 0.97 }}
+          transition={{ type: "spring", stiffness: 340, damping: 28 }}
+          className={cn(
+            "fixed inset-x-0 bottom-0 z-50 flex h-[85dvh] flex-col rounded-t-2xl border border-border bg-card shadow-2xl transition-[right] duration-300 sm:inset-x-auto sm:bottom-5 sm:h-[640px] sm:max-h-[calc(100dvh-6rem)] sm:w-[420px] sm:rounded-2xl",
+            shifted ? "sm:right-[452px] lg:right-[552px]" : "sm:right-5",
+          )}
+          data-testid="ai-panel"
+        >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary"><Sparkles size={16} /></span>
@@ -292,8 +305,8 @@ export function AiPanel({
               <Send size={17} />
             </button>
           </form>
-        </div>
+        </motion.div>
       )}
-    </>
+    </AnimatePresence>
   );
 }

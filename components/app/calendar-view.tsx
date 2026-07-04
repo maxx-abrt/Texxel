@@ -607,10 +607,31 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
           <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t("locationPlaceholder")} className={inputBase} />
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t("color")}</label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {EVENT_COLORS.map((c) => (
-                <button key={c} onClick={() => setColor(c)} className={cn("h-7 w-7 rounded-full transition-transform", color === c && "ring-2 ring-ring ring-offset-2 ring-offset-background")} style={{ backgroundColor: c }} />
+                <button key={c} onClick={() => setColor(c)} className={cn("h-7 w-7 rounded-full transition-transform hover:scale-110", color === c && "ring-2 ring-ring ring-offset-2 ring-offset-background")} style={{ backgroundColor: c }} data-testid={`event-color-${c.slice(1)}`} />
               ))}
+              {/* Custom colour — any colour the user wants */}
+              <label
+                className={cn(
+                  "relative flex h-8 cursor-pointer items-center gap-1.5 rounded-full border border-border px-2.5 transition-colors hover:bg-muted",
+                  !EVENT_COLORS.includes(color) && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+                )}
+                data-testid="event-custom-color"
+              >
+                <span
+                  className="h-4.5 w-4.5 rounded-full border border-border"
+                  style={{ background: EVENT_COLORS.includes(color) ? "conic-gradient(#fb5648,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#fb5648)" : color }}
+                />
+                <span className="text-xs font-medium">{t("customColor")}</span>
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  data-testid="event-custom-color-input"
+                />
+              </label>
             </div>
           </div>
         </div>

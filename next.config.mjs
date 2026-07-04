@@ -16,6 +16,11 @@ const nextConfig = {
   // client JS chunks cross-origin and the app gets stuck on the loader.
   // (allowedDevOrigins only applies in dev, so it's a no-op in production.)
   allowedDevOrigins: [
+    "thread-flow-dev.preview.emergentagent.com",
+    "thread-flow-dev.cluster-5.preview.emergentcf.cloud",
+    "*.cluster-5.preview.emergentcf.cloud",
+    "*.cluster-12.preview.emergentcf.cloud",
+    "*.cluster-13.preview.emergentcf.cloud",
     "texxel-collab.preview.emergentagent.com",
     "texxel-collab.cluster-12.preview.emergentcf.cloud",
     "texxel-collab.cluster-13.preview.emergentcf.cloud",

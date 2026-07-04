@@ -188,6 +188,33 @@
 .flux-float { animation: flux-float 6s ease-in-out infinite; }
 
 /* ============================ BLOCKNOTE EDITOR ============================ */
+/* Map every BlockNote surface to the app's design tokens so editor text boxes,
+   menus and tables follow the brand palette (#FAF6F2 / #31302E) in both themes. */
+html .bn-container,
+html .bn-container[data-color-scheme="light"],
+html .bn-container[data-color-scheme="dark"] {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: var(--foreground);
+  --bn-colors-menu-background: var(--popover);
+  --bn-colors-menu-text: var(--popover-foreground);
+  --bn-colors-tooltip-background: var(--muted);
+  --bn-colors-tooltip-text: var(--foreground);
+  --bn-colors-hovered-background: var(--muted);
+  --bn-colors-hovered-text: var(--foreground);
+  --bn-colors-selected-background: var(--primary);
+  --bn-colors-selected-text: var(--primary-foreground);
+  --bn-colors-disabled-background: var(--muted);
+  --bn-colors-disabled-text: var(--muted-foreground);
+  --bn-colors-shadow: color-mix(in oklch, var(--foreground) 14%, transparent);
+  --bn-colors-border: var(--border);
+  --bn-colors-side-menu: var(--muted-foreground);
+  font-family: var(--font-sans);
+}
+.bn-editor,
+.bn-container .ProseMirror {
+  background: var(--bn-colors-editor-background) !important;
+  color: var(--foreground);
+}
 .flux-editor .bn-editor {
   background: transparent;
   padding-inline: 0;

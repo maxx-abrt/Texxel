@@ -22,15 +22,38 @@ import { AiPanel } from "./ai-panel";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import { MessageSquare, Sparkles, X, MoreHorizontal } from "lucide-react";
+import { MessageSquare, X } from "lucide-react";
 
 export const BUBBLE_SPRING = { type: "spring" as const, stiffness: 420, damping: 32 };
 const EXPAND_DELAY = 60;
 const COLLAPSE_GRACE = 260;
 const CLICK_GUARD_MS = 240;
 
+/** Theme-aware brand icon: light-theme asset + dark-theme asset. */
+function BrandIcon({
+  light,
+  dark,
+  size = 22,
+  alt = "",
+}: {
+  light: string;
+  dark: string;
+  size?: number;
+  alt?: string;
+}) {
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={light} alt={alt} draggable={false} style={{ width: size, height: size, maxWidth: "none", flexShrink: 0 }} className="select-none dark:hidden" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={dark} alt={alt} draggable={false} style={{ width: size, height: size, maxWidth: "none", flexShrink: 0 }} className="hidden select-none dark:block" />
+    </>
+  );
+}
+
 function Pill({
   icon: Icon,
+  iconNode,
   label,
   badge,
   active,
@@ -38,7 +61,8 @@ function Pill({
   onClick,
   testId,
 }: {
-  icon: React.ElementType;
+  icon?: React.ElementType;
+  iconNode?: React.ReactNode;
   label: string;
   badge?: number;
   active: boolean;
@@ -58,7 +82,7 @@ function Pill({
         "pointer-events-auto relative flex h-12 items-center gap-2 rounded-full px-4 shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
         variant === "chat"
           ? "bg-primary text-primary-foreground shadow-primary/30"
-          : "bg-foreground text-background shadow-black/20",
+          : "border border-border bg-background text-foreground shadow-black/10",
         active && "ring-2 ring-ring ring-offset-2 ring-offset-background",
       )}
     >
@@ -69,7 +93,7 @@ function Pill({
         transition={{ duration: 0.14 }}
         className="flex items-center justify-center"
       >
-        {active ? <X size={18} /> : <Icon size={18} />}
+        {active ? <X size={18} /> : iconNode ?? (Icon ? <Icon size={18} /> : null)}
       </motion.span>
       <span className="whitespace-nowrap text-sm font-semibold">{label}</span>
       {typeof badge === "number" && badge > 0 && (
@@ -310,7 +334,7 @@ export function DockedBubbles() {
           className="flex justify-end"
         >
           <Pill
-            icon={Sparkles}
+            iconNode={<BrandIcon light="/brand/syna-light.png" dark="/brand/syna-dark.png" size={20} />}
             label={tAi("askAi")}
             active={aiOpen}
             variant="ai"
@@ -356,9 +380,9 @@ export function DockedBubbles() {
           onFocus={scheduleExpand}
           aria-label={tChat("openChat")}
           data-testid="bubble-dot"
-          className="relative flex h-14 w-14 items-center justify-center overflow-visible rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative flex h-14 w-14 items-center justify-center overflow-visible rounded-full border border-border bg-background shadow-xl shadow-black/15 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <MoreHorizontal size={24} />
+          <BrandIcon light="/brand/logo-puzzle-light.png" dark="/brand/logo-puzzle-dark.png" size={32} alt="Texxel" />
           {(unread ?? 0) > 0 && (
             <span className="absolute -right-1 -top-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-white shadow-sm">
               {(unread ?? 0) > 99 ? "99+" : unread}

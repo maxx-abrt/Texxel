@@ -39,6 +39,7 @@ export const update = mutation({
     locale: v.optional(v.string()),
     theme: v.optional(v.string()),
     accentColor: v.optional(v.string()),
+    density: v.optional(v.string()),
     onboardingCompleted: v.optional(v.boolean()),
     lastWorkspaceId: v.optional(v.id("workspaces")),
   },

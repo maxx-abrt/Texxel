@@ -14,7 +14,45 @@ import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2 } from "iconsax-reactjs";
-import { ACCENT_PRESETS, DEFAULT_ACCENT, applyAccent, cacheAccent } from "@/components/providers/accent-provider";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, applyAccent, cacheAccent, applyDensity, cacheDensity, type Density } from "@/components/providers/accent-provider";
+
+function DensityPicker() {
+  const t = useTranslations("settings");
+  const prefs = useQuery(api.flux_userPrefs.get);
+  const updatePrefs = useMutation(api.flux_userPrefs.update);
+  const current: Density = ((prefs as any)?.density as Density) ?? "default";
+
+  const pick = async (d: Density) => {
+    applyDensity(d);
+    cacheDensity(d);
+    await updatePrefs({ density: d });
+    toast.success(t("density.saved"));
+  };
+
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
+      <div>
+        <span className="text-sm font-medium">{t("density.title")}</span>
+        <p className="text-xs text-muted-foreground">{t("density.desc")}</p>
+      </div>
+      <div className="flex items-center rounded-full border border-border p-0.5" data-testid="density-picker">
+        {(["compact", "default", "comfortable"] as Density[]).map((d) => (
+          <button
+            key={d}
+            onClick={() => pick(d)}
+            data-testid={`density-${d}`}
+            className={cn(
+              "h-8 rounded-full px-3 text-xs",
+              current === d ? "bg-muted font-semibold" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t(`density.options.${d}`)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function AccentPicker() {
   const t = useTranslations("settings");
@@ -238,6 +276,7 @@ export default function SettingsPage() {
             <Select value={locale} onValueChange={(v) => setLocale(v as any)}><SelectTrigger className="w-32"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="en">{t("language.languages.en")}</SelectItem><SelectItem value="fr">{t("language.languages.fr")}</SelectItem></SelectContent></Select>
           </div>
           <AccentPicker />
+          <DensityPicker />
         </Section>
 
         <Section title={t("workspace")} icon={Buildings}>

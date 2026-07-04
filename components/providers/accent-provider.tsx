@@ -54,6 +54,30 @@ export function cacheAccent(color: string | null) {
   } catch {}
 }
 
+// ─── Interface density (root font scale; rem-based spacing follows) ─────────
+export type Density = "compact" | "default" | "comfortable";
+const DENSITY_KEY = "flux-density";
+const DENSITY_PX: Record<Density, string> = {
+  compact: "14.5px",
+  default: "16px",
+  comfortable: "17px",
+};
+
+export function applyDensity(d: Density | null | undefined) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (!d || d === "default") root.style.removeProperty("font-size");
+  else root.style.setProperty("font-size", DENSITY_PX[d]);
+  root.dataset.density = d ?? "default";
+}
+
+export function cacheDensity(d: Density | null) {
+  try {
+    if (d && d !== "default") localStorage.setItem(DENSITY_KEY, d);
+    else localStorage.removeItem(DENSITY_KEY);
+  } catch {}
+}
+
 /** Mount once inside the authenticated app shell. Renders nothing. */
 export function AccentProvider() {
   const prefs = useQuery(api.flux_userPrefs.get);
@@ -63,6 +87,8 @@ export function AccentProvider() {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) applyAccent(cached);
+      const d = localStorage.getItem(DENSITY_KEY) as Density | null;
+      if (d) applyDensity(d);
     } catch {}
   }, []);
 
@@ -72,6 +98,9 @@ export function AccentProvider() {
     const color = prefs?.accentColor ?? null;
     applyAccent(color);
     cacheAccent(color);
+    const d = ((prefs as any)?.density as Density | undefined) ?? "default";
+    applyDensity(d);
+    cacheDensity(d);
   }, [prefs]);
 
   return null;

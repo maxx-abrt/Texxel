@@ -803,6 +803,16 @@
       "custom": "Personnalisée",
       "reset": "Réinitialiser",
       "saved": "Accent mis à jour"
+    },
+    "density": {
+      "title": "Densité de l’interface",
+      "desc": "Ajustez la compacité de l’interface",
+      "saved": "Densité mise à jour",
+      "options": {
+        "compact": "Compacte",
+        "default": "Par défaut",
+        "comfortable": "Confortable"
+      }
     }
   },
   "roles": {

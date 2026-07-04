@@ -699,6 +699,16 @@
       "custom": "Custom",
       "reset": "Reset",
       "saved": "Accent updated"
+    },
+    "density": {
+      "title": "Interface density",
+      "desc": "Adjust how compact the interface feels",
+      "saved": "Density updated",
+      "options": {
+        "compact": "Compact",
+        "default": "Default",
+        "comfortable": "Comfortable"
+      }
     }
   },
   "roles": {

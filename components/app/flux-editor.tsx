@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
 import { useMutation } from "convex/react";
 import { useConvex } from "convex/react";
@@ -137,7 +137,13 @@ export function FluxEditor({
     },
   });
 
-  if (onEditorReady) onEditorReady(editor);
+  // Notify the parent after render (calling during render triggers React's
+  // "cannot update a component while rendering another" error).
+  const readyRef = useRef(onEditorReady);
+  readyRef.current = onEditorReady;
+  useEffect(() => {
+    readyRef.current?.(editor);
+  }, [editor]);
 
   return (
     <BlockNoteView

@@ -174,6 +174,7 @@ export function TaskCard({ task, onToggleDone, compact, selected, onSelect, show
             {task.priority !== "none" && (
               <span className={cn("text-[11px] font-medium", pCfg.color)}>
                 {tt("priorityLabel")}: {tt(`priorities.${task.priority}` as any)}
+
               </span>
             )}
           </div>

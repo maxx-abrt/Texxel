@@ -1,3 +1,5 @@
+You are pro dev full stack for 10 years, very high efficiency and intelligence. You are creative, innovative and you find new ways and approchaces to make intuitive apps, aesthetic and modern apps, which are also mobile first, responsive and very very much intuitive. You are efficient for coding, do not speak for nothing, low token usage and best optimisation for tokens and tools (best new edge and most recent tools, mcps, apis, libraries, etc...
+
 Use the github repo at : https://github.com/maxx-abrt/Texxel.git
 
 Use main branch
@@ -54,79 +56,14 @@ WORKOS_CLIENT_ID=client_01KV3J2M42HT3P59CBKMQMZ998
 WORKOS_COOKIE_PASSWORD=pfJ...yUU+Ki+18sFk5nuBgOFVPq+TIUtq2FXpyauAo=
 NEXT_PUBLIC_WORKOS_REDIRECT_URI=http://localhost:3000/callback
 
+Add all these features listed : 
+- Possibility to choose personnalised colour for calendar events
+- Better overall personnalisation of the experience, colours, layout, feeling.
+- QOL improvements you could find useful, improvements in speed/intuitivenss, functionalities. 
+- Ensure the app is better, feels better and is better usable, mobile first. 
+- At the bottom right, I want the two bubbles (for chat and AI) to be stacked up, and when user hovers the two bubbles it slides to be revelead and allows user to click on the chosen bubble (ensure clean animations, sleek little aestehtic animations for the bubbles and windows. Improve also the modals and popups for ai and chat to be better and working together, allowing to also make panels etc... 
+- Make the whole app more modular, cleaner to use, no issues, intuitive and clean, so that users who are not well at ease with tech can still use it. 
+- Improve intuitiveness of the document page (with the top bar) to make it cleaner, when users hover the ivons it reveal the title of what it is (like Add to favorite, etc...), all well. Pages that are selected as public (with public link) should be editable by guests without accounts, in live like google docs. 
+Make sure to check out everything efficiently and see what you can improve, you have low credits though, so optimise as much as you can, ask for what you need to optimise etc... Be accurate ! 
 
-Here are features/requests : 
-- Improve duration of the sessions handled by workos in order to make sure users don't have to login too often, really make it clean and well working !
-- Add a system for the sheets to make enforced security pages (that are visible as locked, and the creator who makes it can add multiple password types/methodes to unlock the sheet) Then the sheet can be accessed through the whole workspace smoothly, and the creator can manage the access to the sheet. The creator can change security, password etc...
-Also, encrypt very well the enforced files : it can be files to host sensitive data like passwords, credentials, etc... so find ways to make the best security available with modern technologies (but still allow the sharing/access to the whole workspace)
-- Make sure to handle well the workspace system/collaboration/invitation system with workos best features and systems. It must be ready to collaborate with ALL features (calendars tasks etc...)
-- Make sure the tasks in the kanban board works better : we can drag and drop them in the status etc... We can drag the whole card itself to the parts (not only a very little space in the card...) and very very clean animations for the drag etc...
-- Improve the project system : make sure to have a clean project detail system with project assignation to users, management, tasks following and progression : 
-Clean overview of progression etc... Cutting edge ideas for tracking/following status. 
-- Add custom task status workspace specific
-- Calendar — Week & Day Views adding
-- Add : Recurring Events 
-- Real-time Collaboration Presence
-Show avatars of who is currently viewing/editing a document
-- Global Search (all types)
-Current Cmd+K only searches documents
-Extend to: tasks, projects, events, database rows, members
-- Global Search (all types)
-Current Cmd+K only searches documents
-Extend to: tasks, projects, events, database rows, members
-- Task Time Tracking
-Add estimate (minutes) and time log entries per task
-Show total tracked vs estimated in task detail
-Aggregate on project level$
-Add a full time tracking system for projects etc... to see time left etc...
-- Document Templates
-Allow saving a document as a template
-Template picker on new document creation
-Pre-built templates: meeting notes, project brief, PRD, 1-on-1
-Add prebuilt from default in french too, for useful. 
-- Database Views (Gallery, Kanban, Calendar)
-Current databases are table-only
-Notion-style: add view_type per database with gallery (card grid for image/title columns), kanban (group by select column), calendar (group by date column)
-- Documents: export to Markdown, PDF (via @react-pdf/renderer or print CSS)
-Databases: import CSV, export CSV/JSON
-Tasks: export to CSV
-For PDF see to use block-note native pdf export system to handle it very very well. 
-- Inline @Mentions in Documents
-@user to link a person (already have chips system in chips.tsx)
-@task, @project cross-references
-Notification triggered on mention
-- 17. Gantt Chart Page (already built)
-gantt-chart.tsx is fully built but doesn't appear accessible from any page
-Wire it to project detail page as a tab: "Timeline" view
-Also expose retro-planning.tsx as a "Retro Planning" tab
-- CLean comment system with mention and notifications, comment tabs (cleaner and working well)
-- Document Permissions / Private Pages
-Currently all workspace documents are visible to all members
-Add visibility: "workspace" | "private" | "custom" to flux_documents
-"Custom" allows per-user/per-role access grants
-- Notification Preferences & Email Notifications
-Per-user preference to toggle notification types (assignment, mentions, comments, etc.)
-Email digest via Convex scheduled functions + a transactional email provider (Resend/Postmark)
-- Bulk Task Operations
-Multi-select tasks in list view
-Bulk: assign, change status, change priority, delete
-Uses existing useBulkSelect.tsx hook already in hooks/
-- Activity Feed per Document/Project
-activities table already exists with targetType, targetId
-Render a "History" side panel for each project/document showing who did what and when
-Very well, all working awesomely etc... (with real logs and versions)
-- Home Dashboard Widgets
-Current home is minimal (quick actions + contribution grid + recent docs + tasks)
-Add: upcoming events from calendar, project health overview (% done), deadline alerts, recent mentions
-- Workspace Avatar / Branding
-Workspace has avatar field in schema but Settings page has no avatar upload
-Add logo upload for workspace (using EdgeStore already configured)
-Used in sidebar workspace switcher
-- Task Labels (already in schema)
-flux_taskMeta.labels is already defined in the schema
-Just needs UI: add label chips to task create/edit, filter by label in board
-- Translate in multilingual the whole blocknote Ui, all clean and all multilingual ready (all ui and text)
-- Calendar Event End Time
-flux_events.end is in the schema but the EventDialog never fills it
-Add end time/date field to event creation form
-- Finally, make a very clean overview to see that QOL improvements has been done in the best way, all well integrated, all clean, all wired up : the app should work very well, a kind of innovative flow : do not close up things, make sure it is linked and all working together, very smartly. 
+Think of pushing to github regularly to main with the user I gave you at top, no sub-repo, clean repo you use only what you have cloned and not your base workspace. 

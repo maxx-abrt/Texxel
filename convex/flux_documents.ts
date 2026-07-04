@@ -113,6 +113,42 @@ export const create = mutation({
   },
 });
 
+/** Duplicate a document (content, icon, cover). Never copies publish/lock state. */
+export const duplicate = mutation({
+  args: { documentId: v.id("flux_documents") },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db.get(args.documentId);
+    if (!doc) throw new Error("Document not found");
+    const { userId } = await assertWorkspaceMember(ctx, doc.workspaceId, "member");
+    const now = Date.now();
+    const id = await ctx.db.insert("flux_documents", {
+      workspaceId: doc.workspaceId,
+      title: `${doc.title ?? "Untitled"} (copy)`,
+      parentId: doc.parentId,
+      icon: doc.icon,
+      coverImage: doc.coverImage,
+      content: doc.content,
+      visibility: doc.visibility ?? "workspace",
+      accessUserIds: doc.accessUserIds,
+      isArchived: false,
+      isPublished: false,
+      order: now,
+      createdBy: userId,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await logActivity(ctx, {
+      workspaceId: doc.workspaceId,
+      actorId: userId,
+      action: "document.duplicated",
+      targetType: "flux_document",
+      targetId: id,
+      metadata: { title: doc.title },
+    });
+    return id;
+  },
+});
+
 export const createFolder = mutation({
   args: {
     workspaceId: v.id("workspaces"),

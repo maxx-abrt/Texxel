@@ -10,6 +10,7 @@ import { Topbar } from "@/components/app/topbar";
 import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
 import { DockedBubbles } from "@/components/app/docked-bubbles";
+import { ShortcutsHelp } from "@/components/app/shortcuts-help";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
 import { AccentProvider } from "@/components/providers/accent-provider";
 import { useTranslations } from "next-intl";
@@ -71,6 +72,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
         <CommandPalette open={searchOpen} setOpen={setSearchOpen} />
         <DockedBubbles />
+        <ShortcutsHelp />
       </div>
     </TrashDndProvider>
   );

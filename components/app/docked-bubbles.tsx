@@ -1,18 +1,18 @@
 "use client";
 
-// Stacked floating bubbles (Chat + AI), bottom-right.
-//
-// Collapsed: a tidy deck (AI tucked behind Chat). Hovering (or first tap on
-// touch) fans the deck out into labeled pills. Clicking opens the panel.
-// Both panels can be open together on desktop; the stack slides beside the
-// chat drawer so nothing overlaps. The stack stays mounted at all times and
-// only animates opacity/position, which kills the remount flicker.
+// Floating dock, bottom-right: ONE clean bubble with three dots. On hover
+// (or first tap on touch) it divides into two labeled pills - Chat and AI.
+// Clicking opens the panel; both panels can be open together on desktop and
+// the dock slides beside the chat drawer.
 //
 // Anti-jitter measures:
 //  - hover-intent timers (small delay in, generous grace out)
 //  - a click guard so a single interaction can't double-toggle
-//  - stack collapses right after opening a panel
+//  - everything stays mounted; only opacity/scale/position animate
 //  - Escape closes the most recently opened panel (unless a dialog handled it)
+//
+// Cross-app links: other features (command palette, etc.) can open the panels
+// by dispatching `flux:open-chat` / `flux:open-ai` window events.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -22,18 +22,17 @@ import { AiPanel } from "./ai-panel";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
-import { MessageSquare, Sparkles, X } from "lucide-react";
+import { MessageSquare, Sparkles, X, MoreHorizontal } from "lucide-react";
 
 export const BUBBLE_SPRING = { type: "spring" as const, stiffness: 420, damping: 32 };
 const EXPAND_DELAY = 60;
-const COLLAPSE_GRACE = 240;
+const COLLAPSE_GRACE = 260;
 const CLICK_GUARD_MS = 240;
 
-function Bubble({
+function Pill({
   icon: Icon,
   label,
   badge,
-  expanded,
   active,
   variant,
   onClick,
@@ -42,7 +41,6 @@ function Bubble({
   icon: React.ElementType;
   label: string;
   badge?: number;
-  expanded: boolean;
   active: boolean;
   variant: "chat" | "ai";
   onClick: () => void;
@@ -51,14 +49,13 @@ function Bubble({
   return (
     <motion.button
       whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.94 }}
+      whileTap={{ scale: 0.95 }}
       transition={BUBBLE_SPRING}
       onClick={onClick}
       data-testid={testId}
       aria-label={label}
       className={cn(
-        "pointer-events-auto relative flex h-14 items-center justify-center overflow-visible rounded-full shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        expanded ? "px-4" : "w-14",
+        "pointer-events-auto relative flex h-12 items-center gap-2 rounded-full px-4 shadow-xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
         variant === "chat"
           ? "bg-primary text-primary-foreground shadow-primary/30"
           : "bg-foreground text-background shadow-black/20",
@@ -72,20 +69,9 @@ function Bubble({
         transition={{ duration: 0.14 }}
         className="flex items-center justify-center"
       >
-        {active ? <X size={21} /> : <Icon size={21} />}
+        {active ? <X size={18} /> : <Icon size={18} />}
       </motion.span>
-      <motion.span
-        initial={false}
-        animate={
-          expanded
-            ? { opacity: 1, width: "auto", marginLeft: 9 }
-            : { opacity: 0, width: 0, marginLeft: 0 }
-        }
-        transition={{ duration: 0.16, ease: "easeOut" }}
-        className="overflow-hidden whitespace-nowrap text-sm font-semibold"
-      >
-        {label}
-      </motion.span>
+      <span className="whitespace-nowrap text-sm font-semibold">{label}</span>
       {typeof badge === "number" && badge > 0 && (
         <span className="absolute -right-1 -top-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-white shadow-sm">
           {badge > 99 ? "99+" : badge}
@@ -108,6 +94,7 @@ export function DockedBubbles() {
   const [isLarge, setIsLarge] = useState(false); // >= 1024px
 
   const isTouchRef = useRef(false);
+  const isDesktopRef = useRef(true);
   const expandTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastClick = useRef(0);
@@ -126,6 +113,7 @@ export function DockedBubbles() {
     const lg = window.matchMedia("(min-width: 1024px)");
     const apply = () => {
       setIsDesktop(sm.matches);
+      isDesktopRef.current = sm.matches;
       setIsLarge(lg.matches);
     };
     apply();
@@ -165,7 +153,7 @@ export function DockedBubbles() {
 
   useEffect(() => () => clearTimers(), []);
 
-  // Touch: tapping anywhere outside the stack collapses it again.
+  // Tapping anywhere outside the dock collapses it again (touch).
   useEffect(() => {
     if (!expanded) return;
     const onDown = (e: PointerEvent) => {
@@ -188,13 +176,13 @@ export function DockedBubbles() {
       track("chat", next);
       return next;
     });
-    if (!isDesktop) {
+    if (!isDesktopRef.current) {
       setAiOpen(false);
       track("ai", false);
     }
     setExpanded(false);
     clearTimers();
-  }, [isDesktop]);
+  }, []);
 
   const toggleAi = useCallback(() => {
     setAiOpen((prev) => {
@@ -202,23 +190,47 @@ export function DockedBubbles() {
       track("ai", next);
       return next;
     });
-    if (!isDesktop) {
+    if (!isDesktopRef.current) {
       setChatOpen(false);
       track("chat", false);
     }
     setExpanded(false);
     clearTimers();
-  }, [isDesktop]);
+  }, []);
+
+  // Global open events - lets the command palette (and any feature) deep-link
+  // into chat / AI without prop drilling.
+  useEffect(() => {
+    const openChat = () => {
+      setChatOpen(true);
+      track("chat", true);
+      if (!isDesktopRef.current) {
+        setAiOpen(false);
+        track("ai", false);
+      }
+      setExpanded(false);
+    };
+    const openAi = () => {
+      setAiOpen(true);
+      track("ai", true);
+      if (!isDesktopRef.current) {
+        setChatOpen(false);
+        track("chat", false);
+      }
+      setExpanded(false);
+    };
+    window.addEventListener("flux:open-chat", openChat);
+    window.addEventListener("flux:open-ai", openAi);
+    return () => {
+      window.removeEventListener("flux:open-chat", openChat);
+      window.removeEventListener("flux:open-ai", openAi);
+    };
+  }, []);
 
   const guarded = (fn: () => void) => () => {
     const now = Date.now();
     if (now - lastClick.current < CLICK_GUARD_MS) return;
     lastClick.current = now;
-    // Touch devices: the first tap on a collapsed deck reveals the options.
-    if (isTouchRef.current && !expanded && !chatOpen && !aiOpen) {
-      setExpanded(true);
-      return;
-    }
     fn();
   };
 
@@ -252,12 +264,16 @@ export function DockedBubbles() {
   if (!mounted) return null;
 
   const anyOpen = chatOpen || aiOpen;
-  // Mobile: panels are full-screen, hide the stack. Desktop: hide only when
+  // Mobile: panels are full-screen, hide the dock. Desktop: hide only when
   // both panels are open (each has its own close button).
-  const stackHidden = (!isDesktop && anyOpen) || (isDesktop && chatOpen && aiOpen);
+  const dockHidden = (!isDesktop && anyOpen) || (isDesktop && chatOpen && aiOpen);
   const drawerW = isLarge ? 520 : 420;
-  const stackRight = isDesktop && chatOpen ? drawerW + 16 : 20;
-  const fanned = expanded || anyOpen;
+  const dockRight = isDesktop && chatOpen ? drawerW + 16 : 20;
+  // Divided (two pills) while hovered or while a panel is open (so the active
+  // pill shows its X). Otherwise: the single three-dots bubble.
+  const divided = expanded || anyOpen;
+
+  const onDotActivate = guarded(() => setExpanded(true));
 
   return (
     <>
@@ -265,56 +281,90 @@ export function DockedBubbles() {
         ref={stackRef}
         initial={false}
         animate={{
-          opacity: stackHidden ? 0 : 1,
-          y: stackHidden ? 20 : 0,
-          right: stackRight,
+          opacity: dockHidden ? 0 : 1,
+          y: dockHidden ? 20 : 0,
+          right: dockRight,
         }}
         transition={BUBBLE_SPRING}
         style={{
           bottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))",
-          pointerEvents: stackHidden ? "none" : undefined,
+          pointerEvents: dockHidden ? "none" : undefined,
         }}
-        className="pointer-events-none fixed z-40 flex flex-col items-end"
+        className="pointer-events-none fixed z-40 flex w-14 flex-col items-end"
         onMouseEnter={scheduleExpand}
         onMouseLeave={scheduleCollapse}
         data-testid="bubble-stack"
-        data-expanded={fanned}
-        data-hidden={stackHidden}
+        data-expanded={divided}
+        data-hidden={dockHidden}
       >
-        {/* AI bubble, tucked behind the chat bubble when collapsed */}
+        {/* AI pill - appears above */}
         <motion.div
           initial={false}
-          animate={{
-            marginBottom: fanned ? 10 : -44,
-            scale: fanned ? 1 : 0.86,
-          }}
-          transition={BUBBLE_SPRING}
-          className="pointer-events-auto"
-          style={{ zIndex: 1 }}
+          animate={
+            divided
+              ? { opacity: 1, y: 0, scale: 1, height: 48, marginBottom: 10 }
+              : { opacity: 0, y: 26, scale: 0.5, height: 0, marginBottom: 0 }
+          }
+          transition={{ ...BUBBLE_SPRING, delay: divided ? 0.05 : 0 }}
+          style={{ pointerEvents: divided && !dockHidden ? "auto" : "none", transformOrigin: "bottom right" }}
+          className="flex justify-end"
         >
-          <Bubble
+          <Pill
             icon={Sparkles}
             label={tAi("askAi")}
-            expanded={expanded}
             active={aiOpen}
             variant="ai"
             onClick={guarded(toggleAi)}
             testId="bubble-ai"
           />
         </motion.div>
-        {/* Chat bubble, front of the deck */}
-        <motion.div className="pointer-events-auto" style={{ zIndex: 2 }}>
-          <Bubble
+
+        {/* Chat pill - takes the bubble's place */}
+        <motion.div
+          initial={false}
+          animate={
+            divided
+              ? { opacity: 1, y: 0, scale: 1, height: 48 }
+              : { opacity: 0, y: 10, scale: 0.5, height: 0 }
+          }
+          transition={BUBBLE_SPRING}
+          style={{ pointerEvents: divided && !dockHidden ? "auto" : "none", transformOrigin: "bottom right" }}
+          className="flex justify-end"
+        >
+          <Pill
             icon={MessageSquare}
             label={tChat("openChat")}
             badge={unread ?? 0}
-            expanded={expanded}
             active={chatOpen}
             variant="chat"
             onClick={guarded(toggleChat)}
             testId="bubble-chat"
           />
         </motion.div>
+
+        {/* The single three-dots bubble (collapsed state) */}
+        <motion.button
+          initial={false}
+          animate={
+            divided
+              ? { opacity: 0, scale: 0.4, rotate: 90, height: 0, marginTop: 0 }
+              : { opacity: 1, scale: 1, rotate: 0, height: 56, marginTop: 0 }
+          }
+          transition={BUBBLE_SPRING}
+          style={{ pointerEvents: divided || dockHidden ? "none" : "auto", transformOrigin: "center" }}
+          onClick={onDotActivate}
+          onFocus={scheduleExpand}
+          aria-label={tChat("openChat")}
+          data-testid="bubble-dot"
+          className="relative flex h-14 w-14 items-center justify-center overflow-visible rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <MoreHorizontal size={24} />
+          {(unread ?? 0) > 0 && (
+            <span className="absolute -right-1 -top-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-white shadow-sm">
+              {(unread ?? 0) > 99 ? "99+" : unread}
+            </span>
+          )}
+        </motion.button>
       </motion.div>
 
       <ChatBubble open={chatOpen} onOpenChange={setChat} />

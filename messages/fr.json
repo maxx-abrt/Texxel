@@ -48,7 +48,15 @@
   "commandPalette": {
     "title": "Rechercher et naviguer",
     "searchPlaceholder": "Recherchez des documents, tâches, projets…",
-    "goTo": "Aller à"
+    "goTo": "Aller à",
+    "quickActions": "Actions rapides",
+    "actions": {
+      "newDoc": "Nouveau document",
+      "newTask": "Nouvelle tâche",
+      "newEvent": "Nouvel événement",
+      "openChat": "Ouvrir le chat",
+      "askAi": "Demander à l’IA"
+    }
   },
   "common": {
     "cancel": "Annuler",
@@ -1002,7 +1010,26 @@
     "tooltipLocked": "Document sécurisé",
     "tooltipPublish": "Partager et publier",
     "tooltipMore": "Plus d'actions",
-    "tooltipCopyLink": "Copier le lien public"
+    "tooltipCopyLink": "Copier le lien public",
+    "saved": "Enregistré",
+    "changeCover": "Changer la couverture",
+    "removeCover": "Retirer la couverture",
+    "saveVersion": "Sauvegarder une version",
+    "versionHistory": "Historique des versions",
+    "vhSavedToast": "Version sauvegardée",
+    "saveAsTemplate": "Enregistrer comme modèle",
+    "duplicate": "Dupliquer",
+    "duplicated": "Document dupliqué",
+    "toolbarCustomize": "Personnaliser la barre",
+    "toolbarStar": "Bouton favori",
+    "toolbarLock": "Bouton verrou",
+    "toolbarComments": "Bouton commentaires",
+    "wordCount": "{count} mots",
+    "accessTitle": "Qui peut accéder",
+    "accessWorkspace": "Tout l’espace de travail",
+    "accessPrivate": "Moi uniquement (privé)",
+    "accessCustom": "Personnes spécifiques",
+    "accessGrant": "Donner accès à"
   },
   "onboarding": {
     "step": "Étape",
@@ -2080,5 +2107,13 @@
     "joining": "En cours…",
     "acceptFailed": "Impossible d'accepter l'invitation",
     "welcome": "Bienvenue dans l'espace !"
+  },
+  "shortcuts": {
+    "title": "Raccourcis clavier",
+    "search": "Recherche & actions rapides",
+    "closePanel": "Fermer le panneau ou la fenêtre",
+    "help": "Afficher cette aide",
+    "slashMenu": "Insérer un bloc (dans un document)",
+    "mention": "Mentionner quelqu’un ou quelque chose"
   }
 }

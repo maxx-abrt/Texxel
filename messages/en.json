@@ -48,7 +48,15 @@
   "commandPalette": {
     "title": "Search and navigate",
     "searchPlaceholder": "Search anything — documents, tasks, projects…",
-    "goTo": "Go to"
+    "goTo": "Go to",
+    "quickActions": "Quick actions",
+    "actions": {
+      "newDoc": "New document",
+      "newTask": "New task",
+      "newEvent": "New event",
+      "openChat": "Open chat",
+      "askAi": "Ask AI"
+    }
   },
   "common": {
     "cancel": "Cancel",
@@ -1002,7 +1010,26 @@
     "tooltipLocked": "Secured document",
     "tooltipPublish": "Share & publish",
     "tooltipMore": "More actions",
-    "tooltipCopyLink": "Copy public link"
+    "tooltipCopyLink": "Copy public link",
+    "saved": "Saved",
+    "changeCover": "Change cover",
+    "removeCover": "Remove cover",
+    "saveVersion": "Save version",
+    "versionHistory": "Version history",
+    "vhSavedToast": "Version saved",
+    "saveAsTemplate": "Save as template",
+    "duplicate": "Duplicate",
+    "duplicated": "Document duplicated",
+    "toolbarCustomize": "Customize toolbar",
+    "toolbarStar": "Favorite button",
+    "toolbarLock": "Lock button",
+    "toolbarComments": "Comments button",
+    "wordCount": "{count} words",
+    "accessTitle": "Who can access",
+    "accessWorkspace": "Everyone in workspace",
+    "accessPrivate": "Only me (private)",
+    "accessCustom": "Specific people",
+    "accessGrant": "Grant access to"
   },
   "onboarding": {
     "step": "Step",
@@ -2080,5 +2107,13 @@
     "joining": "Joining…",
     "acceptFailed": "Could not accept invitation",
     "welcome": "Welcome to the workspace!"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "search": "Search & quick actions",
+    "closePanel": "Close panel or dialog",
+    "help": "Show this help",
+    "slashMenu": "Insert block (in a document)",
+    "mention": "Mention someone or something"
   }
 }

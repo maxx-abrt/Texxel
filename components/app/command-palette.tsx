@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale, useTranslations } from "next-intl";
@@ -24,6 +24,10 @@ import {
   Data2,
   Setting2,
   Profile2User,
+  AddSquare,
+  Message,
+  Magicpen,
+  CalendarAdd,
 } from "iconsax-reactjs";
 
 const PAGES_KEYS = [
@@ -88,6 +92,27 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
     router.push(href);
   };
 
+  const createDoc = useMutation(api.flux_documents.create);
+  const newDoc = async () => {
+    if (!activeWorkspaceId) return;
+    const id = await createDoc({ workspaceId: activeWorkspaceId });
+    setOpen(false);
+    router.push(`/app/documents/${id}`);
+  };
+  const fire = (event: string) => {
+    setOpen(false);
+    window.dispatchEvent(new Event(event));
+  };
+
+  const ACTIONS = [
+    { key: "newDoc", Icon: AddSquare, run: newDoc, testId: "cmd-new-doc" },
+    { key: "newTask", Icon: TaskSquare, run: () => go("/app/tasks"), testId: "cmd-new-task" },
+    { key: "newEvent", Icon: CalendarAdd, run: () => go("/app/calendar"), testId: "cmd-new-event" },
+    { key: "openChat", Icon: Message, run: () => fire("flux:open-chat"), testId: "cmd-open-chat" },
+    { key: "askAi", Icon: Magicpen, run: () => fire("flux:open-ai"), testId: "cmd-ask-ai" },
+  ];
+  const showActions = q.trim().length < 2;
+
   const hasDocResults = docResults && docResults.length > 0;
   const hasTasks = other && other.tasks.length > 0;
   const hasProjects = other && other.projects.length > 0;
@@ -108,6 +133,16 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
           />
           <CommandList className="max-h-[420px]">
             <CommandEmpty>{tc("noResults")}</CommandEmpty>
+
+            {showActions && (
+              <CommandGroup heading={t("quickActions")}>
+                {ACTIONS.map(({ key, Icon, run, testId }) => (
+                  <CommandItem key={key} value={`action-${key}`} onSelect={run} className="gap-2" data-testid={testId}>
+                    <Icon variant="Bulk" size={18} className="text-primary" /> {t(`actions.${key}`)}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
             {hasDocResults && (
               <CommandGroup heading={tn("documents")}>

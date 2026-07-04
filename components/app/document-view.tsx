@@ -34,6 +34,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft2,
@@ -54,6 +58,8 @@ import {
   TickCircle,
   Clock,
   Refresh2,
+  Setting4,
+  ExportSquare,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -92,6 +98,31 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const saveVersionFn = useMutation(api.flux_documents.saveVersion);
   const restoreVersionFn = useMutation(api.flux_documents.restoreVersion);
   const setLock = useMutation(api.flux_documents.setLock);
+  const duplicateFn = useMutation(api.flux_documents.duplicate);
+
+  // Toolbar customization + breadcrumb + word count.
+  const prefs = useQuery(api.flux_userPrefs.get);
+  const updatePrefs = useMutation(api.flux_userPrefs.update);
+  const parentDoc = useQuery(
+    api.flux_documents.get,
+    doc?.parentId ? { documentId: doc.parentId } : "skip",
+  );
+  const wordCount = useMemo(() => {
+    try {
+      const blocks = doc?.content ? JSON.parse(doc.content) : [];
+      let text = "";
+      const walk = (bs: any[]) => {
+        for (const b of bs ?? []) {
+          for (const c of b?.content ?? []) if (typeof c?.text === "string") text += c.text + " ";
+          if (b?.children?.length) walk(b.children);
+        }
+      };
+      walk(blocks);
+      return (text.trim().match(/\S+/g) ?? []).length;
+    } catch {
+      return 0;
+    }
+  }, [doc?.content]);
 
   // Data for @mentions + permissions.
   const wsMembers = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
@@ -294,99 +325,152 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   }
 
   const isFavorite = !!favorites?.some((f: any) => f._id === doc._id);
+  const hiddenTools: string[] = (prefs as any)?.docToolbarHidden ?? [];
+  const showTool = (key: string) => !hiddenTools.includes(key);
+  const toggleTool = (key: string) => {
+    const next = hiddenTools.includes(key) ? hiddenTools.filter((k) => k !== key) : [...hiddenTools, key];
+    updatePrefs({ docToolbarHidden: next });
+  };
+  const onDuplicate = async () => {
+    const newId = await duplicateFn({ documentId });
+    toast.success(te("duplicated"));
+    router.push(`/app/documents/${newId}`);
+  };
 
   return (
     <div className="min-h-full pb-32" data-testid="document-view">
       {/* Toolbar */}
       <div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border bg-background/85 px-3 py-2 backdrop-blur md:px-6">
         <ActionTooltip label={te("tooltipBack")} side="bottom">
-          <button onClick={() => router.push("/app/documents")} className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-back" aria-label={te("tooltipBack")}>
+          <button onClick={() => router.push("/app/documents")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-back" aria-label={te("tooltipBack")}>
             <ArrowLeft2 variant="Bulk" size={18} />
           </button>
         </ActionTooltip>
+        {/* Breadcrumb */}
         <span className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+          {parentDoc && (
+            <>
+              <Link
+                href={`/app/documents/${parentDoc._id}`}
+                className="hidden max-w-32 items-center gap-1 truncate rounded-md px-1 py-0.5 hover:bg-muted hover:text-foreground sm:flex"
+                data-testid="doc-breadcrumb-parent"
+              >
+                <span>{parentDoc.icon ?? "\ud83d\udcc1"}</span>
+                <span className="truncate">{parentDoc.title || "Untitled"}</span>
+              </Link>
+              <span className="hidden text-muted-foreground/50 sm:inline">/</span>
+            </>
+          )}
           <span className="w-5 text-center">{doc.icon ?? "\ud83d\udcc4"}</span>
           <span className="truncate font-medium text-foreground">{title || "Untitled"}</span>
         </span>
-        <span className="ml-2 flex items-center gap-1 text-xs text-muted-foreground">
+        <span className="ml-2 flex shrink-0 items-center gap-1 text-xs text-muted-foreground" data-testid="doc-save-state">
           {saving ? (
-            <><Spinner className="h-3 w-3" /> Saving</>
+            <><Spinner className="h-3 w-3" /> {te("savingShort")}</>
           ) : (
-            "Saved"
+            te("saved")
           )}
         </span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5">
           <PresenceAvatars documentId={documentId} meId={me?._id} editing={isEditing} />
-          <DocumentComments
-            documentId={documentId}
-            meId={me?._id}
-            members={(wsMembers ?? []).map((m: any) => ({
-              userId: m.userId,
-              name: m.name,
-              email: m.email,
-              image: m.image,
-            }))}
-          />
-          {doc.isPublished && (
-            <ActionTooltip label={te("tooltipCopyLink")} side="bottom">
-              <button onClick={copyShareLink} className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-primary hover:bg-muted" data-testid="doc-copy-link">
-                <Link21 variant="Bulk" size={16} /> Live
+          {showTool("comments") && (
+            <DocumentComments
+              documentId={documentId}
+              meId={me?._id}
+              members={(wsMembers ?? []).map((m: any) => ({
+                userId: m.userId,
+                name: m.name,
+                email: m.email,
+                image: m.image,
+              }))}
+            />
+          )}
+          {showTool("star") && (
+            <ActionTooltip label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")} side="bottom">
+              <button onClick={() => toggleFavorite({ documentId })} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", isFavorite ? "text-primary" : "text-muted-foreground")} data-testid="doc-favorite" aria-label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")}>
+                <Star1 variant={isFavorite ? "Bold" : "Bulk"} size={18} />
               </button>
             </ActionTooltip>
           )}
-          <ActionTooltip label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")} side="bottom">
-            <button onClick={() => toggleFavorite({ documentId })} className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", isFavorite ? "text-primary" : "text-muted-foreground")} data-testid="doc-favorite" aria-label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")}>
-              <Star1 variant="Bulk" size={18} />
-            </button>
-          </ActionTooltip>
-          <ActionTooltip label={doc.isLocked ? te("tooltipLocked") : te("tooltipLock")} side="bottom">
-            <button
-              onClick={() => { setPassphraseInput(""); setPassphraseHintInput(doc.passphraseHint ?? ""); setLockError(""); setLockDialogOpen(true); }}
-              className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isLocked ? "text-primary" : "text-muted-foreground")}
-              data-testid="doc-lock-btn"
-              aria-label={doc.isLocked ? te("tooltipLocked") : te("tooltipLock")}
-            >
-              <Lock1 variant="Bulk" size={18} />
-            </button>
-          </ActionTooltip>
-          <DocPermissions doc={doc} documentId={documentId} update={update} members={wsMembers ?? []} />
-          <PublishPopover doc={doc} documentId={documentId} update={update} onTogglePublish={onTogglePublish} te={te} />
+          {showTool("lock") && (
+            <ActionTooltip label={doc.isLocked ? te("tooltipLocked") : te("tooltipLock")} side="bottom">
+              <button
+                onClick={() => { setPassphraseInput(""); setPassphraseHintInput(doc.passphraseHint ?? ""); setLockError(""); setLockDialogOpen(true); }}
+                className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isLocked ? "text-primary" : "text-muted-foreground")}
+                data-testid="doc-lock-btn"
+                aria-label={doc.isLocked ? te("tooltipLocked") : te("tooltipLock")}
+              >
+                <Lock1 variant="Bulk" size={18} />
+              </button>
+            </ActionTooltip>
+          )}
+          <ShareMenu
+            doc={doc}
+            documentId={documentId}
+            update={update}
+            onTogglePublish={onTogglePublish}
+            members={wsMembers ?? []}
+            te={te}
+          />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-more" aria-label={te("tooltipMore")} title={te("tooltipMore")}>
                 <More variant="Bulk" size={18} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuItem onClick={() => fileRef.current?.click()} className="gap-2">
-                <GalleryAdd variant="Bulk" size={16} /> {doc.coverImage ? "Change cover" : "Add cover"}
+                <GalleryAdd variant="Bulk" size={16} /> {doc.coverImage ? te("changeCover") : te("addCover")}
               </DropdownMenuItem>
               {doc.coverImage && (
                 <DropdownMenuItem onClick={() => removeCover({ documentId })} className="gap-2">
-                  <CloseCircle variant="Bulk" size={16} /> Remove cover
+                  <CloseCircle variant="Bulk" size={16} /> {te("removeCover")}
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => saveVersionFn({ documentId }).then(() => toast.success("Version saved"))} className="gap-2" data-testid="doc-save-version">
-                <Clock variant="Bulk" size={16} /> Save version
+              <DropdownMenuItem onClick={() => saveVersionFn({ documentId }).then(() => toast.success(te("vhSavedToast")))} className="gap-2" data-testid="doc-save-version">
+                <Clock variant="Bulk" size={16} /> {te("saveVersion")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setHistoryOpen(true)} className="gap-2" data-testid="doc-history">
-                <Refresh2 variant="Bulk" size={16} /> Version history
+                <Refresh2 variant="Bulk" size={16} /> {te("versionHistory")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onDuplicate} className="gap-2" data-testid="doc-duplicate">
+                <Copy variant="Bulk" size={16} /> {te("duplicate")}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={exportMarkdown} className="gap-2" data-testid="doc-export-md">
-                <DocumentDownload variant="Bulk" size={16} /> Export Markdown
+                <DocumentDownload variant="Bulk" size={16} /> {te("menuExportMarkdown")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={exportPDF} className="gap-2" data-testid="doc-export-pdf">
-                <DocumentDownload variant="Bulk" size={16} /> Export PDF
+                <DocumentDownload variant="Bulk" size={16} /> {te("menuExportPdf")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onSaveTemplate} className="gap-2" data-testid="doc-save-template">
-                <Copy variant="Bulk" size={16} /> Save as template
+                <DocumentText variant="Bulk" size={16} /> {te("saveAsTemplate")}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2" data-testid="doc-toolbar-customize">
+                  <Setting4 variant="Bulk" size={16} /> {te("toolbarCustomize")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-48">
+                  <DropdownMenuCheckboxItem checked={showTool("star")} onCheckedChange={() => toggleTool("star")} onSelect={(e: Event) => e.preventDefault()} data-testid="toolbar-toggle-star">
+                    {te("toolbarStar")}
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem checked={showTool("lock")} onCheckedChange={() => toggleTool("lock")} onSelect={(e: Event) => e.preventDefault()} data-testid="toolbar-toggle-lock">
+                    {te("toolbarLock")}
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem checked={showTool("comments")} onCheckedChange={() => toggleTool("comments")} onSelect={(e: Event) => e.preventDefault()} data-testid="toolbar-toggle-comments">
+                    {te("toolbarComments")}
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={onArchive} className="gap-2 text-destructive" data-testid="doc-archive">
-                <Trash variant="Bulk" size={16} /> Move to trash
+                <Trash variant="Bulk" size={16} /> {te("menuTrash")}
               </DropdownMenuItem>
+              <div className="border-t border-border px-2 py-1.5 text-[11px] text-muted-foreground" data-testid="doc-word-count">
+                {te("wordCount", { count: wordCount })}
+              </div>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -852,7 +936,9 @@ function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
 }
 
 
-function DocPermissions({ doc, documentId, update, members }: any) {
+/** Unified Share menu (Notion-style): access control + public link + guest
+ *  editing in one place, behind a single prominent button. */
+function ShareMenu({ doc, documentId, update, onTogglePublish, members, te }: any) {
   const visibility = doc.visibility ?? "workspace";
   const access: string[] = doc.accessUserIds ?? [];
   const setVis = (v: string) => update({ documentId, visibility: v });
@@ -860,47 +946,6 @@ function DocPermissions({ doc, documentId, update, members }: any) {
     const next = access.includes(uid) ? access.filter((x) => x !== uid) : [...access, uid];
     update({ documentId, accessUserIds: next });
   };
-  const Icon = visibility === "private" ? Lock1 : visibility === "custom" ? People : Global;
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className={cn("flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs font-medium hover:bg-muted", visibility !== "workspace" ? "text-primary" : "text-muted-foreground")} data-testid="doc-permissions" title="Page permissions">
-          <Icon variant="Bulk" size={16} /> {visibility === "workspace" ? "Workspace" : visibility === "private" ? "Private" : "Custom"}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 p-2" data-testid="doc-permissions-popover">
-        <p className="px-1 pb-1 text-xs font-semibold text-muted-foreground">Who can access</p>
-        {[
-          { key: "workspace", label: "Everyone in workspace", icon: Global },
-          { key: "private", label: "Only me (private)", icon: Lock1 },
-          { key: "custom", label: "Specific people", icon: People },
-        ].map((o) => (
-          <button key={o.key} onClick={() => setVis(o.key)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted" data-testid={`doc-vis-${o.key}`}>
-            <o.icon variant="Bulk" size={16} className="text-muted-foreground" />
-            <span className="flex-1">{o.label}</span>
-            {visibility === o.key && <TickCircle variant="Bold" size={16} className="text-primary" />}
-          </button>
-        ))}
-        {visibility === "custom" && (
-          <div className="mt-2 border-t border-border pt-2">
-            <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">Grant access to</p>
-            <div className="max-h-48 space-y-0.5 overflow-y-auto">
-              {members.map((m: any) => (
-                <button key={m.userId} onClick={() => toggleUser(m.userId)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted">
-                  <span className={cn("flex h-4 w-4 items-center justify-center rounded border", access.includes(m.userId) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{access.includes(m.userId) && <TickCircle variant="Bold" size={11} />}</span>
-                  <span className="flex-1 truncate">{m.name ?? m.email}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-/** Publish-to-web popover: publish switch, share link and guest-edit toggle. */
-function PublishPopover({ doc, documentId, update, onTogglePublish, te }: any) {
   const shareUrl = typeof window !== "undefined" && doc.shareToken ? `${window.location.origin}/share/${doc.shareToken}` : "";
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -909,46 +954,91 @@ function PublishPopover({ doc, documentId, update, onTogglePublish, te }: any) {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
+  const VisIcon = visibility === "private" ? Lock1 : visibility === "custom" ? People : Global;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", doc.isPublished ? "text-primary" : "text-muted-foreground")} data-testid="doc-publish" aria-label={te("tooltipPublish")} title={te("tooltipPublish")}>
-          <Global variant="Bulk" size={18} />
+        <button
+          className={cn(
+            "flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors",
+            doc.isPublished
+              ? "bg-primary text-primary-foreground hover:opacity-90"
+              : "border border-border text-foreground hover:bg-muted",
+          )}
+          data-testid="doc-share"
+        >
+          <ExportSquare variant="Bulk" size={14} /> {te("share")}
+          {doc.isPublished && <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-emerald-300" />}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-3" data-testid="doc-publish-popover">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold">{te("publishToWeb")}</p>
-            <p className="text-xs text-muted-foreground">{doc.isPublished ? te("publishedDesc") : te("publicDesc")}</p>
-          </div>
-          <Switch checked={!!doc.isPublished} onCheckedChange={onTogglePublish} data-testid="doc-publish-switch" />
-        </div>
-        {doc.isPublished && (
-          <>
-            {shareUrl && (
-              <div className="mt-3 flex items-center gap-1.5">
-                <input readOnly value={shareUrl} className="h-8 w-full truncate rounded-lg border border-border bg-muted px-2 text-xs outline-none" data-testid="doc-share-url" onFocus={(e) => e.target.select()} />
-                <button onClick={copy} className="flex h-8 shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 text-xs font-semibold text-primary-foreground" data-testid="doc-share-copy">
-                  {copied ? <TickCircle variant="Bold" size={14} /> : <Copy variant="Bulk" size={14} />}
-                  {copied ? te("copied") : te("copyLink")}
-                </button>
+      <PopoverContent align="end" className="w-[340px] p-0" data-testid="doc-share-menu">
+        {/* Access */}
+        <div className="p-3">
+          <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <VisIcon variant="Bulk" size={13} /> {te("accessTitle")}
+          </p>
+          {[
+            { key: "workspace", label: te("accessWorkspace"), icon: Global },
+            { key: "private", label: te("accessPrivate"), icon: Lock1 },
+            { key: "custom", label: te("accessCustom"), icon: People },
+          ].map((o) => (
+            <button key={o.key} onClick={() => setVis(o.key)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted" data-testid={`doc-vis-${o.key}`}>
+              <o.icon variant="Bulk" size={16} className="text-muted-foreground" />
+              <span className="flex-1">{o.label}</span>
+              {visibility === o.key && <TickCircle variant="Bold" size={16} className="text-primary" />}
+            </button>
+          ))}
+          {visibility === "custom" && (
+            <div className="mt-2 border-t border-border pt-2">
+              <p className="px-1 pb-1 text-xs font-medium text-muted-foreground">{te("accessGrant")}</p>
+              <div className="max-h-40 space-y-0.5 overflow-y-auto">
+                {members.map((m: any) => (
+                  <button key={m.userId} onClick={() => toggleUser(m.userId)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-muted">
+                    <span className={cn("flex h-4 w-4 items-center justify-center rounded border", access.includes(m.userId) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>{access.includes(m.userId) && <TickCircle variant="Bold" size={11} />}</span>
+                    <span className="flex-1 truncate">{m.name ?? m.email}</span>
+                  </button>
+                ))}
               </div>
-            )}
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
-              <div>
-                <p className="text-sm font-medium">{te("allowGuestEdit")}</p>
-                <p className="text-xs text-muted-foreground">{doc.isLocked ? te("lockedNoGuestEdit") : te("allowGuestEditDesc")}</p>
-              </div>
-              <Switch
-                checked={!!doc.allowGuestEdit && !doc.isLocked}
-                disabled={!!doc.isLocked}
-                onCheckedChange={(v) => update({ documentId, allowGuestEdit: v })}
-                data-testid="doc-guest-edit-toggle"
-              />
             </div>
-          </>
-        )}
+          )}
+        </div>
+
+        {/* Public link */}
+        <div className="border-t border-border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">{te("publishToWeb")}</p>
+              <p className="text-xs text-muted-foreground">{doc.isPublished ? te("publishedDesc") : te("publicDesc")}</p>
+            </div>
+            <Switch checked={!!doc.isPublished} onCheckedChange={onTogglePublish} data-testid="doc-publish-switch" />
+          </div>
+          {doc.isPublished && (
+            <>
+              {shareUrl && (
+                <div className="mt-3 flex items-center gap-1.5">
+                  <input readOnly value={shareUrl} className="h-8 w-full truncate rounded-lg border border-border bg-muted px-2 text-xs outline-none" data-testid="doc-share-url" onFocus={(e) => e.target.select()} />
+                  <button onClick={copy} className="flex h-8 shrink-0 items-center gap-1 rounded-lg bg-primary px-2.5 text-xs font-semibold text-primary-foreground" data-testid="doc-share-copy">
+                    {copied ? <TickCircle variant="Bold" size={14} /> : <Copy variant="Bulk" size={14} />}
+                    {copied ? te("copied") : te("copyLink")}
+                  </button>
+                </div>
+              )}
+              <div className="mt-3 flex items-center justify-between gap-3 border-t border-border pt-3">
+                <div>
+                  <p className="text-sm font-medium">{te("allowGuestEdit")}</p>
+                  <p className="text-xs text-muted-foreground">{doc.isLocked ? te("lockedNoGuestEdit") : te("allowGuestEditDesc")}</p>
+                </div>
+                <Switch
+                  checked={!!doc.allowGuestEdit && !doc.isLocked}
+                  disabled={!!doc.isLocked}
+                  onCheckedChange={(v) => update({ documentId, allowGuestEdit: v })}
+                  data-testid="doc-guest-edit-toggle"
+                />
+              </div>
+            </>
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -106,6 +106,22 @@ export const listForDocument = query({
         lastSeen: r.lastSeen,
       });
     }
+
+    // Merge anonymous guests editing via the public share page.
+    const guests = await ctx.db
+      .query("flux_guestPresence")
+      .withIndex("by_document", (q) => q.eq("documentId", args.documentId))
+      .collect();
+    for (const g of guests) {
+      if (g.lastSeen < cutoff) continue;
+      out.push({
+        userId: `guest:${g.guestId}` as any,
+        name: g.guestName,
+        image: null,
+        state: g.state,
+        lastSeen: g.lastSeen,
+      });
+    }
     return out;
   },
 });

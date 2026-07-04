@@ -29,6 +29,7 @@ import type * as flux_files from "../flux_files.js";
 import type * as flux_labels from "../flux_labels.js";
 import type * as flux_presence from "../flux_presence.js";
 import type * as flux_projects from "../flux_projects.js";
+import type * as flux_public from "../flux_public.js";
 import type * as flux_roles from "../flux_roles.js";
 import type * as flux_tags from "../flux_tags.js";
 import type * as flux_taskStatuses from "../flux_taskStatuses.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   flux_labels: typeof flux_labels;
   flux_presence: typeof flux_presence;
   flux_projects: typeof flux_projects;
+  flux_public: typeof flux_public;
   flux_roles: typeof flux_roles;
   flux_tags: typeof flux_tags;
   flux_taskStatuses: typeof flux_taskStatuses;

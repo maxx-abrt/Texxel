@@ -185,6 +185,7 @@ export const update = mutation({
     order: v.optional(v.number()),
     visibility: v.optional(v.string()),
     accessUserIds: v.optional(v.array(v.id("users"))),
+    allowGuestEdit: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.documentId);

@@ -393,6 +393,7 @@ export default defineSchema({
     coverImage: v.optional(v.string()),
     isArchived: v.boolean(),
     isPublished: v.boolean(),
+    allowGuestEdit: v.optional(v.boolean()), // published page editable by anonymous guests
     order: v.optional(v.number()),
     shareToken: v.optional(v.string()),
     visibility: v.optional(v.string()), // "workspace" | "private" | "custom"
@@ -437,7 +438,16 @@ export default defineSchema({
     .index("by_document", ["documentId"])
     .index("by_document_user", ["documentId", "userId"]),
 
-  // Document comments with @mentions + resolve/open state. Additive only.
+  // Anonymous guest presence on publicly shared documents (no auth). Additive only.
+  flux_guestPresence: defineTable({
+    documentId: v.id("flux_documents"),
+    guestId: v.string(), // random client-generated id, persisted in localStorage
+    guestName: v.string(), // e.g. "Guest Fox"
+    state: v.string(), // "viewing" | "editing"
+    lastSeen: v.number(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_document_guest", ["documentId", "guestId"]),
   flux_comments: defineTable({
     workspaceId: v.id("workspaces"),
     documentId: v.id("flux_documents"),

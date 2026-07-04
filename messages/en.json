@@ -717,6 +717,11 @@
         "default": "Default",
         "comfortable": "Comfortable"
       }
+    },
+    "easyRead": {
+      "title": "Easy reading",
+      "desc": "Bolder text, more spacing and higher contrast",
+      "saved": "Reading preference updated"
     }
   },
   "roles": {

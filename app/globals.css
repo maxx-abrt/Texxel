@@ -4,95 +4,97 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================ FLUX DESIGN TOKENS ============================ */
+/* Palette: accent #E65A41 · warm white #FAF6F2 · warm black #31302E */
 :root {
   --radius: 0.85rem;
 
-  /* Warm, clean canvas (Notion/Makesense-inspired) */
-  --background: oklch(0.994 0.002 70);
-  --foreground: oklch(0.205 0.012 65);
+  /* Warm paper canvas */
+  --background: #faf6f2;
+  --foreground: #31302e;
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.205 0.012 65);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.205 0.012 65);
+  --card: #fffdfa;
+  --card-foreground: #31302e;
+  --popover: #fffdfa;
+  --popover-foreground: #31302e;
 
-  /* Flux coral/red brand */
-  --primary: oklch(0.645 0.205 25.5);
-  --primary-foreground: oklch(0.995 0.004 60);
+  /* Brand accent */
+  --primary: #e65a41;
+  --primary-foreground: #faf6f2;
 
-  --secondary: oklch(0.97 0.012 60);
-  --secondary-foreground: oklch(0.28 0.01 60);
-  --muted: oklch(0.968 0.005 70);
-  --muted-foreground: oklch(0.55 0.012 65);
-  --accent: oklch(0.962 0.018 30);
-  --accent-foreground: oklch(0.3 0.04 28);
-  --destructive: oklch(0.585 0.225 27);
+  --secondary: #f1eae3;
+  --secondary-foreground: #31302e;
+  --muted: #f2ece5;
+  --muted-foreground: #7a746d;
+  --accent: #f9e3dc;
+  --accent-foreground: #8a3524;
+  --destructive: #c93c2a;
 
-  --border: oklch(0.922 0.004 70);
-  --input: oklch(0.922 0.004 70);
-  --ring: oklch(0.645 0.205 25.5);
+  --border: #e9e1d8;
+  --input: #e9e1d8;
+  --ring: #e65a41;
 
-  --chart-1: oklch(0.645 0.205 25.5);
-  --chart-2: oklch(0.68 0.15 45);
-  --chart-3: oklch(0.62 0.13 250);
-  --chart-4: oklch(0.7 0.15 160);
-  --chart-5: oklch(0.72 0.16 300);
+  --chart-1: #e65a41;
+  --chart-2: #d98324;
+  --chart-3: #2f7ea6;
+  --chart-4: #1f9d76;
+  --chart-5: #7c5cff;
 
-  /* Sidebar (clean light) */
-  --sidebar: oklch(0.985 0.003 70);
-  --sidebar-foreground: oklch(0.3 0.01 65);
-  --sidebar-primary: oklch(0.645 0.205 25.5);
-  --sidebar-primary-foreground: oklch(0.995 0.004 60);
-  --sidebar-accent: oklch(0.955 0.012 30);
-  --sidebar-accent-foreground: oklch(0.3 0.03 28);
-  --sidebar-border: oklch(0.93 0.004 70);
-  --sidebar-ring: oklch(0.645 0.205 25.5);
+  /* Sidebar (warm light) */
+  --sidebar: #f5efe9;
+  --sidebar-foreground: #31302e;
+  --sidebar-primary: #e65a41;
+  --sidebar-primary-foreground: #faf6f2;
+  --sidebar-accent: #f0e5dd;
+  --sidebar-accent-foreground: #8a3524;
+  --sidebar-border: #e9e1d8;
+  --sidebar-ring: #e65a41;
 
   /* Flux brand scale */
-  --flux-coral: #fb5648;
-  --flux-coral-600: #ef4836;
-  --flux-coral-soft: #ffe9e6;
-  --flux-ink: #211f1d;
+  --flux-coral: #e65a41;
+  --flux-coral-600: #d14b33;
+  --flux-coral-soft: #f9e3dc;
+  --flux-ink: #31302e;
   --accent-ocean: #2f7ea6;
   --accent-mint: #2fbf9b;
-  --accent-sand: #f3efe7;
+  --accent-sand: #f1eae3;
 
   --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 .dark {
-  --background: oklch(0.185 0.006 60);
-  --foreground: oklch(0.96 0.004 70);
-  --card: oklch(0.222 0.006 60);
-  --card-foreground: oklch(0.96 0.004 70);
-  --popover: oklch(0.222 0.006 60);
-  --popover-foreground: oklch(0.96 0.004 70);
-  --primary: oklch(0.68 0.2 26);
-  --primary-foreground: oklch(0.16 0.01 40);
-  --secondary: oklch(0.27 0.008 60);
-  --secondary-foreground: oklch(0.95 0.004 70);
-  --muted: oklch(0.27 0.008 60);
-  --muted-foreground: oklch(0.68 0.01 65);
-  --accent: oklch(0.32 0.03 28);
-  --accent-foreground: oklch(0.95 0.01 40);
-  --destructive: oklch(0.62 0.21 25);
-  --border: oklch(0.3 0.006 60);
-  --input: oklch(0.32 0.006 60);
-  --ring: oklch(0.68 0.2 26);
-  --sidebar: oklch(0.205 0.006 60);
-  --sidebar-foreground: oklch(0.9 0.004 70);
-  --sidebar-primary: oklch(0.68 0.2 26);
-  --sidebar-primary-foreground: oklch(0.16 0.01 40);
-  --sidebar-accent: oklch(0.3 0.02 28);
-  --sidebar-accent-foreground: oklch(0.95 0.01 40);
-  --sidebar-border: oklch(0.3 0.006 60);
-  --sidebar-ring: oklch(0.68 0.2 26);
-  --flux-coral: #fb5648;
-  --flux-coral-soft: #3a2420;
+  /* Inverted: warm black canvas, warm white text */
+  --background: #31302e;
+  --foreground: #faf6f2;
+  --card: #3a3936;
+  --card-foreground: #faf6f2;
+  --popover: #3a3936;
+  --popover-foreground: #faf6f2;
+  --primary: #e65a41;
+  --primary-foreground: #faf6f2;
+  --secondary: #44423f;
+  --secondary-foreground: #faf6f2;
+  --muted: #413f3c;
+  --muted-foreground: #b3ada6;
+  --accent: #4c3a33;
+  --accent-foreground: #f4c4b8;
+  --destructive: #e05741;
+  --border: #4a4844;
+  --input: #4f4d49;
+  --ring: #e65a41;
+  --sidebar: #2b2a28;
+  --sidebar-foreground: #f2ede8;
+  --sidebar-primary: #e65a41;
+  --sidebar-primary-foreground: #faf6f2;
+  --sidebar-accent: #453832;
+  --sidebar-accent-foreground: #f4c4b8;
+  --sidebar-border: #45433f;
+  --sidebar-ring: #e65a41;
+  --flux-coral: #e65a41;
+  --flux-coral-soft: #4c342d;
   --accent-ocean: #5fb6d6;
   --accent-mint: #55d6b6;
-  --accent-sand: #2a2622;
+  --accent-sand: #3e3c38;
 }
 
 @theme inline {
@@ -226,3 +228,27 @@
 
 /* @mention chip in read mode */
 .mention-chip { cursor: default; }
+
+/* ============================ EASY READING MODE ============================ */
+/* Accessibility preference: everything bolder, roomier and higher-contrast
+   for users with reading difficulties. Toggled in Settings, applied on <html>. */
+html[data-easyread="true"] {
+  letter-spacing: 0.012em;
+}
+html[data-easyread="true"] body {
+  line-height: 1.7;
+}
+html[data-easyread="true"] :is(p, span, li, td, th, label, a, button, input, textarea, dd, dt, summary, blockquote) {
+  font-weight: 600 !important;
+}
+html[data-easyread="true"] :is(h1, h2, h3, h4, h5, h6, strong, b, [class*="font-bold"]) {
+  font-weight: 800 !important;
+}
+/* Lift low-contrast secondary text closer to full contrast. */
+html[data-easyread="true"] .text-muted-foreground {
+  color: color-mix(in oklch, var(--foreground) 82%, var(--muted-foreground)) !important;
+}
+html[data-easyread="true"] .ProseMirror {
+  font-weight: 600;
+  line-height: 1.75;
+}

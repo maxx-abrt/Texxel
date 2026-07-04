@@ -11,7 +11,7 @@ import { usePresence } from "@/hooks/use-presence";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 
-const COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#1f9d76"];
+const COLORS = ["#e65a41", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#1f9d76"];
 
 function initials(name?: string | null): string {
   if (!name) return "?";

@@ -73,7 +73,7 @@ const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
   ),
 });
 
-const TAG_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#e5484d"];
+const TAG_COLORS = ["#e65a41", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#e5484d"];
 
 export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> }) {
   const router = useRouter();
@@ -886,7 +886,7 @@ function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
         <span
           key={t._id}
           className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
-          style={{ backgroundColor: `${t.color ?? "#fb5648"}1f`, color: t.color ?? "#fb5648" }}
+          style={{ backgroundColor: `${t.color ?? "#e65a41"}1f`, color: t.color ?? "#e65a41" }}
           data-testid="document-tag-chip"
         >
           <Hashtag variant="Bulk" size={12} /> {t.name}
@@ -923,7 +923,7 @@ function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
                   onClick={() => assign({ documentId, tagId: t._id })}
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted"
                 >
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color ?? "#fb5648" }} />
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color ?? "#e65a41" }} />
                   {t.name}
                 </button>
               ))}

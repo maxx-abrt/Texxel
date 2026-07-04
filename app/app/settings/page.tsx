@@ -8,13 +8,38 @@ import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useTranslations } from "next-intl";
+import { Switch } from "@/components/ui/switch";
 import { PageContainer, PageHeader, btnPrimary, btnOutline, inputBase } from "@/components/app/common";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2 } from "iconsax-reactjs";
-import { ACCENT_PRESETS, DEFAULT_ACCENT, applyAccent, cacheAccent, applyDensity, cacheDensity, type Density } from "@/components/providers/accent-provider";
+import { ACCENT_PRESETS, DEFAULT_ACCENT, normalizeAccent, applyAccent, cacheAccent, applyDensity, cacheDensity, applyEasyRead, cacheEasyRead, type Density } from "@/components/providers/accent-provider";
+
+function EasyReadToggle() {
+  const t = useTranslations("settings");
+  const prefs = useQuery(api.flux_userPrefs.get);
+  const updatePrefs = useMutation(api.flux_userPrefs.update);
+  const on = !!(prefs as any)?.easyRead;
+
+  const toggle = async (next: boolean) => {
+    applyEasyRead(next);
+    cacheEasyRead(next);
+    await updatePrefs({ easyRead: next });
+    toast.success(t("easyRead.saved"));
+  };
+
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border pt-4">
+      <div>
+        <span className="text-sm font-medium">{t("easyRead.title")}</span>
+        <p className="text-xs text-muted-foreground">{t("easyRead.desc")}</p>
+      </div>
+      <Switch checked={on} onCheckedChange={toggle} data-testid="easyread-toggle" />
+    </div>
+  );
+}
 
 function DensityPicker() {
   const t = useTranslations("settings");
@@ -58,7 +83,7 @@ function AccentPicker() {
   const t = useTranslations("settings");
   const prefs = useQuery(api.flux_userPrefs.get);
   const updatePrefs = useMutation(api.flux_userPrefs.update);
-  const current = prefs?.accentColor ?? DEFAULT_ACCENT;
+  const current = normalizeAccent(prefs?.accentColor) ?? DEFAULT_ACCENT;
 
   const pick = async (color: string) => {
     applyAccent(color);
@@ -97,7 +122,7 @@ function AccentPicker() {
         >
           <span
             className="h-4.5 w-4.5 rounded-full border border-border"
-            style={{ background: ACCENT_PRESETS.some((p) => p.color.toLowerCase() === current.toLowerCase()) ? "conic-gradient(#fb5648,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#fb5648)" : current }}
+            style={{ background: ACCENT_PRESETS.some((p) => p.color.toLowerCase() === current.toLowerCase()) ? "conic-gradient(#e65a41,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#e65a41)" : current }}
           />
           <span className="text-xs font-medium">{t("accent.custom")}</span>
           <input type="color" value={current} onChange={(e) => pick(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" data-testid="accent-custom-input" />
@@ -277,6 +302,7 @@ export default function SettingsPage() {
           </div>
           <AccentPicker />
           <DensityPicker />
+          <EasyReadToggle />
         </Section>
 
         <Section title={t("workspace")} icon={Buildings}>

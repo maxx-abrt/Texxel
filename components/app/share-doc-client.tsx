@@ -24,7 +24,7 @@ const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
   loading: () => <Skeleton className="h-64 w-full" />,
 });
 
-const AVATAR_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#1f9d76"];
+const AVATAR_COLORS = ["#e65a41", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff", "#1f9d76"];
 function colorFor(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;

@@ -218,7 +218,12 @@ export function AiPanel({
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary"><Sparkles size={16} /></span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/syna-light.png" alt="" draggable={false} style={{ width: 16, height: 16, maxWidth: "none", flexShrink: 0 }} className="select-none dark:hidden" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/syna-dark.png" alt="" draggable={false} style={{ width: 16, height: 16, maxWidth: "none", flexShrink: 0 }} className="hidden select-none dark:block" />
+              </span>
               <div className="text-sm font-bold">{t("panelTitle")}</div>
             </div>
             <div className="flex items-center gap-1">

@@ -17,7 +17,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat, TaskSquare } from "iconsax-reactjs";
 import { expandEvents } from "@/lib/recurrence";
 
-const EVENT_COLORS = ["#fb5648", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
+const EVENT_COLORS = ["#e65a41", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const DAY_MS = 86_400_000;
 
@@ -621,7 +621,7 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
               >
                 <span
                   className="h-4.5 w-4.5 rounded-full border border-border"
-                  style={{ background: EVENT_COLORS.includes(color) ? "conic-gradient(#fb5648,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#fb5648)" : color }}
+                  style={{ background: EVENT_COLORS.includes(color) ? "conic-gradient(#e65a41,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#e65a41)" : color }}
                 />
                 <span className="text-xs font-medium">{t("customColor")}</span>
                 <input

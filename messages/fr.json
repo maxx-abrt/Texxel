@@ -847,6 +847,11 @@
         "default": "Par défaut",
         "comfortable": "Confortable"
       }
+    },
+    "easyRead": {
+      "title": "Lecture facilitée",
+      "desc": "Texte plus gras, plus aéré et plus contrasté",
+      "saved": "Préférence de lecture mise à jour"
     }
   },
   "roles": {

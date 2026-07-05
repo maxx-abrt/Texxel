@@ -1,5 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 import {
   assertWorkspaceAdmin,
   assertWorkspaceMember,
@@ -62,6 +63,188 @@ export const invite = mutation({
     return { id, token };
   },
 });
+
+export const sendInviteEmail = action({
+  args: {
+    workspaceId: v.id("workspaces"),
+    invitedByUserId: v.id("users"),
+    email: v.string(),
+    role: v.union(
+      v.literal("admin"),
+      v.literal("member"),
+      v.literal("viewer"),
+    ),
+    token: v.string(),
+    inviteUrl: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.RESEND_FROM ?? "noreply@association2e.org";
+    if (!apiKey) {
+      throw new Error("Missing RESEND_API_KEY environment variable");
+    }
+
+    const [workspace, inviter] = await Promise.all([
+      ctx.runQuery(api.workspaces.get, { workspaceId: args.workspaceId }),
+      ctx.runQuery(api.users.get, { userId: args.invitedByUserId }),
+    ]);
+    if (!workspace) throw new Error("Workspace not found");
+
+    const locale = (workspace as any).locale ?? "en";
+    const copy = INVITE_COPY[locale] ?? INVITE_COPY.en;
+    const subject = copy.subject.replace("{workspace}", workspace.name);
+    const workspaceName = workspace.name;
+    const inviterName = inviter?.name ?? inviter?.email ?? copy.someone;
+    const roleLabel = copy.roles[args.role] ?? args.role;
+
+    const html = buildInviteEmailHtml({
+      workspaceName,
+      inviterName,
+      roleLabel,
+      inviteUrl: args.inviteUrl,
+      cta: copy.cta,
+      preview: copy.preview.replace("{workspace}", workspaceName),
+      fallback: copy.fallback,
+      footer: copy.footer,
+    });
+    const text = buildInviteEmailText({
+      workspaceName,
+      inviterName,
+      roleLabel,
+      inviteUrl: args.inviteUrl,
+      cta: copy.cta,
+      preview: copy.preview.replace("{workspace}", workspaceName),
+      fallback: copy.fallback,
+      footer: copy.footer,
+    });
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: args.email,
+        subject,
+        html,
+        text,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Resend error (${res.status}): ${body}`);
+    }
+    return { sent: true };
+  },
+});
+
+const INVITE_COPY: Record<string, {
+  subject: string;
+  preview: string;
+  cta: string;
+  fallback: string;
+  footer: string;
+  someone: string;
+  roles: Record<string, string>;
+}> = {
+  en: {
+    subject: "You've been invited to join {workspace}",
+    preview: "Join {workspace} and start collaborating with your team.",
+    cta: "Accept invitation",
+    fallback: "If the button doesn't work, copy and paste this link into your browser:",
+    footer: "You received this email because you were invited to a workspace.",
+    someone: "Someone",
+    roles: { admin: "Admin", member: "Member", viewer: "Viewer" },
+  },
+  fr: {
+    subject: "Vous avez été invité à rejoindre {workspace}",
+    preview: "Rejoignez {workspace} et commencez à collaborer avec votre équipe.",
+    cta: "Accepter l'invitation",
+    fallback: "Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :",
+    footer: "Vous avez reçu cet email car vous avez été invité à rejoindre un espace de travail.",
+    someone: "Quelqu'un",
+    roles: { admin: "Administrateur", member: "Membre", viewer: "Lecteur" },
+  },
+};
+
+function buildInviteEmailHtml(opts: {
+  workspaceName: string;
+  inviterName: string;
+  roleLabel: string;
+  inviteUrl: string;
+  cta: string;
+  preview: string;
+  fallback: string;
+  footer: string;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <title>${escapeHtml(opts.workspaceName)} invitation</title>
+  <style>
+    :root { color-scheme: light dark; supported-color-schemes: light dark; }
+    body { margin: 0; padding: 0; background-color: #fafaf7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    @media (prefers-color-scheme: dark) {
+      body { background-color: #0a0a0b; }
+      .container { background-color: #111113 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important; }
+      .logo, .title, .role, .cta { color: #fafafa !important; }
+      .subtitle, .fallback, .footer { color: #9ca3af !important; }
+      .pill { background-color: #17181b !important; border-color: #1f2024 !important; }
+      .divider { background-color: #1f2024 !important; }
+      .fallback a { color: #9ca3af !important; }
+    }
+    .container { max-width: 480px; margin: 40px auto; background: #ffffff; border-radius: 24px; padding: 48px 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .logo { font-size: 22px; font-weight: 700; color: #0a0a0a; margin-bottom: 8px; text-align: center; letter-spacing: -0.02em; }
+    .title { font-size: 18px; font-weight: 600; color: #0a0a0a; margin-bottom: 8px; text-align: center; line-height: 1.3; }
+    .subtitle { font-size: 14px; color: #6b7280; margin-bottom: 32px; text-align: center; line-height: 1.5; }
+    .pill { display: inline-block; background: #f4f4f1; border: 1px solid #e7e7e1; border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 500; color: #0a0a0a; margin-bottom: 24px; }
+    .divider { height: 1px; background: #e7e7e1; margin: 32px 0; }
+    .cta { display: block; width: 100%; background: #0a0a0a; color: #ffffff; text-decoration: none; text-align: center; padding: 15px 0; border-radius: 12px; font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+    .fallback { font-size: 13px; color: #6b7280; text-align: center; line-height: 1.5; }
+    .fallback a { color: #6b7280; text-decoration: underline; word-break: break-all; }
+    .footer { margin-top: 32px; font-size: 12px; color: #6b7280; text-align: center; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">${escapeHtml(opts.workspaceName)}</div>
+    <div class="title">${escapeHtml(opts.inviterName)} invited you to join</div>
+    <div style="text-align: center;"><span class="pill">${escapeHtml(opts.roleLabel)}</span></div>
+    <div class="subtitle">${escapeHtml(opts.preview)}</div>
+    <a href="${escapeHtml(opts.inviteUrl)}" class="cta">${escapeHtml(opts.cta)}</a>
+    <div class="divider"></div>
+    <div class="fallback">
+      ${escapeHtml(opts.fallback)}<br/>
+      <a href="${escapeHtml(opts.inviteUrl)}">${escapeHtml(opts.inviteUrl)}</a>
+    </div>
+    <div class="footer">${escapeHtml(opts.footer)}</div>
+  </div>
+</body>
+</html>`;
+}
+
+function buildInviteEmailText(opts: {
+  workspaceName: string;
+  inviterName: string;
+  roleLabel: string;
+  inviteUrl: string;
+  cta: string;
+  preview: string;
+  fallback: string;
+  footer: string;
+}): string {
+  return `${opts.inviterName} invited you to join ${opts.workspaceName} as ${opts.roleLabel}.\n\n${opts.preview}\n\n${opts.cta}: ${opts.inviteUrl}\n\n${opts.fallback}\n${opts.inviteUrl}\n\n${opts.footer}`;
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 
 export const revoke = mutation({
   args: { invitationId: v.id("invitations") },

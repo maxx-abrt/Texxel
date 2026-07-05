@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
@@ -28,6 +28,7 @@ export default function MembersPage() {
   const removeMember = useMutation(api.workspaces.removeMember);
   const setMemberRoles = useMutation(api.flux_roles.setMemberRoles);
   const invite = useMutation(api.invitations.invite);
+  const sendInviteEmail = useAction(api.invitations.sendInviteEmail);
   const revoke = useMutation(api.invitations.revoke);
   const [open, setOpen] = useState(false);
   const [rolePopoverOpen, setRolePopoverOpen] = useState<string | null>(null);
@@ -132,12 +133,28 @@ export default function MembersPage() {
         </div>
       )}
 
-      <InviteDialog open={open} onOpenChange={setOpen} onInvite={async (email: string, role: string) => {
-        if (!activeWorkspaceId) return;
+      <InviteDialog open={open} onOpenChange={setOpen} onInvite={async (email: string, role: string, sendByEmail: boolean) => {
+        if (!activeWorkspaceId || !me?._id) return;
         const res = await invite({ workspaceId: activeWorkspaceId, email, role: role as any });
         const link = `${window.location.origin}/invite/${res.token}`;
         try { await navigator.clipboard.writeText(link); } catch {}
-        toast.success(t("inviteCreatedAndCopied"));
+        if (sendByEmail) {
+          try {
+            await sendInviteEmail({
+              workspaceId: activeWorkspaceId,
+              invitedByUserId: me._id,
+              email,
+              role: role as any,
+              token: res.token,
+              inviteUrl: link,
+            });
+            toast.success(t("inviteCreatedAndSent"));
+          } catch {
+            toast.success(t("inviteCreatedAndCopied"));
+          }
+        } else {
+          toast.success(t("inviteCreatedAndCopied"));
+        }
         setOpen(false);
       }} />
     </PageContainer>
@@ -147,6 +164,7 @@ export default function MembersPage() {
 function InviteDialog({ open, onOpenChange, onInvite }: any) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("member");
+  const [sendByEmail, setSendByEmail] = useState(true);
   const [busy, setBusy] = useState(false);
   const t = useTranslations("teams");
   const tc = useTranslations("common");
@@ -157,11 +175,15 @@ function InviteDialog({ open, onOpenChange, onInvite }: any) {
         <div className="space-y-3">
           <input autoFocus type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("inviteEmailPlaceholder")} className={inputBase} data-testid="invite-email-input" />
           <Select value={role} onValueChange={setRole}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="admin">{t("roles.admin")}</SelectItem><SelectItem value="member">{t("roles.member")}</SelectItem><SelectItem value="viewer">{t("roles.viewer")}</SelectItem></SelectContent></Select>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input type="checkbox" checked={sendByEmail} onChange={(e) => setSendByEmail(e.target.checked)} className="rounded border-border" data-testid="invite-send-email" />
+            {t("sendByEmail")}
+          </label>
           <p className="text-xs text-muted-foreground">{t("inviteLinkHint")}</p>
         </div>
         <DialogFooter>
           <button onClick={() => onOpenChange(false)} className={btnOutline}>{tc("cancel")}</button>
-          <button onClick={async () => { if (!email.trim()) return toast.error(t("enterEmail")); setBusy(true); try { await onInvite(email.trim(), role); } finally { setBusy(false); } }} disabled={busy} className={btnPrimary} data-testid="invite-submit">{busy ? t("inviting") : t("createInvite")}</button>
+          <button onClick={async () => { if (!email.trim()) return toast.error(t("enterEmail")); setBusy(true); try { await onInvite(email.trim(), role, sendByEmail); } finally { setBusy(false); } }} disabled={busy} className={btnPrimary} data-testid="invite-submit">{busy ? t("inviting") : t("sendInvite")}</button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

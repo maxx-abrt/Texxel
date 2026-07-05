@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useQuery, useMutation } from "convex/react";
 import { FolderKanban } from "lucide-react";
+import { Virtuoso } from "react-virtuoso";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
@@ -12,6 +13,7 @@ import { useBulkSelect } from "@/hooks/useBulkSelect";
 import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, inputBase } from "@/components/app/common";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { TaskBulkImportDialog } from "@/components/app/task-bulk-import-dialog";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
   closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
@@ -101,9 +103,12 @@ export function TasksView() {
   const [createStatus, setCreateStatus] = useState<string>("todo");
   const [selected, setSelected] = useState<any>(null);
   const [statusMgrOpen, setStatusMgrOpen] = useState(false);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+
+  const bulkCreate = useMutation(api.flux_tasks.bulkCreate);
 
   useEffect(() => { if (search.get("new") === "1") setCreateOpen(true); }, [search]);
   useEffect(() => { if (activeWorkspaceId) ensureDefaults({ workspaceId: activeWorkspaceId }).catch(() => {}); }, [activeWorkspaceId, ensureDefaults]);
@@ -128,6 +133,7 @@ export function TasksView() {
   }, [labels]);
 
   const showAssigneeFilter = (members?.length ?? 0) > 0 || !!me?._id;
+  const otherMembers = useMemo(() => (members ?? []).filter((m: any) => m.userId !== me?._id), [members, me]);
 
   return (
     <PageContainer>
@@ -160,6 +166,9 @@ export function TasksView() {
             <button onClick={() => setStatusMgrOpen(true)} className={cn(btnOutline, "h-9")} data-testid="manage-statuses-btn" title={t("manageStatuses") ?? "Manage statuses"}>
               <Setting4 variant="Bulk" size={16} /> {t("statusesLabel") ?? "Statuses"}
             </button>
+            <button onClick={() => setBulkImportOpen(true)} className={cn(btnOutline, "h-9")} data-testid="bulk-import-btn" title={t("bulkImportTitle") ?? "Bulk add tasks"}>
+              <DocumentDownload variant="Bulk" size={16} /> {t("bulkImport") ?? "Bulk add"}
+            </button>
             <button onClick={() => { setCreateStatus(cols[0]?.key ?? "todo"); setCreateOpen(true); }} className={btnPrimary} data-testid="new-task-btn">
               <Add variant="Bulk" size={18} /> {t("newTask")}
             </button>
@@ -190,7 +199,7 @@ export function TasksView() {
                 {t("me")}
               </button>
             )}
-            {(members ?? []).map((m: any) => (
+            {otherMembers.map((m: any) => (
               <button key={m.userId} onClick={() => setAssigneeFilter(assigneeFilter === m.userId ? null : m.userId)}
                 className={cn("flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition", assigneeFilter === m.userId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70")}>
                 <Avatar className="h-4 w-4">
@@ -258,6 +267,8 @@ export function TasksView() {
           tasks={filteredTasks}
           labelColor={labelColor}
           members={members ?? []}
+          projects={projects ?? []}
+          labels={labels ?? []}
           onOpen={(t: any) => setSelected(t)}
           onToggleDone={(t: any) => {
             const doneKey = cols.find((c) => c.isDone)?.key ?? "done";
@@ -295,6 +306,21 @@ export function TasksView() {
         workspaceId={activeWorkspaceId}
         onUpdate={async (patch: any) => { if (selected) await update({ taskId: selected._id, ...patch }); }}
         onDelete={async () => { if (selected) { await remove({ taskId: selected._id }); setSelected(null); toast.success(t("deleted")); } }}
+      />
+
+      <TaskBulkImportDialog
+        open={bulkImportOpen}
+        onOpenChange={setBulkImportOpen}
+        workspaceId={activeWorkspaceId}
+        members={members ?? []}
+        projects={projects ?? []}
+        statuses={cols}
+        labels={labels ?? []}
+        onCreate={async (tasks) => {
+          if (!activeWorkspaceId) return;
+          await bulkCreate({ workspaceId: activeWorkspaceId, tasks });
+          setBulkImportOpen(false);
+        }}
       />
 
       <StatusManagerDialog open={statusMgrOpen} onOpenChange={setStatusMgrOpen} statuses={cols} workspaceId={activeWorkspaceId} />
@@ -490,7 +516,7 @@ function TaskCardInner({ task, labelColor, dragging }: any) {
 
 /* ───────────────────────── List view + bulk ops ───────────────────────── */
 
-function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDelete }: any) {
+function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, onToggleDone, onDelete }: any) {
   const t = useTranslations("tasks");
   const { isSelecting, toggleSelecting, exitSelecting, selectedIds, toggle, isSelected, selectAll, deselectAll } = useBulkSelect();
   const bulkUpdate = useMutation(api.flux_tasks.bulkUpdate);
@@ -505,14 +531,37 @@ function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDe
     return map;
   }, [tasks, cols]);
 
-  const allIds = tasks.map((t: any) => t._id);
-  const selectedArr = Array.from(selectedIds) as Id<"tasks">[];
+  const allIds = useMemo(() => tasks.map((t: any) => t._id), [tasks]);
+  const selectedArr = useMemo(() => Array.from(selectedIds) as Id<"tasks">[], [selectedIds]);
+  const allSelected = selectedIds.size === allIds.length && allIds.length > 0;
 
   const runBulk = async (patch: any) => {
     if (selectedArr.length === 0) return;
     await bulkUpdate({ taskIds: selectedArr, ...patch });
     toast.success(t("bulkUpdated", { count: selectedArr.length }));
   };
+
+  const toggleLabel = (label: string) => {
+    const selectedTasks = tasks.filter((t: any) => selectedIds.has(t._id));
+    const add = selectedTasks.some((t: any) => !(t.labels ?? []).includes(label));
+    runBulk(add ? { addLabels: [label] } : { removeLabels: [label] });
+  };
+
+  const markDone = () => {
+    const doneKey = cols.find((c: any) => c.isDone)?.key ?? "done";
+    runBulk({ status: doneKey });
+  };
+
+  const items = useMemo(() => {
+    const out: ({ type: "header"; status: Status } | { type: "task"; task: any })[] = [];
+    for (const s of cols) {
+      const list = byStatus[s.key] ?? [];
+      if (list.length === 0) continue;
+      out.push({ type: "header", status: s });
+      for (const t of list) out.push({ type: "task", task: t });
+    }
+    return out;
+  }, [byStatus, cols]);
 
   if (tasks.length === 0) {
     return <EmptyState icon={TaskSquare} title={t("empty.title")} description={t("empty.description")} testId="tasks-empty" />;
@@ -526,23 +575,31 @@ function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDe
         </button>
         {isSelecting && (
           <>
-            <button onClick={() => (selectedIds.size === allIds.length ? deselectAll() : selectAll(allIds))} className="text-xs font-medium text-primary hover:underline">
-              {selectedIds.size === allIds.length ? t("deselectAll") : t("selectAll")}
+            <button onClick={() => (allSelected ? deselectAll() : selectAll(allIds))} className="text-xs font-medium text-primary hover:underline">
+              {allSelected ? t("deselectAll") : t("selectAll")}
             </button>
             <span className="text-xs text-muted-foreground">{t("bulkSelected", { count: selectedIds.size })}</span>
           </>
         )}
       </div>
 
-      {cols.map((s: Status) => (byStatus[s.key] ?? []).length > 0 && (
-        <div key={s.key}>
-          <div className="mb-1.5 flex items-center gap-2 px-1 text-sm font-semibold">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
-            <span className="text-muted-foreground">{byStatus[s.key].length}</span>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-border bg-card">
-            {byStatus[s.key].map((task: any) => (
-              <div key={task._id} data-testid="tasks-list-row" className={cn("flex items-center gap-3 border-b border-border px-3 py-2.5 last:border-0 hover:bg-muted/50", isSelected(task._id) && "bg-primary/5")}>
+      <div className="h-[70vh] overflow-hidden rounded-2xl border border-border bg-card">
+        <Virtuoso
+          data={items}
+          itemContent={(index, item) => {
+            if (item.type === "header") {
+              const s = item.status;
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold" data-testid="tasks-list-header">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
+                  <span className="text-muted-foreground">{byStatus[s.key]?.length ?? 0}</span>
+                </div>
+              );
+            }
+            const task = item.task;
+            const s = cols.find((c: any) => c.key === task.status);
+            return (
+              <div className={cn("flex items-center gap-3 border-b border-border px-3 py-2.5 hover:bg-muted/50", isSelected(task._id) && "bg-primary/5")} data-testid="tasks-list-row">
                 {isSelecting ? (
                   <button onClick={() => toggle(task._id)} className="shrink-0" data-testid="bulk-row-checkbox">
                     <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", isSelected(task._id) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
@@ -550,12 +607,12 @@ function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDe
                     </span>
                   </button>
                 ) : (
-                  <button onClick={() => onToggleDone(task)} className={cn("shrink-0", s.isDone ? "text-[var(--accent-mint)]" : "text-muted-foreground hover:text-foreground")}>
+                  <button onClick={() => onToggleDone(task)} className={cn("shrink-0", s?.isDone ? "text-[var(--accent-mint)]" : "text-muted-foreground hover:text-foreground")}>
                     <TickCircle variant="Bulk" size={20} />
                   </button>
                 )}
                 <button onClick={() => (isSelecting ? toggle(task._id) : onOpen(task))} className="min-w-0 flex-1 text-left">
-                  <span className={cn("truncate text-sm", s.isDone && "text-muted-foreground line-through")}>{task.title}</span>
+                  <span className={cn("truncate text-sm", s?.isDone && "text-muted-foreground line-through")}>{task.title}</span>
                 </button>
                 {(task.labels ?? []).slice(0, 3).map((l: string) => (
                   <span key={l} className="hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline" style={{ backgroundColor: `color-mix(in oklch, ${labelColor[l] ?? "#888"} 18%, transparent)`, color: labelColor[l] ?? "#888" }}>{l}</span>
@@ -579,14 +636,14 @@ function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDe
                   </DropdownMenu>
                 )}
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+            );
+          }}
+        />
+      </div>
 
       {/* Bulk action bar */}
       {isSelecting && selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-xl" data-testid="bulk-action-bar">
+        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[95vw] -translate-x-1/2 flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 shadow-xl" data-testid="bulk-action-bar">
           <span className="px-1 text-sm font-medium">{t("bulkSelected", { count: selectedIds.size })}</span>
           <Select onValueChange={(v) => runBulk({ status: v })}>
             <SelectTrigger className="h-8 w-32" data-testid="bulk-status"><SelectValue placeholder={t("status")} /></SelectTrigger>
@@ -603,6 +660,30 @@ function ListView({ cols, tasks, labelColor, members, onOpen, onToggleDone, onDe
               {members.map((m: any) => <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select onValueChange={(v) => runBulk({ projectId: v === "none" ? null : v })}>
+            <SelectTrigger className="h-8 w-32" data-testid="bulk-project"><SelectValue placeholder={t("project")} /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t("noProject")}</SelectItem>
+              {projects.map((p: any) => <SelectItem key={p._id} value={p._id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <input type="date" onChange={(e) => runBulk({ dueDate: e.target.value ? new Date(e.target.value).getTime() : null })} className={cn(inputBase, "h-8 w-36 text-xs")} data-testid="bulk-due-date" />
+          <div className="hidden items-center gap-1 sm:flex">
+            {labels.map((l: any) => (
+              <button
+                key={l.name}
+                onClick={() => toggleLabel(l.name)}
+                className="rounded-full px-2 py-0.5 text-[10px] font-medium opacity-80 hover:opacity-100"
+                style={{ backgroundColor: `color-mix(in oklch, ${l.color} 18%, transparent)`, color: l.color }}
+                title={l.name}
+              >
+                {l.name}
+              </button>
+            ))}
+          </div>
+          <button onClick={markDone} className="flex h-8 items-center gap-1 rounded-lg bg-primary/10 px-2 text-xs font-medium text-primary hover:bg-primary/20" data-testid="bulk-mark-done">
+            <TickCircle variant="Bulk" size={14} /> {t("bulkMarkDone")}
+          </button>
           <button onClick={async () => { await bulkRemove({ taskIds: selectedArr }); toast.success(t("deleted")); deselectAll(); }} className="flex h-8 items-center gap-1 rounded-lg px-2 text-sm font-medium text-destructive hover:bg-destructive/10" data-testid="bulk-delete">
             <Trash variant="Bulk" size={15} /> {t("delete") ?? "Delete"}
           </button>

@@ -422,3 +422,108 @@ export function extractPlainText(blockNoteJson: string): string {
     return blockNoteJson.slice(0, 3000);
   }
 }
+
+export interface BulkTaskDraft {
+  title: string;
+  description?: string;
+  status?: string;
+  priority?: "none" | "low" | "medium" | "high" | "urgent";
+  dueDate?: string; // YYYY-MM-DD
+  assignee?: string;
+  project?: string;
+  labels?: string[];
+  estimateMinutes?: number;
+}
+
+export interface BulkTaskParseContext {
+  locale: "en" | "fr";
+  statuses: { key: string; label: string }[];
+  members: { userId: string; name?: string | null; email?: string | null }[];
+  projects: { _id: string; name: string }[];
+  labels: string[];
+  today?: string;
+}
+
+function extractJsonArray(raw: string): any[] {
+  const codeBlock = /```(?:json)?\s*\n?([\s\S]*?)\n?```/.exec(raw);
+  const text = codeBlock ? codeBlock[1] : raw;
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === "object") return [parsed];
+  } catch {}
+  // Fallback: try to find the first JSON array in the text.
+  const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    try {
+      const parsed = JSON.parse(arrayMatch[0]);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+}
+
+export async function parseBulkTasks(
+  raw: string,
+  ctx: BulkTaskParseContext,
+): Promise<{ tasks: BulkTaskDraft[]; text: string }> {
+  const lang = ctx.locale === "fr" ? "French" : "English";
+  const today = ctx.today ?? new Date().toISOString().split("T")[0];
+  const statusList = ctx.statuses.map((s) => `"${s.key}" (${s.label})`).join(", ");
+  const memberList = ctx.members
+    .map((m) => `"${m.name ?? m.email ?? m.userId}"`)
+    .join(", ");
+  const projectList = ctx.projects.map((p) => `"${p.name}"`).join(", ");
+  const labelList = ctx.labels.map((l) => `"${l}"`).join(", ");
+
+  const system = `You are a structured data parser. Parse the user's pasted text into a JSON array of tasks. Respond ONLY in ${lang}.
+Today's date: ${today}.
+Use exact date math: "tomorrow" = ${today} + 1 day, "next Monday" = the next Monday, etc.
+
+Each task object must have these fields:
+- title (required, string)
+- description (optional, string)
+- status (optional, string: one of ${statusList})
+- priority (optional, one of: "none", "low", "medium", "high", "urgent"; default "medium" if a priority is implied)
+- dueDate (optional, "YYYY-MM-DD" ISO string)
+- assignee (optional, free-form name or email)
+- project (optional, free-form project name)
+- labels (optional, array of strings)
+- estimateMinutes (optional, number)
+
+Infer the best status, priority, assignee, project, due date and labels from the text. If a value is ambiguous, include it as-is and leave related fields empty.
+
+Available workspace members: ${memberList || "none"}
+Available projects: ${projectList || "none"}
+Available labels: ${labelList || "none"}
+
+Return ONLY a JSON array inside a markdown code block (\`\`\`json). No prose outside the code block.`;
+
+  const response = await sendAiMessage(
+    [
+      { role: "developer", content: system },
+      { role: "user", content: raw },
+    ],
+    { action: "bulk_import_tasks", temperature: 0.2, max_tokens: 4096 },
+  );
+
+  const tasks = extractJsonArray(response.text)
+    .filter((t) => t && typeof t.title === "string" && t.title.trim())
+    .map((t) => ({
+      title: t.title.trim(),
+      description: t.description ? String(t.description).trim() : undefined,
+      status: t.status ? String(t.status) : undefined,
+      priority: ["none", "low", "medium", "high", "urgent"].includes(t.priority)
+        ? t.priority
+        : undefined,
+      dueDate: t.dueDate ? String(t.dueDate) : undefined,
+      assignee: t.assignee ? String(t.assignee) : undefined,
+      project: t.project ? String(t.project) : undefined,
+      labels: Array.isArray(t.labels) ? t.labels.map(String) : undefined,
+      estimateMinutes: typeof t.estimateMinutes === "number" ? t.estimateMinutes : undefined,
+    })) as BulkTaskDraft[];
+
+  return { tasks, text: response.text };
+}

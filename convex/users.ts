@@ -46,6 +46,21 @@ export const me = query({
   },
 });
 
+export const get = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    await requireUserId(ctx);
+    const user = await ctx.db.get(args.userId);
+    if (!user) return null;
+    return {
+      _id: user._id,
+      name: (user as any).name ?? null,
+      email: (user as any).email ?? null,
+      image: (user as any).image ?? null,
+    };
+  },
+});
+
 export const updateProfile = mutation({
   args: {
     name: v.optional(v.string()),

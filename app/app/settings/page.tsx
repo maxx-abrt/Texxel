@@ -13,8 +13,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2 } from "iconsax-reactjs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity } from "iconsax-reactjs";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, applyAccent, cacheAccent, applyDensity, cacheDensity, type Density } from "@/components/providers/accent-provider";
+import { ActivityFeed } from "@/components/app/activity-feed";
 
 function DensityPicker() {
   const t = useTranslations("settings");
@@ -227,7 +229,7 @@ export default function SettingsPage() {
   const search = useSearchParams();
   const { theme, setTheme } = useTheme();
   const { locale, setLocale } = useLocale();
-  const { me, activeWorkspace, activeWorkspaceId, setActive } = useWorkspace();
+  const { workspaces, me, activeWorkspace, activeWorkspaceId, setActive } = useWorkspace();
   const t = useTranslations("settings");
   const tc = useTranslations("common");
   const ta = useTranslations("auth");
@@ -236,17 +238,44 @@ export default function SettingsPage() {
   const updateProfile = useMutation(api.users.updateProfile);
   const updateWorkspace = useMutation(api.workspaces.update);
   const createWorkspace = useMutation(api.workspaces.create);
+  const deleteWorkspace = useMutation(api.workspaces.remove);
 
   const [name, setName] = useState("");
   const [wsName, setWsName] = useState("");
   const [newWsName, setNewWsName] = useState("");
   const [newWsType, setNewWsType] = useState("individual");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => { setName(me?.name ?? ""); }, [me]);
   useEffect(() => { setWsName(activeWorkspace?.name ?? ""); }, [activeWorkspace]);
   useEffect(() => { if (search.get("new") === "1") document.getElementById("create-workspace")?.scrollIntoView({ behavior: "smooth" }); }, [search]);
 
   const canManageWs = (myPermissions ?? []).includes("workspace:manage");
+  const isOwner = activeWorkspace?.role === "owner";
+
+  const handleDeleteWorkspace = async () => {
+    if (!activeWorkspaceId || !isOwner) return;
+    if (deleteConfirm.trim() !== activeWorkspace?.name) {
+      toast.error(t("deleteWorkspaceConfirmError"));
+      return;
+    }
+    setDeleteBusy(true);
+    try {
+      await deleteWorkspace({ workspaceId: activeWorkspaceId });
+      toast.success(t("workspaceDeleted"));
+      const next = workspaces.find((w) => w._id !== activeWorkspaceId);
+      if (next) setActive(next._id);
+      router.push(next ? "/app" : "/app/settings?new=1");
+    } catch (e: any) {
+      toast.error(e?.message ?? t("workspaceDeleteFailed"));
+    } finally {
+      setDeleteBusy(false);
+      setDeleteOpen(false);
+      setDeleteConfirm("");
+    }
+  };
 
   return (
     <PageContainer className="max-w-[760px]">
@@ -287,6 +316,24 @@ export default function SettingsPage() {
             {canManageWs && <button onClick={() => updateWorkspace({ workspaceId: activeWorkspaceId!, name: wsName.trim() }).then(() => toast.success(t("workspaceUpdated")))} className={btnPrimary}>{t("profile.saveChanges")}</button>}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{t("yourRole", { role: activeWorkspace?.role ?? "" })}</p>
+          {isOwner && (
+            <div className="mt-4 border-t border-border pt-4">
+              <div className="mb-3">
+                <p className="text-sm font-medium text-destructive">{t("deleteWorkspace")}</p>
+                <p className="text-xs text-muted-foreground">{t("deleteWorkspaceHint")}</p>
+              </div>
+              <button onClick={() => setDeleteOpen(true)} className={cn(btnOutline, "text-destructive")} data-testid="settings-delete-ws">
+                <Trash variant="Bulk" size={16} /> {t("deleteWorkspace")}
+              </button>
+            </div>
+          )}
+        </Section>
+
+        <Section title={t("activityTitle")} icon={Activity}>
+          <p className="mb-3 text-xs text-muted-foreground">{t("activitySubtitle")}</p>
+          <div className="max-h-[360px] overflow-y-auto rounded-2xl border border-border bg-card/40 p-3">
+            <ActivityFeed limit={50} />
+          </div>
         </Section>
 
         <Section title={t("roles")} icon={Crown}>
@@ -306,6 +353,28 @@ export default function SettingsPage() {
 
         <button onClick={() => router.push("/api/auth/signout")} className={cn(btnOutline, "text-destructive")} data-testid="settings-signout"><Logout variant="Bulk" size={16} /> {ta("signOut")}</button>
       </div>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-sm" data-testid="delete-workspace-dialog">
+          <DialogHeader><DialogTitle className="text-destructive">{t("deleteWorkspace")}</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{t("deleteWorkspaceConfirm", { name: activeWorkspace?.name })}</p>
+            <input
+              value={deleteConfirm}
+              onChange={(e) => setDeleteConfirm(e.target.value)}
+              placeholder={activeWorkspace?.name ?? ""}
+              className={inputBase}
+              data-testid="delete-workspace-confirm"
+            />
+          </div>
+          <DialogFooter>
+            <button onClick={() => setDeleteOpen(false)} className={btnOutline} disabled={deleteBusy}>{tc("cancel")}</button>
+            <button onClick={handleDeleteWorkspace} disabled={deleteBusy || deleteConfirm.trim() !== activeWorkspace?.name} className={cn(btnPrimary, "bg-destructive text-destructive-foreground hover:bg-destructive/90")} data-testid="delete-workspace-submit">
+              {deleteBusy ? t("deletingWorkspace") : t("deleteWorkspace")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

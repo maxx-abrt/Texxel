@@ -303,7 +303,7 @@ export const setStatus = mutation({
   },
 });
 
-/** Bulk update many tasks at once (status / priority / assignee / project). */
+/** Bulk update many tasks at once (status / priority / assignee / project / dueDate / labels). */
 export const bulkUpdate = mutation({
   args: {
     taskIds: v.array(v.id("tasks")),
@@ -313,6 +313,13 @@ export const bulkUpdate = mutation({
     ),
     assigneeId: v.optional(v.union(v.id("users"), v.null())),
     projectId: v.optional(v.union(v.id("projects"), v.null())),
+    dueDate: v.optional(v.union(v.number(), v.null())),
+    labels: v.optional(v.array(v.string())),
+    addLabels: v.optional(v.array(v.string())),
+    removeLabels: v.optional(v.array(v.string())),
+    order: v.optional(v.number()),
+    startDate: v.optional(v.number()),
+    estimateMinutes: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -324,26 +331,97 @@ export const bulkUpdate = mutation({
       if (args.status !== undefined) taskPatch.status = args.status;
       if (args.assigneeId !== undefined) taskPatch.assigneeId = args.assigneeId ?? undefined;
       if (args.projectId !== undefined) taskPatch.projectId = args.projectId ?? undefined;
+      if (args.dueDate !== undefined) taskPatch.dueDate = args.dueDate ?? undefined;
       await ctx.db.patch(taskId, taskPatch);
-      if (args.priority !== undefined) {
-        const meta = await ctx.db
-          .query("flux_taskMeta")
-          .withIndex("by_task", (q) => q.eq("taskId", taskId))
-          .unique();
-        if (meta) await ctx.db.patch(meta._id, { priority: args.priority, updatedAt: now });
-        else
-          await ctx.db.insert("flux_taskMeta", {
-            workspaceId: task.workspaceId,
-            taskId,
-            priority: args.priority,
-            labels: [],
-            order: now,
-            createdAt: now,
-            updatedAt: now,
-          });
+
+      const meta = await ctx.db
+        .query("flux_taskMeta")
+        .withIndex("by_task", (q) => q.eq("taskId", taskId))
+        .unique();
+      const metaPatch: any = { updatedAt: now };
+      for (const k of ["priority", "order", "startDate", "estimateMinutes"] as const) {
+        if ((args as any)[k] !== undefined) metaPatch[k] = (args as any)[k];
+      }
+      if (args.labels !== undefined || args.addLabels !== undefined || args.removeLabels !== undefined) {
+        let labels = args.labels ?? meta?.labels ?? [];
+        if (args.addLabels) labels = Array.from(new Set([...labels, ...args.addLabels]));
+        if (args.removeLabels) labels = labels.filter((l: string) => !args.removeLabels!.includes(l));
+        metaPatch.labels = labels;
+      }
+      if (meta) {
+        if (Object.keys(metaPatch).length > 1) await ctx.db.patch(meta._id, metaPatch);
+      } else if (Object.keys(metaPatch).length > 1) {
+        await ctx.db.insert("flux_taskMeta", {
+          workspaceId: task.workspaceId,
+          taskId,
+          priority: args.priority ?? "none",
+          labels: metaPatch.labels ?? [],
+          order: args.order ?? now,
+          startDate: args.startDate,
+          estimateMinutes: args.estimateMinutes,
+          createdAt: now,
+          updatedAt: now,
+        });
       }
     }
     return args.taskIds.length;
+  },
+});
+
+/** Bulk create many tasks at once. */
+export const bulkCreate = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    tasks: v.array(
+      v.object({
+        title: v.string(),
+        description: v.optional(v.string()),
+        status: v.optional(v.string()),
+        priority: v.optional(
+          v.union(v.literal("none"), v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("urgent")),
+        ),
+        assigneeId: v.optional(v.id("users")),
+        projectId: v.optional(v.id("projects")),
+        dueDate: v.optional(v.number()),
+        startDate: v.optional(v.number()),
+        labels: v.optional(v.array(v.string())),
+        estimateMinutes: v.optional(v.number()),
+        parentId: v.optional(v.id("tasks")),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await assertPermission(ctx, args.workspaceId, "tasks:manage");
+    const now = Date.now();
+    let created = 0;
+    for (const t of args.tasks) {
+      const taskId = await ctx.db.insert("tasks", {
+        workspaceId: args.workspaceId,
+        projectId: t.projectId,
+        parentId: t.parentId,
+        title: t.title,
+        description: t.description,
+        status: t.status ?? "todo",
+        assigneeId: t.assigneeId,
+        dueDate: t.dueDate,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await ctx.db.insert("flux_taskMeta", {
+        workspaceId: args.workspaceId,
+        taskId,
+        priority: t.priority ?? "none",
+        labels: t.labels ?? [],
+        order: now,
+        startDate: t.startDate,
+        estimateMinutes: t.estimateMinutes,
+        createdAt: now,
+        updatedAt: now,
+      });
+      created++;
+    }
+    return created;
   },
 });
 

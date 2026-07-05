@@ -24,7 +24,6 @@ import {
   Data2,
   Notification,
   Profile2User,
-  Activity,
   Setting2,
   Trash,
   SearchNormal1,
@@ -46,14 +45,12 @@ import {
 
 const NAV_KEYS = [
   { href: "/app", key: "home", Icon: Element3, exact: true },
-  { href: "/app/documents", key: "documents", Icon: DocumentText },
   { href: "/app/tasks", key: "tasks", Icon: TaskSquare },
   { href: "/app/projects", key: "projects", Icon: Briefcase },
   { href: "/app/discussions", key: "discussions", Icon: Messages3 },
   { href: "/app/calendar", key: "calendar", Icon: Calendar },
   { href: "/app/databases", key: "databases", Icon: Data2 },
   { href: "/app/inbox", key: "inbox", Icon: Notification },
-  { href: "/app/activity", key: "activity", Icon: Activity },
   { href: "/app/members", key: "members", Icon: Profile2User },
 ];
 

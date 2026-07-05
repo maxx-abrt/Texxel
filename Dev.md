@@ -1,3 +1,4 @@
+Make sure this has been made (other ai started already) : 
 You are pro dev full stack for 10 years, very high efficiency and intelligence. You are creative, innovative and you find new ways and approchaces to make intuitive apps, aesthetic and modern apps, which are also mobile first, responsive and very very much intuitive. You are efficient for coding, do not speak for nothing, low token usage and best optimisation for tokens and tools (best new edge and most recent tools, mcps, apis, libraries, etc...
 
 Use the github repo at : https://github.com/maxx-abrt/Texxel.git
@@ -6,7 +7,7 @@ Use main branch
 
 Here is pat you need, it is private :
 
-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
+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
 
 Clone it, ensure at the end you push, commit and sync smoothly with user : maxaubert17@gmail.com and user : maxx.abrt
 
@@ -67,3 +68,16 @@ Add all these features listed :
 Make sure to check out everything efficiently and see what you can improve, you have low credits though, so optimise as much as you can, ask for what you need to optimise etc... Be accurate ! 
 
 Think of pushing to github regularly to main with the user I gave you at top, no sub-repo, clean repo you use only what you have cloned and not your base workspace. 
+
+
+Improve windows, add the little function showing in the top of th docuemnts page when hovering, cleanly and intuitive, improve windows and modals handling and showing for Ui and UX for version history, etc...
+Cleaner and sleeker, better handled and more intuitive. 
+
+
+Add two icons (A2E x Learnmed l Syna_1.png) for white theme and (A2E x Learnmed l Syna_2.png) for dark theme, for the AI logo on the bottom right and for the icon to replace the three dots at bottom roght (before opening the menu on hover) : 
+![alt text](<A2E x Learnmed l Logo texxel_1.png>) for dark theme
+![alt text](<A2E x Learnmed l Logo texxel_2.png>) for white theme
+Also, the textbox made for blocknote (background for it) is not the colour I gave you : White colour : FAF6F2
+
+Black colour : 31302E
+Make sure it applies well to the background of the blocknote backgrounds (text boxes for instance), cleanly.

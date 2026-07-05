@@ -14,14 +14,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-<<<<<<< HEAD
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity } from "iconsax-reactjs";
-import { ACCENT_PRESETS, DEFAULT_ACCENT, applyAccent, cacheAccent, applyDensity, cacheDensity, type Density } from "@/components/providers/accent-provider";
-import { ActivityFeed } from "@/components/app/activity-feed";
-=======
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2 } from "iconsax-reactjs";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, normalizeAccent, applyAccent, cacheAccent, applyDensity, cacheDensity, applyEasyRead, cacheEasyRead, type Density } from "@/components/providers/accent-provider";
+import { ActivityFeed } from "@/components/app/activity-feed";
 
 function EasyReadToggle() {
   const t = useTranslations("settings");
@@ -46,7 +42,6 @@ function EasyReadToggle() {
     </div>
   );
 }
->>>>>>> 0af2ecbd7e20bd33289aefef32812231ddabbb17
 
 function DensityPicker() {
   const t = useTranslations("settings");

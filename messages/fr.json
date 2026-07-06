@@ -852,6 +852,11 @@
       "title": "Lecture facilitée",
       "desc": "Texte plus gras, plus aéré et plus contrasté",
       "saved": "Préférence de lecture mise à jour"
+    },
+    "cropImage": {
+      "title": "Recadrer l'image",
+      "zoom": "Zoom",
+      "reset": "Réinitialiser"
     }
   },
   "roles": {

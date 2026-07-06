@@ -746,6 +746,11 @@
       "title": "Easy reading",
       "desc": "Bolder text, more spacing and higher contrast",
       "saved": "Reading preference updated"
+    },
+    "cropImage": {
+      "title": "Crop image",
+      "zoom": "Zoom",
+      "reset": "Reset"
     }
   },
   "roles": {

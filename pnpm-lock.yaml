@@ -74,6 +74,9 @@ importers:
       convex:
         specifier: 1.32.0
         version: 1.32.0(react@19.2.7)
+      cropperjs:
+        specifier: ^1.6.2
+        version: 1.6.2
       date-fns:
         specifier: ^4.1.0
         version: 4.4.0
@@ -110,6 +113,9 @@ importers:
       react:
         specifier: ^19.2.4
         version: 19.2.7
+      react-cropper:
+        specifier: ^2.3.3
+        version: 2.3.3(react@19.2.7)
       react-dom:
         specifier: ^19.2.4
         version: 19.2.7(react@19.2.7)
@@ -2470,6 +2476,9 @@ packages:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
 
+  cropperjs@1.6.2:
+    resolution: {integrity: sha512-nhymn9GdnV3CqiEHJVai54TULFAE3VshJTXSqSJKa8yXAKyBKDWdhHarnlIPrshJ0WMFTGuFvG02YjLXfPiuOA==}
+
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
@@ -3237,6 +3246,11 @@ packages:
         optional: true
       '@types/react-dom':
         optional: true
+
+  react-cropper@2.3.3:
+    resolution: {integrity: sha512-zghiEYkUb41kqtu+2jpX2Ntigf+Jj1dF9ew4lAobPzI2adaPE31z0p+5TcWngK6TvmWQUwK3lj4G+NDh1PDQ1w==}
+    peerDependencies:
+      react: '>=17.0.2'
 
   react-dom@19.2.7:
     resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
@@ -5917,6 +5931,8 @@ snapshots:
 
   cookie@1.1.1: {}
 
+  cropperjs@1.6.2: {}
+
   csstype@3.2.3: {}
 
   d3-array@3.2.4:
@@ -6996,6 +7012,11 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.17
       '@types/react-dom': 19.2.3(@types/react@19.2.17)
+
+  react-cropper@2.3.3(react@19.2.7):
+    dependencies:
+      cropperjs: 1.6.2
+      react: 19.2.7
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:

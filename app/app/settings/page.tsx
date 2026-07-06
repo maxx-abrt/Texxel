@@ -15,9 +15,10 @@ import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity } from "iconsax-reactjs";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity, Edit2 } from "iconsax-reactjs";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, normalizeAccent, applyAccent, cacheAccent, applyDensity, cacheDensity, applyEasyRead, cacheEasyRead, type Density } from "@/components/providers/accent-provider";
 import { ActivityFeed } from "@/components/app/activity-feed";
+import { ImageCropperModal } from "@/components/app/image-cropper-modal";
 
 function EasyReadToggle() {
   const t = useTranslations("settings");
@@ -144,12 +145,12 @@ function ProfileAvatar({ me, updateProfile }: { me: any; updateProfile: any }) {
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSource, setCropperSource] = useState<File | string | null>(null);
   const t = useTranslations("settings");
   const tc = useTranslations("common");
 
-  const onPick = async (file?: File) => {
-    if (!file) return;
-    if (file.size > 4 * 1024 * 1024) return toast.error(t("imageTooLarge"));
+  const uploadFile = async (file: File) => {
     setBusy(true);
     try {
       const uploadUrl = await generateUploadUrl();
@@ -163,6 +164,19 @@ function ProfileAvatar({ me, updateProfile }: { me: any; updateProfile: any }) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const onPick = (file?: File) => {
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) return toast.error(t("imageTooLarge"));
+    setCropperSource(file);
+    setCropperOpen(true);
+  };
+
+  const onEdit = () => {
+    if (!me?.image) return;
+    setCropperSource(me.image);
+    setCropperOpen(true);
   };
 
   return (
@@ -182,12 +196,31 @@ function ProfileAvatar({ me, updateProfile }: { me: any; updateProfile: any }) {
             <Gallery variant="Bulk" size={15} /> {busy ? t("uploading") : t("uploadLogo")}
           </button>
           {me?.image && (
-            <button onClick={() => updateProfile({ image: "" }).then(() => toast.success(t("logoRemoved")))} className="flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10">
-              <Trash variant="Bulk" size={14} /> {tc("remove")}
-            </button>
+            <>
+              <button onClick={onEdit} disabled={busy} className={cn(btnOutline, "h-8 text-xs")}>
+                <Edit2 variant="Bulk" size={15} /> {tc("edit")}
+              </button>
+              <button onClick={() => updateProfile({ image: "" }).then(() => toast.success(t("logoRemoved")))} className="flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10">
+                <Trash variant="Bulk" size={14} /> {tc("remove")}
+              </button>
+            </>
           )}
         </div>
       </div>
+      <ImageCropperModal
+        open={cropperOpen}
+        source={cropperSource}
+        title={t("cropImage.title")}
+        applyLabel={tc("save")}
+        cancelLabel={tc("cancel")}
+        zoomLabel={t("cropImage.zoom")}
+        resetLabel={t("cropImage.reset")}
+        onClose={() => setCropperOpen(false)}
+        onConfirm={(file) => {
+          setCropperOpen(false);
+          uploadFile(file);
+        }}
+      />
     </div>
   );
 }
@@ -198,12 +231,13 @@ function WorkspaceBranding({ workspace, workspaceId, canManage }: any) {
   const updateWorkspace = useMutation(api.workspaces.update);
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperSource, setCropperSource] = useState<File | string | null>(null);
   const t = useTranslations("settings");
   const tc = useTranslations("common");
 
-  const onPick = async (file?: File) => {
-    if (!file || !workspaceId) return;
-    if (file.size > 4 * 1024 * 1024) return toast.error(t("imageTooLarge"));
+  const uploadFile = async (file: File) => {
+    if (!workspaceId) return;
     setBusy(true);
     try {
       const uploadUrl = await generateUploadUrl();
@@ -219,6 +253,19 @@ function WorkspaceBranding({ workspace, workspaceId, canManage }: any) {
     }
   };
 
+  const onPick = (file?: File) => {
+    if (!file || !workspaceId) return;
+    if (file.size > 4 * 1024 * 1024) return toast.error(t("imageTooLarge"));
+    setCropperSource(file);
+    setCropperOpen(true);
+  };
+
+  const onEdit = () => {
+    if (!workspace?.avatar) return;
+    setCropperSource(workspace.avatar);
+    setCropperOpen(true);
+  };
+
   return (
     <div className="mb-5 flex items-center gap-4" data-testid="workspace-branding">
       <Avatar className="h-16 w-16 rounded-2xl border border-border">
@@ -232,10 +279,29 @@ function WorkspaceBranding({ workspace, workspaceId, canManage }: any) {
           <div className="flex items-center gap-2">
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => onPick(e.target.files?.[0])} data-testid="ws-logo-input" />
             <button onClick={() => fileRef.current?.click()} disabled={busy} className={cn(btnOutline, "h-8 text-xs")} data-testid="ws-logo-upload"><Gallery variant="Bulk" size={15} /> {busy ? t("uploading") : t("uploadLogo")}</button>
-            {workspace?.avatar && <button onClick={() => updateWorkspace({ workspaceId, avatar: "" }).then(() => toast.success(t("logoRemoved")))} className="flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10"><Trash variant="Bulk" size={14} /> {tc("remove")}</button>}
+            {workspace?.avatar && (
+              <>
+                <button onClick={onEdit} disabled={busy} className={cn(btnOutline, "h-8 text-xs")}><Edit2 variant="Bulk" size={15} /> {tc("edit")}</button>
+                <button onClick={() => updateWorkspace({ workspaceId, avatar: "" }).then(() => toast.success(t("logoRemoved")))} className="flex h-8 items-center gap-1 rounded-lg px-2 text-xs text-destructive hover:bg-destructive/10"><Trash variant="Bulk" size={14} /> {tc("remove")}</button>
+              </>
+            )}
           </div>
         )}
       </div>
+      <ImageCropperModal
+        open={cropperOpen}
+        source={cropperSource}
+        title={t("cropImage.title")}
+        applyLabel={tc("save")}
+        cancelLabel={tc("cancel")}
+        zoomLabel={t("cropImage.zoom")}
+        resetLabel={t("cropImage.reset")}
+        onClose={() => setCropperOpen(false)}
+        onConfirm={(file) => {
+          setCropperOpen(false);
+          uploadFile(file);
+        }}
+      />
     </div>
   );
 }

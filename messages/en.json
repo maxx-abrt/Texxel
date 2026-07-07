@@ -124,6 +124,7 @@
     "noComments": "No comments yet. Start the conversation.",
     "writeComment": "Write a comment...",
     "deleteTask": "Delete task",
+    "trash": "Trash",
     "overdue": "Overdue",
     "priorities": {
       "none": "No priority",
@@ -214,6 +215,7 @@
     "parsing": "Parsing…",
     "bulkImportBack": "Back to paste",
     "bulkImportAddRow": "Add task",
+    "timeTracking": "Time tracking",
     "estimate": "Estimate",
     "startDate": "Start date",
     "subtitle": "Plan, assign and track your work",
@@ -2089,6 +2091,19 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "deletedPermanently": "Deleted permanently"
+  },
+  "tasksTrash": {
+    "title": "Task trash",
+    "subtitle": "Restore or permanently delete deleted tasks",
+    "emptyTitle": "No deleted tasks",
+    "emptyDesc": "Tasks you delete will appear here for 7 days.",
+    "deletedAt": "Deleted {time}",
+    "expiresIn": "Expires in {time}",
+    "restore": "Restore",
+    "restored": "Task restored",
+    "deletePermanently": "Delete permanently",
+    "deletePermanentlyConfirm": "This will permanently delete \"{title}\" and all its subtasks. This cannot be undone.",
+    "deletedPermanently": "Task deleted permanently"
   },
   "home": {
     "wordmark": "flux",

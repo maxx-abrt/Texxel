@@ -539,6 +539,19 @@ export default defineSchema({
   })
     .index("by_task", ["taskId"]),
 
+  // Temporary trash bin for deleted tasks. Tasks are hidden from normal views
+  // while a bin entry exists; a daily cron permanently deletes them after 7 days.
+  flux_taskBin: defineTable({
+    workspaceId: v.id("workspaces"),
+    taskId: v.id("tasks"),
+    deletedBy: v.id("users"),
+    deletedAt: v.number(),
+    expiresAt: v.number(),
+  })
+    .index("by_workspace", ["workspaceId", "deletedAt"])
+    .index("by_task", ["taskId"])
+    .index("by_expires", ["expiresAt"]),
+
   // Calendar events.
   flux_events: defineTable({
     workspaceId: v.id("workspaces"),

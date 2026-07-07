@@ -122,6 +122,7 @@
     "noComments": "Aucun commentaire. Commencez la conversation.",
     "writeComment": "Écrire un commentaire...",
     "deleteTask": "Supprimer la tâche",
+    "trash": "Corbeille",
     "overdue": "En retard",
     "priorities": {
       "none": "Aucune priorité",
@@ -214,6 +215,7 @@
     "parsing": "Analyse…",
     "bulkImportBack": "Retour au collage",
     "bulkImportAddRow": "Ajouter une tâche",
+    "timeTracking": "Suivi du temps",
     "estimate": "Estimation",
     "startDate": "Date de début",
     "subtitle": "Planifiez, assignez et suivez votre travail",
@@ -2089,6 +2091,19 @@
     "cancel": "Annuler",
     "delete": "Supprimer",
     "deletedPermanently": "Supprimé définitivement"
+  },
+  "tasksTrash": {
+    "title": "Corbeille des tâches",
+    "subtitle": "Restaurer ou supprimer définitivement les tâches supprimées",
+    "emptyTitle": "Aucune tâche supprimée",
+    "emptyDesc": "Les tâches supprimées apparaîtront ici pendant 7 jours.",
+    "deletedAt": "Supprimé {time}",
+    "expiresIn": "Expire dans {time}",
+    "restore": "Restaurer",
+    "restored": "Tâche restaurée",
+    "deletePermanently": "Supprimer définitivement",
+    "deletePermanentlyConfirm": "Cela supprimera définitivement \"{title}\" et toutes ses sous-tâches. Cette action est irréversible.",
+    "deletedPermanently": "Tâche supprimée définitivement"
   },
   "home": {
     "wordmark": "flux",

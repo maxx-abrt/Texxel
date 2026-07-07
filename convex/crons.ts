@@ -66,4 +66,11 @@ crons.daily(
   (internal as any).crons.checkDeadlines,
 );
 
+crons.daily(
+  "empty-expired-task-trash",
+  { hourUTC: 4, minuteUTC: 0 },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (internal as any).flux_tasks.emptyExpiredTrash,
+);
+
 export default crons;

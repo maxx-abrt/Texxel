@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { useQuery, useMutation } from "convex/react";
 import { FolderKanban } from "lucide-react";
@@ -163,6 +164,9 @@ export function TasksView() {
             >
               <DocumentDownload variant="Bulk" size={16} /> {t("export") ?? "Export"}
             </button>
+            <Link href="/app/tasks/trash" className={cn(btnOutline, "h-9")} data-testid="tasks-trash-link" title={t("trash") ?? "Trash"}>
+              <Trash variant="Bulk" size={16} /> {t("trash") ?? "Trash"}
+            </Link>
             <button onClick={() => setStatusMgrOpen(true)} className={cn(btnOutline, "h-9")} data-testid="manage-statuses-btn" title={t("manageStatuses") ?? "Manage statuses"}>
               <Setting4 variant="Bulk" size={16} /> {t("statusesLabel") ?? "Statuses"}
             </button>

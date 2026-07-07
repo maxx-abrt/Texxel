@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import {
   assertWorkspaceMember,
@@ -40,6 +40,39 @@ async function hydrate(ctx: any, workspaceId: Id<"workspaces">, tasks: any[]) {
   return out.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function getTaskTree(ctx: any, taskId: Id<"tasks">): Promise<Id<"tasks">[]> {
+  const out: Id<"tasks">[] = [taskId];
+  const children = await ctx.db
+    .query("tasks")
+    .withIndex("by_parent", (q: any) => q.eq("parentId", taskId))
+    .collect();
+  for (const child of children) {
+    out.push(...await getTaskTree(ctx, child._id));
+  }
+  return out;
+}
+
+async function getBinEntry(ctx: any, taskId: Id<"tasks">) {
+  return await ctx.db
+    .query("flux_taskBin")
+    .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
+    .unique();
+}
+
+async function isTaskDeleted(ctx: any, taskId: Id<"tasks">): Promise<boolean> {
+  return (await getBinEntry(ctx, taskId)) != null;
+}
+
+async function deletedTaskIdsInWorkspace(ctx: any, workspaceId: Id<"workspaces">): Promise<Set<string>> {
+  const entries = await ctx.db
+    .query("flux_taskBin")
+    .withIndex("by_workspace", (q: any) => q.eq("workspaceId", workspaceId))
+    .collect();
+  return new Set(entries.map((e: any) => e.taskId as string));
+}
+
 export const list = query({
   args: {
     workspaceId: v.id("workspaces"),
@@ -64,6 +97,8 @@ export const list = query({
     if (!canViewAll) {
       tasks = tasks.filter((t) => t.assigneeId === userId || t.createdBy === userId);
     }
+    const deletedIds = await deletedTaskIdsInWorkspace(ctx, args.workspaceId);
+    tasks = tasks.filter((t) => !deletedIds.has(t._id as string));
     return hydrate(ctx, args.workspaceId, tasks);
   },
 });
@@ -76,10 +111,11 @@ export const listMine = query({
       .query("tasks")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
+    const deletedIds = await deletedTaskIdsInWorkspace(ctx, args.workspaceId);
     return hydrate(
       ctx,
       args.workspaceId,
-      tasks.filter((t) => t.assigneeId === userId || t.createdBy === userId),
+      tasks.filter((t) => !deletedIds.has(t._id as string) && (t.assigneeId === userId || t.createdBy === userId)),
     );
   },
 });
@@ -90,19 +126,17 @@ export const listChildren = query({
     const parent = await ctx.db.get(args.parentId);
     if (!parent) return [];
     const { userId } = await assertWorkspaceMember(ctx, parent.workspaceId);
-    const children = await ctx.db
+    let children = await ctx.db
       .query("tasks")
       .withIndex("by_parent", (q) => q.eq("parentId", args.parentId))
       .collect();
     const perms = await getUserPermissions(ctx, parent.workspaceId, userId);
     const canViewAll = perms.has("tasks:view");
     if (!canViewAll) {
-      return hydrate(
-        ctx,
-        parent.workspaceId,
-        children.filter((t) => t.assigneeId === userId || t.createdBy === userId),
-      );
+      children = children.filter((t) => t.assigneeId === userId || t.createdBy === userId);
     }
+    const deletedIds = await deletedTaskIdsInWorkspace(ctx, parent.workspaceId);
+    children = children.filter((t) => !deletedIds.has(t._id as string));
     return hydrate(ctx, parent.workspaceId, children);
   },
 });
@@ -112,6 +146,7 @@ export const get = query({
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) return null;
+    if (await isTaskDeleted(ctx, args.taskId)) return null;
     const { userId } = await assertWorkspaceMember(ctx, task.workspaceId);
     const perms = await getUserPermissions(ctx, task.workspaceId, userId);
     const canViewAll = perms.has("tasks:view");
@@ -425,8 +460,10 @@ export const bulkCreate = mutation({
   },
 });
 
-/** Recursively delete a task and all its descendants. */
+/** Recursively delete a task and all its descendants, including related data. */
 async function deleteTaskTree(ctx: any, taskId: Id<"tasks">) {
+  const task = await ctx.db.get(taskId);
+  if (!task) return;
   const children = await ctx.db
     .query("tasks")
     .withIndex("by_parent", (q: any) => q.eq("parentId", taskId))
@@ -442,18 +479,40 @@ async function deleteTaskTree(ctx: any, taskId: Id<"tasks">) {
     .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
     .collect();
   for (const c of comments) await ctx.db.delete(c._id);
+  const timeEntries = await ctx.db
+    .query("flux_timeEntries")
+    .withIndex("by_task", (q: any) => q.eq("taskId", taskId))
+    .collect();
+  for (const entry of timeEntries) await ctx.db.delete(entry._id);
   await ctx.db.delete(taskId);
 }
 
-/** Bulk delete tasks (and their metas + comments + subtrees). */
+async function moveTaskTreeToBin(ctx: any, rootId: Id<"tasks">, deletedBy: Id<"users">, now: number) {
+  const task = await ctx.db.get(rootId);
+  if (!task) return;
+  const tree = await getTaskTree(ctx, rootId);
+  for (const taskId of tree) {
+    if (await getBinEntry(ctx, taskId)) continue;
+    await ctx.db.insert("flux_taskBin", {
+      workspaceId: task.workspaceId,
+      taskId,
+      deletedBy,
+      deletedAt: now,
+      expiresAt: now + SEVEN_DAYS_MS,
+    });
+  }
+}
+
+/** Bulk delete tasks (move the whole subtree to the trash bin for 7 days). */
 export const bulkRemove = mutation({
   args: { taskIds: v.array(v.id("tasks")) },
   handler: async (ctx, args) => {
+    const now = Date.now();
     for (const taskId of args.taskIds) {
       const task = await ctx.db.get(taskId);
       if (!task) continue;
-      await assertPermission(ctx, task.workspaceId, "tasks:manage");
-      await deleteTaskTree(ctx, taskId);
+      const { userId } = await assertPermission(ctx, task.workspaceId, "tasks:manage");
+      await moveTaskTreeToBin(ctx, taskId, userId, now);
     }
     return args.taskIds.length;
   },
@@ -465,7 +524,8 @@ export const remove = mutation({
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
     const { userId } = await assertPermission(ctx, task.workspaceId, "tasks:manage");
-    await deleteTaskTree(ctx, args.taskId);
+    const now = Date.now();
+    await moveTaskTreeToBin(ctx, args.taskId, userId, now);
     await logActivity(ctx, {
       workspaceId: task.workspaceId,
       actorId: userId,
@@ -474,6 +534,76 @@ export const remove = mutation({
       targetId: args.taskId,
     });
     return true;
+  },
+});
+
+export const restore = mutation({
+  args: { binId: v.id("flux_taskBin") },
+  handler: async (ctx, args) => {
+    const bin = await ctx.db.get(args.binId);
+    if (!bin) throw new Error("Bin entry not found");
+    const { userId } = await assertPermission(ctx, bin.workspaceId, "tasks:manage");
+    const task = await ctx.db.get(bin.taskId);
+    if (task && task.parentId) {
+      const parentDeleted = await isTaskDeleted(ctx, task.parentId);
+      if (parentDeleted) {
+        await ctx.db.patch(task._id, { parentId: undefined, updatedAt: Date.now() });
+      }
+    }
+    await ctx.db.delete(args.binId);
+    await logActivity(ctx, {
+      workspaceId: bin.workspaceId,
+      actorId: userId,
+      action: "task.restored",
+      targetType: "task",
+      targetId: bin.taskId,
+    });
+    return true;
+  },
+});
+
+export const getTrash = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    await assertWorkspaceMember(ctx, args.workspaceId);
+    const binEntries = await ctx.db
+      .query("flux_taskBin")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+    const tasks = [];
+    for (const bin of binEntries) {
+      const task = await ctx.db.get(bin.taskId);
+      if (task) tasks.push({ ...task, binEntry: bin });
+    }
+    return hydrate(ctx, args.workspaceId, tasks);
+  },
+});
+
+export const permanentlyDelete = mutation({
+  args: { binId: v.id("flux_taskBin") },
+  handler: async (ctx, args) => {
+    const bin = await ctx.db.get(args.binId);
+    if (!bin) throw new Error("Bin entry not found");
+    await assertPermission(ctx, bin.workspaceId, "tasks:manage");
+    await deleteTaskTree(ctx, bin.taskId);
+    await ctx.db.delete(args.binId);
+    return true;
+  },
+});
+
+export const emptyExpiredTrash = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const expired = await ctx.db
+      .query("flux_taskBin")
+      .withIndex("by_expires", (q) => q.lt("expiresAt", now))
+      .collect();
+    for (const bin of expired) {
+      await deleteTaskTree(ctx, bin.taskId);
+      await ctx.db.delete(bin._id);
+    }
+    return expired.length;
   },
 });
 

@@ -518,7 +518,7 @@ function TaskCardInner({ task, labelColor, dragging }: any) {
 
 function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, onToggleDone, onDelete }: any) {
   const t = useTranslations("tasks");
-  const { isSelecting, toggleSelecting, exitSelecting, selectedIds, toggle, isSelected, selectAll, deselectAll } = useBulkSelect();
+  const { isSelecting, toggleSelecting, exitSelecting, selectedIds, toggle, isSelected, selectAll, deselectAll, lastSelectedId, toggleIds, selectRange } = useBulkSelect();
   const bulkUpdate = useMutation(api.flux_tasks.bulkUpdate);
   const bulkRemove = useMutation(api.flux_tasks.bulkRemove);
 
@@ -528,6 +528,13 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
     const map: Record<string, any[]> = {};
     for (const c of cols) map[c.key] = [];
     for (const t of tasks) (map[t.status] ?? (map[t.status] = [])).push(t);
+    return map;
+  }, [tasks, cols]);
+
+  const idsByStatus = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const c of cols) map[c.key] = [];
+    for (const t of tasks) (map[t.status] ?? (map[t.status] = [])).push(t._id);
     return map;
   }, [tasks, cols]);
 
@@ -563,6 +570,8 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
     return out;
   }, [byStatus, cols]);
 
+  const orderedTaskIds = useMemo(() => items.filter((i) => i.type === "task").map((i) => i.task._id), [items]);
+
   if (tasks.length === 0) {
     return <EmptyState icon={TaskSquare} title={t("empty.title")} description={t("empty.description")} testId="tasks-empty" />;
   }
@@ -589,8 +598,33 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
           itemContent={(index, item) => {
             if (item.type === "header") {
               const s = item.status;
+              const statusIds = idsByStatus[s.key] ?? [];
+              const statusSelectedCount = statusIds.filter((id) => selectedIds.has(id)).length;
+              const statusAllSelected = statusIds.length > 0 && statusSelectedCount === statusIds.length;
+              const statusSomeSelected = statusSelectedCount > 0 && !statusAllSelected;
               return (
                 <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold" data-testid="tasks-list-header">
+                  {isSelecting && (
+                    <button
+                      onClick={() => toggleIds(statusIds)}
+                      className="shrink-0"
+                      data-testid="tasks-list-header-checkbox"
+                    >
+                      <span
+                        className={cn(
+                          "flex h-5 w-5 items-center justify-center rounded-md border",
+                          statusAllSelected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : statusSomeSelected
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border"
+                        )}
+                      >
+                        {statusAllSelected && <TickCircle variant="Bold" size={14} />}
+                        {!statusAllSelected && statusSomeSelected && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+                      </span>
+                    </button>
+                  )}
                   <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
                   <span className="text-muted-foreground">{byStatus[s.key]?.length ?? 0}</span>
                 </div>
@@ -601,7 +635,19 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
             return (
               <div className={cn("flex items-center gap-3 border-b border-border px-3 py-2.5 hover:bg-muted/50", isSelected(task._id) && "bg-primary/5")} data-testid="tasks-list-row">
                 {isSelecting ? (
-                  <button onClick={() => toggle(task._id)} className="shrink-0" data-testid="bulk-row-checkbox">
+                  <button
+                    onClick={(e) => {
+                      if (e.shiftKey) {
+                        e.preventDefault();
+                        selectRange(lastSelectedId ?? task._id, task._id, orderedTaskIds);
+                      } else {
+                        toggle(task._id);
+                      }
+                    }}
+                    onMouseDown={(e) => e.shiftKey && e.preventDefault()}
+                    className="shrink-0"
+                    data-testid="bulk-row-checkbox"
+                  >
                     <span className={cn("flex h-5 w-5 items-center justify-center rounded-md border", isSelected(task._id) ? "border-primary bg-primary text-primary-foreground" : "border-border")}>
                       {isSelected(task._id) && <TickCircle variant="Bold" size={14} />}
                     </span>
@@ -611,7 +657,20 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
                     <TickCircle variant="Bulk" size={20} />
                   </button>
                 )}
-                <button onClick={() => (isSelecting ? toggle(task._id) : onOpen(task))} className="min-w-0 flex-1 text-left">
+                <button
+                  onClick={(e) => {
+                    if (isSelecting && e.shiftKey) {
+                      e.preventDefault();
+                      selectRange(lastSelectedId ?? task._id, task._id, orderedTaskIds);
+                    } else if (isSelecting) {
+                      toggle(task._id);
+                    } else {
+                      onOpen(task);
+                    }
+                  }}
+                  onMouseDown={(e) => isSelecting && e.shiftKey && e.preventDefault()}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <span className={cn("truncate text-sm", s?.isDone && "text-muted-foreground line-through")}>{task.title}</span>
                 </button>
                 {(task.labels ?? []).slice(0, 3).map((l: string) => (

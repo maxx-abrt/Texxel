@@ -164,6 +164,7 @@ interface FluxEditorProps {
   userId?: string;
   commentRole?: "comment" | "editor";
   commentsOpen?: boolean;
+  focusMode?: boolean;
   onCommentsOpenChange?: (open: boolean) => void;
   initialContent?: string;
   editable?: boolean;
@@ -180,6 +181,7 @@ export function FluxEditor({
   userId,
   commentRole = "comment",
   commentsOpen = false,
+  focusMode = false,
   onCommentsOpenChange,
   initialContent,
   editable = true,
@@ -322,7 +324,7 @@ export function FluxEditor({
               onClick={() => onCommentsOpenChange?.(false)}
               data-testid="comments-backdrop"
             />
-            <aside className="fixed inset-y-0 right-0 z-[90] flex w-full flex-col border-l border-border bg-background shadow-2xl sm:w-[390px] lg:top-[49px] lg:z-[80] lg:w-[360px] lg:shadow-[-12px_0_35px_rgba(49,48,46,0.08)]" data-testid="comments-sidebar">
+            <aside className={cn("fixed inset-y-0 right-0 z-[90] flex w-full flex-col border-l border-border bg-background shadow-2xl sm:w-[390px] lg:z-[80] lg:w-[360px] lg:shadow-[-12px_0_35px_rgba(49,48,46,0.08)]", focusMode ? "lg:top-[49px]" : "lg:top-[113px]")} data-testid="comments-sidebar">
               <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--flux-coral-soft)] text-primary"><MessageText1 variant="Bulk" size={18} /></span>
                 <div className="min-w-0 flex-1">

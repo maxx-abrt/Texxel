@@ -654,6 +654,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               userId={me?._id}
               commentRole={commentRole}
               commentsOpen={commentsOpen}
+              focusMode={focusMode}
               onCommentsOpenChange={setCommentsOpen}
               initialContent={unlockedContent ?? doc.content}
               editable

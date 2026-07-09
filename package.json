@@ -2,6 +2,10 @@
   "name": "flux",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev --webpack -H 0.0.0.0 -p 3000",
     "start": "next start -H 0.0.0.0 -p 3000",

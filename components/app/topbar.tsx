@@ -79,7 +79,7 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
             <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Profile variant="Bulk" size={16} /> {ts("tabs.profile")}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/app/settings")} className="gap-2"><Setting2 variant="Bulk" size={16} /> {t("settings")}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/api/auth/signout")} data-testid="signout" className="gap-2 text-destructive"><Logout variant="Bulk" size={16} /> {ta("signOut")}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/next-api/auth/signout")} data-testid="signout" className="gap-2 text-destructive"><Logout variant="Bulk" size={16} /> {ta("signOut")}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

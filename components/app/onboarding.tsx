@@ -43,7 +43,7 @@ export function Onboarding() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-between">
           <span className="text-2xl font-extrabold tracking-tight">{th("tagline")}</span>
-          <button onClick={() => router.push("/api/auth/signout")} data-testid="onboarding-signout" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <button onClick={() => router.push("/next-api/auth/signout")} data-testid="onboarding-signout" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <Logout variant="Bulk" size={16} /> {t("signOut")}
           </button>
         </div>

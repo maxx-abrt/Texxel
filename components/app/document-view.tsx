@@ -17,7 +17,8 @@ import { btnGhost, EmptyState, Spinner, timeAgo } from "@/components/app/common"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { encryptContent, decryptContent } from "@/lib/crypto";
 import { PresenceAvatars } from "@/components/app/presence-avatars";
-import { DocumentComments } from "@/components/app/comments-panel";
+import { FontLibraryDialog } from "@/components/app/font-library-dialog";
+import { ExportDialog } from "@/components/app/export-dialog";
 import { TableOfContents } from "@/components/table-of-contents";
 import { ActivityPanel } from "@/components/app/activity-panel";
 import { ActionTooltip } from "@/components/action-tooltip";
@@ -60,6 +61,8 @@ import {
   Refresh2,
   Setting4,
   ExportSquare,
+  MessageText1,
+  TextBlock,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -99,6 +102,10 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const restoreVersionFn = useMutation(api.flux_documents.restoreVersion);
   const setLock = useMutation(api.flux_documents.setLock);
   const duplicateFn = useMutation(api.flux_documents.duplicate);
+  const setDocumentStyle = useMutation(api.flux_fonts.setDocumentStyle);
+  const documentStyle = useQuery(api.flux_fonts.getDocumentStyle, { documentId });
+  const workspaceFonts = useQuery(api.flux_fonts.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const openCommentCount = useQuery(api.flux_commentThreads.countOpen, { documentId });
 
   // Toolbar customization + breadcrumb + word count.
   const prefs = useQuery(api.flux_userPrefs.get);
@@ -131,11 +138,14 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
 
   const mentionables = useMemo(() => {
     const out: any[] = [];
-    for (const m of wsMembers ?? []) out.push({ id: m.userId, userId: m.userId, label: m.name ?? m.email ?? "User", kind: "user" });
+    for (const m of wsMembers ?? []) out.push({ id: m.userId, userId: m.userId, label: m.name ?? m.email ?? "User", kind: "user", image: m.image });
     for (const t of (wsTasks ?? []).slice(0, 100)) out.push({ id: t._id, label: t.title, kind: "task" });
     for (const p of wsProjects ?? []) out.push({ id: p._id, label: p.name, kind: "project" });
     return out;
   }, [wsMembers, wsTasks, wsProjects]);
+  const myMembership = (wsMembers ?? []).find((member: any) => String(member.userId) === String(me?._id));
+  const commentRole: "comment" | "editor" = myMembership?.role === "owner" || myMembership?.role === "admin" ? "editor" : "comment";
+  const selectedFont = (workspaceFonts ?? []).find((font: any) => String(font._id) === String(documentStyle?.fontId));
 
   const editorRef = useRef<any>(null);
   const [editorInstance, setEditorInstance] = useState<any>(null);
@@ -146,6 +156,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [fontLibraryOpen, setFontLibraryOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [historyTab, setHistoryTab] = useState<"versions" | "activity">("versions");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [passphraseInput, setPassphraseInput] = useState("");
@@ -246,10 +259,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     }
   };
 
-  const exportPDF = () => {
-    // Uses the browser's native print-to-PDF on the document area.
-    document.body.classList.add("printing-doc");
-    setTimeout(() => { window.print(); document.body.classList.remove("printing-doc"); }, 100);
+  const openExport = () => {
+    if (!editorRef.current) return toast.error("Editor is still loading");
+    setExportOpen(true);
   };
 
   const onSaveTemplate = async () => {
@@ -340,7 +352,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   return (
     <div className="min-h-full pb-32" data-testid="document-view">
       {/* Toolbar */}
-      <div className="sticky top-0 z-10 flex items-center gap-1 border-b border-border bg-background/85 px-3 py-2 backdrop-blur md:px-6">
+      <div className="sticky top-0 z-40 flex items-center gap-1 border-b border-border bg-background/85 px-3 py-2 backdrop-blur md:px-6">
         <ActionTooltip label={te("tooltipBack")} side="bottom">
           <button onClick={() => router.push("/app/documents")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-back" aria-label={te("tooltipBack")}>
             <ArrowLeft2 variant="Bulk" size={18} />
@@ -374,16 +386,20 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         <div className="ml-auto flex items-center gap-1.5">
           <PresenceAvatars documentId={documentId} meId={me?._id} editing={isEditing} />
           {showTool("comments") && (
-            <DocumentComments
-              documentId={documentId}
-              meId={me?._id}
-              members={(wsMembers ?? []).map((m: any) => ({
-                userId: m.userId,
-                name: m.name,
-                email: m.email,
-                image: m.image,
-              }))}
-            />
+            <ActionTooltip label="Comments" side="bottom">
+              <button
+                type="button"
+                onClick={() => setCommentsOpen(true)}
+                className={cn("relative flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", commentsOpen ? "bg-muted text-foreground" : "text-muted-foreground")}
+                data-testid="doc-comments-btn"
+                aria-label="Open comments"
+              >
+                <MessageText1 variant="Bulk" size={18} />
+                {!!openCommentCount && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground" data-testid="doc-comments-count">{openCommentCount > 9 ? "9+" : openCommentCount}</span>
+                )}
+              </button>
+            </ActionTooltip>
           )}
           {showTool("star") && (
             <ActionTooltip label={isFavorite ? te("tooltipFavoriteRemove") : te("tooltipFavoriteAdd")} side="bottom">
@@ -404,6 +420,14 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               </button>
             </ActionTooltip>
           )}
+          <button
+            type="button"
+            onClick={openExport}
+            className="hidden h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-foreground hover:bg-muted sm:flex"
+            data-testid="doc-export-open"
+          >
+            <DocumentDownload variant="Bulk" size={15} /> Export
+          </button>
           <ShareMenu
             doc={doc}
             documentId={documentId}
@@ -438,11 +462,14 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               <DropdownMenuItem onClick={onDuplicate} className="gap-2" data-testid="doc-duplicate">
                 <Copy variant="Bulk" size={16} /> {te("duplicate")}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFontLibraryOpen(true)} className="gap-2" data-testid="doc-font-library">
+                <TextBlock variant="Bulk" size={16} /> Typography & fonts
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={exportMarkdown} className="gap-2" data-testid="doc-export-md">
                 <DocumentDownload variant="Bulk" size={16} /> {te("menuExportMarkdown")}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportPDF} className="gap-2" data-testid="doc-export-pdf">
-                <DocumentDownload variant="Bulk" size={16} /> {te("menuExportPdf")}
+              <DropdownMenuItem onClick={openExport} className="gap-2" data-testid="doc-export-pdf">
+                <DocumentDownload variant="Bulk" size={16} /> Export PDF or DOCX
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onSaveTemplate} className="gap-2" data-testid="doc-save-template">
                 <DocumentText variant="Bulk" size={16} /> {te("saveAsTemplate")}
@@ -500,7 +527,10 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         </div>
       )}
 
-      <div className={cn("mx-auto max-w-[860px] px-5 md:px-12", doc.coverImage ? "pt-4" : "pt-10")}>
+      <div
+        className={cn("mx-auto max-w-[860px] px-5 transition-[margin] duration-200 md:px-12", doc.coverImage ? "pt-4" : "pt-10", commentsOpen && "lg:mr-[380px] lg:ml-auto")}
+        style={{ fontFamily: documentStyle?.fontFamily ? `"${documentStyle.fontFamily}", var(--font-sans)` : undefined }}
+      >
         {/* Icon */}
         <div className="group/icon relative">
           {doc.icon ? (
@@ -589,10 +619,17 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           <div className="mt-4 doc-print-area">
             <FluxEditor
               key={`${doc._id}-${!!unlockedContent}`}
+              documentId={documentId}
+              userId={me?._id}
+              commentRole={commentRole}
+              commentsOpen={commentsOpen}
+              onCommentsOpenChange={setCommentsOpen}
               initialContent={unlockedContent ?? doc.content}
               editable
               onChange={saveContent}
               mentionables={mentionables}
+              documentStyle={documentStyle}
+              selectedFont={selectedFont}
               onEditorReady={(ed: any) => { editorRef.current = ed; setEditorInstance(ed); }}
               onMentions={(ids: string[]) => {
                 if (!ids.length) return;
@@ -604,6 +641,35 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           </div>
         )}
       </div>
+
+      {activeWorkspaceId && (
+        <FontLibraryDialog
+          open={fontLibraryOpen}
+          onOpenChange={setFontLibraryOpen}
+          workspaceId={activeWorkspaceId}
+          documentId={documentId}
+          documentStyle={documentStyle}
+        />
+      )}
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        editor={editorInstance}
+        title={title || "Untitled"}
+        documentStyle={documentStyle}
+        selectedFont={selectedFont}
+        onSaveSettings={async (settings) => {
+          await setDocumentStyle({
+            documentId,
+            fontId: documentStyle?.fontId,
+            fontFamily: documentStyle?.fontFamily ?? "Plus Jakarta Sans",
+            fontSize: documentStyle?.fontSize ?? 16,
+            lineHeight: documentStyle?.lineHeight ?? 1.65,
+            ...settings,
+          });
+        }}
+      />
+
       {/* Lock management dialog */}
       {lockDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm" data-testid="lock-dialog-overlay">

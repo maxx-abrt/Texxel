@@ -443,7 +443,7 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-        <button onClick={() => router.push("/api/auth/signout")} className={cn(btnOutline, "text-destructive")} data-testid="settings-signout"><Logout variant="Bulk" size={16} /> {ta("signOut")}</button>
+        <button onClick={() => router.push("/next-api/auth/signout")} className={cn(btnOutline, "text-destructive")} data-testid="settings-signout"><Logout variant="Bulk" size={16} /> {ta("signOut")}</button>
       </div>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>

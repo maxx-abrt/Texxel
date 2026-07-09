@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
+import { devAuthEnabled } from "@/lib/dev-auth";
 
-// getSignInUrl() sets a PKCE cookie — not allowed in Server Components (Next.js 16+).
-// Delegate to the Route Handler at /api/auth/signin which runs in a permitted context.
+// getSignInUrl() sets a PKCE cookie, so production delegates to a route handler.
+// The isolated development auth bridge already owns the session and can enter
+// the app directly without an RSC -> route-handler redirect loop.
 export default function AuthPage() {
-  redirect("/api/auth/signin");
+  redirect(devAuthEnabled() ? "/app" : "/next-api/auth/signin");
 }

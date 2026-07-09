@@ -464,6 +464,90 @@ export default defineSchema({
     .index("by_document", ["documentId"])
     .index("by_workspace", ["workspaceId"]),
 
+  // BlockNote-native inline comment threads. Positions are stored separately
+  // because BlockNote intentionally omits comment marks from serialized block JSON.
+  flux_commentThreads: defineTable({
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
+    threadId: v.string(),
+    createdBy: v.id("users"),
+    metadata: v.optional(v.any()),
+    anchorFrom: v.optional(v.number()),
+    anchorTo: v.optional(v.number()),
+    referenceText: v.optional(v.string()),
+    anchorUpdatedAt: v.optional(v.number()),
+    resolved: v.boolean(),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedUpdatedAt: v.optional(v.number()),
+    deletedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_document", ["documentId", "createdAt"])
+    .index("by_thread_id", ["threadId"])
+    .index("by_workspace", ["workspaceId"]),
+
+  flux_commentMessages: defineTable({
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
+    threadId: v.string(),
+    commentId: v.string(),
+    userId: v.id("users"),
+    body: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+    reactions: v.optional(v.array(v.object({
+      emoji: v.string(),
+      createdAt: v.number(),
+      userIds: v.array(v.id("users")),
+    }))),
+    deletedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_thread", ["threadId", "createdAt"])
+    .index("by_comment_id", ["commentId"])
+    .index("by_document", ["documentId"]),
+
+  // Workspace font library and per-document writing/export style settings.
+  flux_fonts: defineTable({
+    workspaceId: v.id("workspaces"),
+    family: v.string(),
+    sourceType: v.string(), // upload | google
+    storageId: v.optional(v.id("_storage")),
+    cssUrl: v.optional(v.string()),
+    fileName: v.optional(v.string()),
+    format: v.string(),
+    mimeType: v.optional(v.string()),
+    size: v.optional(v.number()),
+    weight: v.optional(v.number()),
+    style: v.optional(v.string()),
+    createdBy: v.id("users"),
+    deletedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_workspace", ["workspaceId", "createdAt"]),
+
+  flux_documentStyles: defineTable({
+    workspaceId: v.id("workspaces"),
+    documentId: v.id("flux_documents"),
+    fontId: v.optional(v.id("flux_fonts")),
+    fontFamily: v.string(),
+    fontSize: v.number(),
+    lineHeight: v.number(),
+    pageSize: v.string(),
+    marginTop: v.number(),
+    marginRight: v.number(),
+    marginBottom: v.number(),
+    marginLeft: v.number(),
+    headerEnabled: v.boolean(),
+    footerEnabled: v.boolean(),
+    headerText: v.optional(v.string()),
+    footerText: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_document", ["documentId"])
+    .index("by_workspace", ["workspaceId"]),
+
   // Notion-style custom databases. columns/cells stored as JSON strings.
   flux_databases: defineTable({
     workspaceId: v.id("workspaces"),

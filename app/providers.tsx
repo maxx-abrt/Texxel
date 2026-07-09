@@ -8,7 +8,7 @@ import { ToasterProvider } from "@/components/providers/toaster-provider";
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-// Bridges the WorkOS (or dev) session — exposed via /api/auth/token — to Convex.
+// Bridges the WorkOS (or dev) session — exposed via /next-api/auth/token — to Convex.
 // CRITICAL: `fetchAccessToken` MUST be a STABLE (useCallback) function and the
 // returned object MUST be memoized, otherwise ConvexProviderWithAuth's internal
 // effect re-runs on every render and the auth state never settles (infinite
@@ -16,7 +16,7 @@ const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 // returns the freshest value.
 async function requestToken(): Promise<string | null> {
   try {
-    const res = await fetch("/api/auth/token", { cache: "no-store" });
+    const res = await fetch("/next-api/auth/token", { cache: "no-store" });
     if (!res.ok) return null;
     const data = await res.json();
     return data.token ?? null;

@@ -64,7 +64,6 @@ import {
   MessageText1,
   TextBlock,
   Maximize2,
-  Minimize2,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -272,7 +271,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       const ed = editorRef.current;
       if (!ed) return toast.error("Editor not ready");
       const md = await ed.blocksToMarkdownLossy(ed.document);
-      const front = `# ${title || "Untitled"}\n\n`;
+      const front = `# ${title || te("untitled")}\n\n`;
       downloadBlob(front + md, `${(title || "document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.md`, "text/markdown");
       toast.success("Exported Markdown");
     } catch {
@@ -290,7 +289,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     const ed = editorRef.current;
     await saveAsTemplate({
       workspaceId: activeWorkspaceId,
-      title: title || "Untitled template",
+      title: title || te("untitled"),
       content: ed ? JSON.stringify(ed.document) : doc?.content,
       icon: doc?.icon,
       category: "custom",
@@ -389,7 +388,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                 data-testid="doc-breadcrumb-parent"
               >
                 <span>{parentDoc.icon ?? "\ud83d\udcc1"}</span>
-                <span className="truncate">{parentDoc.title || "Untitled"}</span>
+                <span className="truncate">{parentDoc.title || te("untitled")}</span>
               </Link>
               <span className="hidden text-muted-foreground/50 sm:inline">/</span>
             </>
@@ -449,7 +448,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               data-testid="doc-focus-mode"
               aria-label={focusMode ? tDocs("focus.exit") : tDocs("focus.enter")}
             >
-              {focusMode ? <Minimize2 variant="Bulk" size={17} /> : <Maximize2 variant="Bulk" size={17} />}
+              <Maximize2 variant="Bulk" size={17} className={cn("transition-transform", focusMode && "rotate-180")} />
             </button>
           </ActionTooltip>
           <button

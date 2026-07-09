@@ -63,6 +63,8 @@ import {
   ExportSquare,
   MessageText1,
   TextBlock,
+  Maximize2,
+  Minimize2,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -82,6 +84,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const router = useRouter();
   const convex = useConvex();
   const te = useTranslations("editor");
+  const tDocs = useTranslations("docsExperience");
   const { activeWorkspaceId, me } = useWorkspace();
   const doc = useQuery(api.flux_documents.get, { documentId });
   const favorites = useQuery(
@@ -159,6 +162,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [fontLibraryOpen, setFontLibraryOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
   const [historyTab, setHistoryTab] = useState<"versions" | "activity">("versions");
   const [lockDialogOpen, setLockDialogOpen] = useState(false);
   const [passphraseInput, setPassphraseInput] = useState("");
@@ -180,6 +184,23 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       loadedId.current = doc._id;
     }
   }, [doc]);
+
+  useEffect(() => {
+    setFocusMode(sessionStorage.getItem("texxel-doc-focus-mode") === "true");
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem("texxel-doc-focus-mode", String(focusMode));
+    document.documentElement.toggleAttribute("data-doc-focus", focusMode);
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && focusMode) setFocusMode(false);
+    };
+    window.addEventListener("keydown", onEscape);
+    return () => {
+      window.removeEventListener("keydown", onEscape);
+      if (focusMode) document.documentElement.removeAttribute("data-doc-focus");
+    };
+  }, [focusMode]);
 
   const saveTitle = useCallback(
     (value: string) => {
@@ -350,9 +371,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   };
 
   return (
-    <div className="min-h-full pb-32" data-testid="document-view">
+    <div className={cn("min-h-full pb-32", focusMode && "fixed inset-0 z-[70] overflow-y-auto bg-background pb-24")} data-testid="document-view" data-focus-mode={focusMode}>
       {/* Toolbar */}
-      <div className="sticky top-0 z-40 flex items-center gap-1 border-b border-border bg-background/85 px-3 py-2 backdrop-blur md:px-6">
+      <div className={cn("sticky top-0 z-40 flex items-center gap-1 border-b border-border bg-background/85 px-3 py-2 backdrop-blur md:px-6", focusMode && "mx-auto max-w-[1180px] rounded-b-2xl border-x bg-card/95 shadow-sm")}>
         <ActionTooltip label={te("tooltipBack")} side="bottom">
           <button onClick={() => router.push("/app/documents")} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted" data-testid="doc-back" aria-label={te("tooltipBack")}>
             <ArrowLeft2 variant="Bulk" size={18} />
@@ -374,7 +395,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
             </>
           )}
           <span className="w-5 text-center">{doc.icon ?? "\ud83d\udcc4"}</span>
-          <span className="truncate font-medium text-foreground">{title || "Untitled"}</span>
+          <span className="truncate font-medium text-foreground">{title || te("untitled")}</span>
         </span>
         <span className="ml-2 flex shrink-0 items-center gap-1 text-xs text-muted-foreground" data-testid="doc-save-state">
           {saving ? (
@@ -386,13 +407,13 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         <div className="ml-auto flex items-center gap-1.5">
           <PresenceAvatars documentId={documentId} meId={me?._id} editing={isEditing} />
           {showTool("comments") && (
-            <ActionTooltip label="Comments" side="bottom">
+            <ActionTooltip label={tDocs("comments.title")} side="bottom">
               <button
                 type="button"
                 onClick={() => setCommentsOpen(true)}
                 className={cn("relative flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", commentsOpen ? "bg-muted text-foreground" : "text-muted-foreground")}
                 data-testid="doc-comments-btn"
-                aria-label="Open comments"
+                aria-label={tDocs("comments.open")}
               >
                 <MessageText1 variant="Bulk" size={18} />
                 {!!openCommentCount && (
@@ -420,13 +441,24 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               </button>
             </ActionTooltip>
           )}
+          <ActionTooltip label={focusMode ? tDocs("focus.exit") : tDocs("focus.enter")} side="bottom">
+            <button
+              type="button"
+              onClick={() => setFocusMode((value) => !value)}
+              className={cn("flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted", focusMode ? "bg-[var(--flux-coral-soft)] text-primary" : "text-muted-foreground")}
+              data-testid="doc-focus-mode"
+              aria-label={focusMode ? tDocs("focus.exit") : tDocs("focus.enter")}
+            >
+              {focusMode ? <Minimize2 variant="Bulk" size={17} /> : <Maximize2 variant="Bulk" size={17} />}
+            </button>
+          </ActionTooltip>
           <button
             type="button"
             onClick={openExport}
             className="hidden h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-foreground hover:bg-muted sm:flex"
             data-testid="doc-export-open"
           >
-            <DocumentDownload variant="Bulk" size={15} /> Export
+            <DocumentDownload variant="Bulk" size={15} /> {tDocs("export.open")}
           </button>
           <ShareMenu
             doc={doc}
@@ -463,13 +495,13 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                 <Copy variant="Bulk" size={16} /> {te("duplicate")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFontLibraryOpen(true)} className="gap-2" data-testid="doc-font-library">
-                <TextBlock variant="Bulk" size={16} /> Typography & fonts
+                <TextBlock variant="Bulk" size={16} /> {tDocs("fonts.menu")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={exportMarkdown} className="gap-2" data-testid="doc-export-md">
                 <DocumentDownload variant="Bulk" size={16} /> {te("menuExportMarkdown")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={openExport} className="gap-2" data-testid="doc-export-pdf">
-                <DocumentDownload variant="Bulk" size={16} /> Export PDF or DOCX
+                <DocumentDownload variant="Bulk" size={16} /> {tDocs("export.menu")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onSaveTemplate} className="gap-2" data-testid="doc-save-template">
                 <DocumentText variant="Bulk" size={16} /> {te("saveAsTemplate")}
@@ -528,7 +560,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       )}
 
       <div
-        className={cn("mx-auto max-w-[860px] px-5 transition-[margin] duration-200 md:px-12", doc.coverImage ? "pt-4" : "pt-10", commentsOpen && "lg:mr-[380px] lg:ml-auto")}
+        className={cn("mx-auto px-5 transition-[margin,max-width,padding] duration-200 md:px-12", focusMode ? "max-w-[980px] pt-12 md:px-20" : "max-w-[860px]", doc.coverImage && !focusMode ? "pt-4" : !focusMode ? "pt-10" : "", commentsOpen && !focusMode && "lg:mr-[380px] lg:ml-auto", commentsOpen && focusMode && "lg:mr-[380px] lg:max-w-[920px]")}
         style={{ fontFamily: documentStyle?.fontFamily ? `"${documentStyle.fontFamily}", var(--font-sans)` : undefined }}
       >
         {/* Icon */}
@@ -540,7 +572,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           ) : (
             <IconPicker asChild onChange={(icon) => update({ documentId, icon })}>
               <button className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover/icon:opacity-100" data-testid="document-add-icon">
-                <Add variant="Bulk" size={16} /> Add icon
+                <Add variant="Bulk" size={16} /> {te("addIcon")}
               </button>
             </IconPicker>
           )}
@@ -550,7 +582,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         <TextareaAutosize
           value={title}
           onChange={(e) => saveTitle(e.target.value)}
-          placeholder="Untitled"
+          placeholder={te("untitled")}
           data-testid="document-title"
           className="mt-2 w-full resize-none bg-transparent font-display text-4xl font-bold tracking-tight outline-none placeholder:text-muted-foreground/50"
         />
@@ -642,6 +674,12 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         )}
       </div>
 
+      {focusMode && (
+        <div className="pointer-events-none fixed bottom-5 left-1/2 z-[75] -translate-x-1/2 rounded-full border border-border bg-card/95 px-4 py-2 text-xs font-medium text-muted-foreground shadow-lg backdrop-blur" data-testid="focus-mode-hint">
+          {tDocs("focus.hint")}
+        </div>
+      )}
+
       {activeWorkspaceId && (
         <FontLibraryDialog
           open={fontLibraryOpen}
@@ -655,7 +693,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         open={exportOpen}
         onOpenChange={setExportOpen}
         editor={editorInstance}
-        title={title || "Untitled"}
+        title={title || te("untitled")}
         documentStyle={documentStyle}
         selectedFont={selectedFont}
         onSaveSettings={async (settings) => {

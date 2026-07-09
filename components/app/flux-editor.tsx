@@ -6,6 +6,7 @@ import { useMutation, useQuery, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useLocale } from "@/components/providers/locale-provider";
+import { useTranslations } from "next-intl";
 import {
   BlockNoteSchema,
   defaultInlineContentSpecs,
@@ -191,6 +192,7 @@ export function FluxEditor({
 }: FluxEditorProps) {
   const { resolvedTheme } = useTheme();
   const { locale } = useLocale();
+  const tComments = useTranslations("docsExperience.comments");
   const convex = useConvex();
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
   const createThread = useMutation(api.flux_commentThreads.createThread);
@@ -234,8 +236,8 @@ export function FluxEditor({
 
   const resolveUsers = useCallback(async (ids: string[]) => ids.map((id) => {
     const member = members.find((item) => String(item.id) === String(id) || String(item.userId) === String(id));
-    return { id, username: member?.label ?? "Workspace member", avatarUrl: member?.image ?? "" };
-  }), [members]);
+    return { id, username: member?.label ?? tComments("member"), avatarUrl: member?.image ?? "" };
+  }), [members, tComments]);
 
   const editor = useCreateBlockNote({
     schema: fluxEditorSchema,
@@ -245,10 +247,10 @@ export function FluxEditor({
     uploadFile: async (file: File) => {
       const url = await generateUploadUrl();
       const response = await fetch(url, { method: "POST", headers: { "Content-Type": file.type }, body: file });
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) throw new Error(tComments("uploadFailed"));
       const { storageId } = await response.json();
       const publicUrl = await convex.query(api.flux_files.getUrl, { storageId });
-      if (!publicUrl) throw new Error("Could not resolve uploaded file");
+      if (!publicUrl) throw new Error(tComments("resolveUploadFailed"));
       return publicUrl;
     },
   }, [threadStore]);
@@ -315,36 +317,36 @@ export function FluxEditor({
           <>
             <button
               type="button"
-              aria-label="Close comments"
-              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px] lg:hidden"
+              aria-label={tComments("closeAria")}
+              className="fixed inset-0 z-[85] bg-black/20 backdrop-blur-[1px] lg:hidden"
               onClick={() => onCommentsOpenChange?.(false)}
               data-testid="comments-backdrop"
             />
-            <aside className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-border bg-background shadow-2xl sm:w-[390px] lg:top-[49px] lg:z-30 lg:w-[360px] lg:shadow-[-12px_0_35px_rgba(49,48,46,0.08)]" data-testid="comments-sidebar">
+            <aside className="fixed inset-y-0 right-0 z-[90] flex w-full flex-col border-l border-border bg-background shadow-2xl sm:w-[390px] lg:top-[49px] lg:z-[80] lg:w-[360px] lg:shadow-[-12px_0_35px_rgba(49,48,46,0.08)]" data-testid="comments-sidebar">
               <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--flux-coral-soft)] text-primary"><MessageText1 variant="Bulk" size={18} /></span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-semibold">Comments</h2>
-                  <p className="text-xs text-muted-foreground">{openCount ? `${openCount} open thread${openCount === 1 ? "" : "s"}` : "All caught up"}</p>
+                  <h2 className="text-sm font-semibold">{tComments("title")}</h2>
+                  <p className="text-xs text-muted-foreground">{tComments("count", { count: openCount })}</p>
                 </div>
-                <button type="button" onClick={() => onCommentsOpenChange?.(false)} className="rounded-lg px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground" data-testid="comments-close">Close</button>
+                <button type="button" onClick={() => onCommentsOpenChange?.(false)} className="rounded-lg px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground" data-testid="comments-close">{tComments("close")}</button>
               </div>
               <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2.5">
                 <div className="flex rounded-lg bg-muted p-0.5">
                   {(["open", "resolved", "all"] as const).map((filter) => (
-                    <button key={filter} type="button" onClick={() => setCommentFilter(filter)} className={cn("rounded-md px-2.5 py-1 text-xs font-medium capitalize", commentFilter === filter ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")} data-testid={`comments-filter-${filter}`}>{filter}</button>
+                    <button key={filter} type="button" onClick={() => setCommentFilter(filter)} className={cn("rounded-md px-2.5 py-1 text-xs font-medium", commentFilter === filter ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")} data-testid={`comments-filter-${filter}`}>{tComments(filter === "open" ? "filterOpen" : filter === "resolved" ? "filterResolved" : "filterAll")}</button>
                   ))}
                 </div>
                 <select value={commentSort} onChange={(event) => setCommentSort(event.target.value as any)} className="ml-auto h-8 rounded-lg border border-border bg-card px-2 text-xs outline-none focus:ring-2 focus:ring-ring" data-testid="comments-sort">
-                  <option value="position">By position</option>
-                  <option value="recent-activity">Recent</option>
-                  <option value="oldest">Oldest</option>
+                  <option value="position">{tComments("sortPosition")}</option>
+                  <option value="recent-activity">{tComments("sortRecent")}</option>
+                  <option value="oldest">{tComments("sortOldest")}</option>
                 </select>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 [&_.bn-threads-sidebar]:max-w-full! [&_.bn-thread]:rounded-xl! [&_.bn-thread]:border! [&_.bn-thread]:border-border! [&_.bn-thread]:bg-card! [&_.bn-thread]:shadow-none!">
                 <ThreadsSidebar filter={commentFilter} sort={commentSort} maxCommentsBeforeCollapse={4} />
               </div>
-              <div className="border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">Select text, then choose Comment in the formatting toolbar. Type @name to notify teammates.</div>
+              <div className="border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">{tComments("hint")}</div>
             </aside>
           </>
         )}

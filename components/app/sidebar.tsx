@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { Id } from "@/convex/_generated/dataModel";
 import { DocumentTree } from "@/components/app/document-tree";
+import { usePersistedState } from "@/hooks/use-sidebar-prefs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
@@ -28,11 +29,13 @@ import {
   Trash,
   SearchNormal1,
   Add,
-  Star1,
   ArrowDown2,
+  ArrowRight2,
   CloseCircle,
   Folder,
   Messages3,
+  SidebarLeft,
+  SidebarRight,
 } from "iconsax-reactjs";
 import {
   DropdownMenu,
@@ -53,6 +56,9 @@ const NAV_KEYS = [
   { href: "/app/inbox", key: "inbox", Icon: Notification },
   { href: "/app/members", key: "members", Icon: Profile2User },
 ];
+
+const MIN_W = 224;
+const MAX_W = 400;
 
 export function Sidebar({
   mobileOpen,
@@ -83,8 +89,78 @@ export function Sidebar({
 
   const t = useTranslations("nav");
   const tc = useTranslations("common");
-  const tw = useTranslations("settings");
   const NAV = NAV_KEYS.map((n) => ({ ...n, label: t(n.key as any) }));
+
+  // ── Persisted layout preferences ──
+  const [width, setWidth] = usePersistedState<number>("texxel-sidebar-width", 280);
+  const [collapsed, setCollapsed] = usePersistedState<boolean>("texxel-sidebar-collapsed", false);
+  const [sections, setSections] = usePersistedState<Record<string, boolean>>("texxel-sidebar-sections", {});
+  const [openList, setOpenList] = usePersistedState<string[]>(
+    `texxel-tree-open:${activeWorkspaceId ?? "ws"}`,
+    [],
+  );
+  const [resizing, setResizing] = useState(false);
+  const openIds = useMemo(() => new Set(openList), [openList]);
+  const sectionOpen = (key: string) => sections[key] !== false;
+  const toggleSection = (key: string) =>
+    setSections((prev) => ({ ...prev, [key]: !(prev[key] !== false) }));
+  const onToggleOpen = (id: string, open: boolean) =>
+    setOpenList((prev) => (open ? Array.from(new Set([...prev, id])) : prev.filter((x) => x !== id)));
+
+  // ── Active document detection + auto-expand ancestors ──
+  const activeDocId = pathname?.startsWith("/app/documents/")
+    ? pathname.split("/")[3] ?? null
+    : null;
+  useEffect(() => {
+    if (!activeDocId || !docs?.length) return;
+    const byId = new Map(docs.map((d: any) => [String(d._id), d]));
+    const toOpen: string[] = [];
+    let cursor: any = byId.get(activeDocId);
+    let guard = 0;
+    while (cursor?.parentId && guard++ < 50) {
+      toOpen.push(String(cursor.parentId));
+      cursor = byId.get(String(cursor.parentId));
+    }
+    if (toOpen.length) setOpenList((prev) => Array.from(new Set([...prev, ...toOpen])));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDocId, docs]);
+
+  // ── Cmd/Ctrl + \ toggles the sidebar ──
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
+        e.preventDefault();
+        setCollapsed((c) => !c);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [setCollapsed]);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = width;
+    setResizing(true);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const onMove = (ev: MouseEvent) =>
+      setWidth(Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX)));
+    const onUp = () => {
+      setResizing(false);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  const favoriteIds = useMemo(
+    () => new Set((favorites ?? []).map((f: any) => String(f._id))),
+    [favorites],
+  );
 
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [templateParentId, setTemplateParentId] = useState<Id<"flux_documents"> | undefined>();
@@ -123,15 +199,30 @@ export function Sidebar({
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
       )}
+      {collapsed && (
+        <button
+          onClick={() => setCollapsed(false)}
+          className="fixed bottom-5 left-3 z-40 hidden h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-md transition-colors hover:bg-muted hover:text-foreground md:flex"
+          title={`${t("expandSidebar")} (\u2318\\)`}
+          data-testid="sidebar-expand-btn"
+        >
+          <SidebarRight variant="Bulk" size={18} />
+        </button>
+      )}
       <aside
         data-testid="app-sidebar"
+        data-collapsed={collapsed || undefined}
+        style={{ "--sb-w": collapsed ? "0px" : `${width}px` } as React.CSSProperties}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform md:static md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:static md:w-[var(--sb-w)] md:translate-x-0",
+          !resizing && "transition-[width,transform] duration-200",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
+          collapsed && "md:overflow-hidden md:border-r-0",
         )}
       >
+        <div className="flex min-h-0 flex-1 flex-col" style={{ minWidth: MIN_W }}>
         {/* Workspace switcher */}
-        <div className="flex items-center gap-2 p-3">
+        <div className="flex items-center gap-1 p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -167,6 +258,14 @@ export function Sidebar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <button
+            onClick={() => setCollapsed(true)}
+            className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-foreground md:flex"
+            title={`${t("collapseSidebar")} (\u2318\\)`}
+            data-testid="sidebar-collapse-btn"
+          >
+            <SidebarLeft variant="Bulk" size={17} />
+          </button>
           <button className="md:hidden" onClick={onClose}><CloseCircle variant="Bulk" size={20} /></button>
         </div>
 
@@ -191,9 +290,20 @@ export function Sidebar({
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3 no-scrollbar">
           {favorites && favorites.length > 0 && (
             <div className="mb-3">
-              <div className="px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("favorites")}</div>
-              {favorites.map((d: any) => (
-                <DraggableFavorite key={d._id} doc={d} onNavigate={onClose} />
+              <button
+                onClick={() => toggleSection("favorites")}
+                className="group flex w-full items-center gap-1 rounded-lg px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+                data-testid="section-favorites-toggle"
+              >
+                <span>{t("favorites")}</span>
+                <ArrowRight2
+                  variant="Bulk"
+                  size={12}
+                  className={cn("opacity-0 transition-all group-hover:opacity-100", sectionOpen("favorites") && "rotate-90")}
+                />
+              </button>
+              {sectionOpen("favorites") && favorites.map((d: any) => (
+                <DraggableFavorite key={d._id} doc={d} onNavigate={onClose} active={activeDocId === String(d._id)} />
               ))}
             </div>
           )}
@@ -204,17 +314,42 @@ export function Sidebar({
               isOverRoot && "bg-primary/10 ring-1 ring-primary/40",
             )}
           >
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("private")}</span>
+            <button
+              onClick={() => toggleSection("private")}
+              className="group flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground"
+              data-testid="section-private-toggle"
+            >
+              <span>{t("private")}</span>
+              <ArrowRight2
+                variant="Bulk"
+                size={12}
+                className={cn("opacity-0 transition-all group-hover:opacity-100", sectionOpen("private") && "rotate-90")}
+              />
+            </button>
             <div className="flex items-center">
               <button data-testid="sidebar-new-folder" onClick={onCreateFolder} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title={t("newFolder")}><Folder variant="Bulk" size={16} /></button>
               <button data-testid="sidebar-new-doc" onClick={() => onCreate()} className="rounded-md p-0.5 text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" title={t("newPage")}><Add variant="Bulk" size={16} /></button>
             </div>
           </div>
-          <DocumentTree docs={docs ?? []} parentId={null} onNavigate={onClose} onCreateChild={onCreate} level={0} />
-          {docs && docs.length === 0 && (
-            <button onClick={() => onCreate()} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent">
-              <Add variant="Bulk" size={16} /> {t("newPage")}
-            </button>
+          {sectionOpen("private") && (
+            <>
+              <DocumentTree
+                docs={docs ?? []}
+                parentId={null}
+                onNavigate={onClose}
+                onCreateChild={onCreate}
+                level={0}
+                activeId={activeDocId}
+                favoriteIds={favoriteIds}
+                openIds={openIds}
+                onToggleOpen={onToggleOpen}
+              />
+              {docs && docs.length === 0 && (
+                <button onClick={() => onCreate()} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-muted-foreground hover:bg-sidebar-accent">
+                  <Add variant="Bulk" size={16} /> {t("newPage")}
+                </button>
+              )}
+            </>
           )}
           {activeDrag && (
             <div
@@ -254,6 +389,15 @@ export function Sidebar({
             <Setting2 variant="Bulk" size={20} className="text-muted-foreground" /> {t("settings")}
           </Link>
         </div>
+        </div>
+        {/* Resize handle (desktop) */}
+        {!collapsed && (
+          <div
+            onMouseDown={startResize}
+            className="absolute inset-y-0 right-0 hidden w-1 cursor-col-resize bg-transparent transition-colors hover:bg-primary/30 active:bg-primary/50 md:block"
+            data-testid="sidebar-resize-handle"
+          />
+        )}
       </aside>
       <TemplatePickerDialog
         open={templatePickerOpen}
@@ -265,7 +409,7 @@ export function Sidebar({
   );
 }
 
-function DraggableFavorite({ doc, onNavigate }: { doc: any; onNavigate: () => void }) {
+function DraggableFavorite({ doc, onNavigate, active }: { doc: any; onNavigate: () => void; active?: boolean }) {
   const tc = useTranslations("common");
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `favorite-${doc._id}`,
@@ -282,11 +426,13 @@ function DraggableFavorite({ doc, onNavigate }: { doc: any; onNavigate: () => vo
       {...listeners}
       style={style}
       className={cn(
-        "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-sidebar-accent",
+        "relative flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-sidebar-accent",
+        active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         isDragging && "z-50 cursor-grabbing opacity-0",
         isTrashing && "pointer-events-none scale-95 opacity-0 transition-all duration-300",
       )}
     >
+      {active && <span className="pointer-events-none absolute inset-y-1 left-0 w-[3px] rounded-full bg-primary" />}
       <Link href={`/app/documents/${doc._id}`} onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-2">
         <span className="w-4 text-center">{doc.icon ?? "\ud83d\udcc4"}</span>
         <span className="truncate">{doc.title || tc("untitled")}</span>

@@ -256,6 +256,130 @@ html .bn-container[data-color-scheme="dark"] {
 /* @mention chip in read mode */
 .mention-chip { cursor: default; }
 
+/* ============================ DOCS WRITING SURFACE ============================ */
+/* Document-level font settings (family/size/line-height) flow into the editor. */
+.flux-editor .bn-editor {
+  font-family: var(--doc-font-family, var(--font-sans));
+  font-size: var(--doc-font-size, 16px);
+  line-height: var(--doc-line-height, 1.65);
+}
+/* Heading rhythm: generous space above, tight below — reads like a real doc. */
+.flux-editor .bn-editor h1 { font-size: 1.85em; letter-spacing: -0.02em; font-weight: 750; }
+.flux-editor .bn-editor h2 { font-size: 1.45em; letter-spacing: -0.014em; font-weight: 700; }
+.flux-editor .bn-editor h3 { font-size: 1.18em; letter-spacing: -0.008em; font-weight: 650; }
+.flux-editor .bn-block-outer:not(:first-child) [data-content-type="heading"][data-level="1"] { padding-top: 1.15em; }
+.flux-editor .bn-block-outer:not(:first-child) [data-content-type="heading"][data-level="2"] { padding-top: 0.85em; }
+.flux-editor .bn-block-outer:not(:first-child) [data-content-type="heading"][data-level="3"] { padding-top: 0.6em; }
+/* Quote, divider, code and link styling tuned to the brand. */
+.flux-editor [data-content-type="quote"] blockquote,
+.flux-editor .bn-editor blockquote {
+  border-left: 3px solid color-mix(in oklch, var(--primary) 55%, var(--border));
+  color: color-mix(in oklch, var(--foreground) 78%, var(--muted-foreground));
+  font-style: italic;
+}
+.flux-editor .bn-editor a {
+  color: var(--primary);
+  text-decoration-color: color-mix(in oklch, var(--primary) 45%, transparent);
+  text-underline-offset: 3px;
+}
+.flux-editor .bn-editor code {
+  background: color-mix(in oklch, var(--foreground) 7%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.08em 0.35em;
+  font-size: 0.9em;
+}
+.flux-editor .bn-editor pre code { background: transparent; border: none; padding: 0; }
+.flux-editor .bn-editor hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.4em 0;
+}
+/* Softer placeholder + caret in brand color. */
+.flux-editor .bn-editor [data-is-empty-and-focused] .bn-inline-content:before,
+.flux-editor .bn-editor .bn-inline-content:has(> .ProseMirror-trailingBreak):before {
+  color: color-mix(in oklch, var(--muted-foreground) 72%, transparent);
+}
+.flux-editor .bn-editor { caret-color: var(--primary); }
+/* Side menu (drag handle / add block) fades in gently. */
+.flux-editor .bn-side-menu { opacity: 0; transition: opacity .15s ease; }
+.flux-editor .bn-container:hover .bn-side-menu,
+.flux-editor .bn-side-menu:hover,
+.flux-editor .bn-side-menu:focus-within { opacity: 1; }
+
+/* ============================ NATIVE COMMENTS ============================ */
+/* Inline anchors: soft coral highlight, clickable, brighter when selected. */
+.bn-thread-mark {
+  background: color-mix(in oklch, var(--primary) 15%, transparent);
+  border-bottom: 2px solid color-mix(in oklch, var(--primary) 50%, transparent);
+  border-radius: 2px;
+  padding-bottom: 1px;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.bn-thread-mark:hover { background: color-mix(in oklch, var(--primary) 26%, transparent); }
+.bn-thread-mark-selected,
+.bn-thread-mark.bn-thread-mark-selected {
+  background: color-mix(in oklch, var(--primary) 30%, transparent);
+  border-bottom-color: var(--primary);
+}
+.bn-thread-mark[data-orphan="true"] {
+  background: transparent;
+  border-bottom-style: dashed;
+  opacity: 0.55;
+}
+@keyframes texxel-anchor-flash {
+  0% { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 55%, transparent); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+.texxel-anchor-flash { animation: texxel-anchor-flash 1.3s ease-out; border-radius: 3px; }
+
+/* Threads panel: cards follow the Texxel token system, not raw Mantine. */
+.bn-threads-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 100% !important;
+  width: 100%;
+}
+.bn-thread {
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  overflow: hidden;
+}
+.bn-thread:hover { border-color: color-mix(in oklch, var(--primary) 30%, var(--border)) !important; }
+.bn-thread[data-selected],
+.bn-thread[data-selected="true"] {
+  border-color: color-mix(in oklch, var(--primary) 60%, var(--border)) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 13%, transparent) !important;
+}
+.bn-thread .bn-editor {
+  font-size: 13.5px;
+  line-height: 1.55;
+  font-family: var(--font-sans);
+}
+.bn-thread-comment { padding: 2px 4px; }
+.bn-thread-composer { border-top: 1px solid var(--border); padding: 6px; }
+/* The floating composer (created from text selection). */
+.bn-comment-editor, .bn-floating-composer {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--popover);
+  box-shadow: 0 16px 40px color-mix(in oklch, var(--foreground) 18%, transparent);
+}
+/* Reference text (quoted snippet) above each thread. */
+.bn-thread [data-thread-header], .bn-thread .bn-thread-reference {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+/* Comment badge count uses tabular numbers for stability. */
+[data-testid="doc-comments-count"] { font-variant-numeric: tabular-nums; }
+
+
 /* ============================ EASY READING MODE ============================ */
 /* Accessibility preference: everything bolder, roomier and higher-contrast
    for users with reading difficulties. Toggled in Settings, applied on <html>. */

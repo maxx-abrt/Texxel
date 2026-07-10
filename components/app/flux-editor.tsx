@@ -268,6 +268,55 @@ export function FluxEditor({
   readyRef.current = onEditorReady;
   useEffect(() => readyRef.current?.(editor), [editor]);
 
+  // ── Thread <-> anchor navigation sync ──
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const openRef = useRef(onCommentsOpenChange);
+  openRef.current = onCommentsOpenChange;
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      // Click on a highlighted range -> open the panel and reveal its thread.
+      if (target.closest(".bn-thread-mark")) {
+        openRef.current?.(true);
+        window.setTimeout(() => {
+          el.querySelector(".bn-thread[data-selected]")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 180);
+        return;
+      }
+      // Click on a thread card -> scroll to and flash the anchored text.
+      if (target.closest(".bn-thread") && target.closest("[data-testid='comments-sidebar']")) {
+        window.setTimeout(() => {
+          const mark = el.querySelector(".bn-thread-mark-selected") as HTMLElement | null;
+          if (!mark) return;
+          mark.scrollIntoView({ behavior: "smooth", block: "center" });
+          mark.classList.add("texxel-anchor-flash");
+          window.setTimeout(() => mark.classList.remove("texxel-anchor-flash"), 1400);
+        }, 120);
+      }
+    };
+    // Cmd/Ctrl+Shift+M starts a comment on the current selection.
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        try {
+          (editor as any).comments?.startPendingComment?.();
+          (editor as any).formattingToolbar?.closeMenu?.();
+        } catch {
+          /* no selection */
+        }
+      }
+    };
+    el.addEventListener("click", onClick);
+    el.addEventListener("keydown", onKey);
+    return () => {
+      el.removeEventListener("click", onClick);
+      el.removeEventListener("keydown", onKey);
+    };
+  }, [editor]);
+
   const handleChange = useCallback(() => {
     onChange?.(JSON.stringify(editor.document));
     onMentions?.(extractMentionUserIds(editor.document as any[]));
@@ -287,6 +336,7 @@ export function FluxEditor({
 
   return (
     <div
+      ref={wrapRef}
       className="flux-editor relative"
       style={{ "--doc-font-family": `"${fontFamily}", var(--font-sans)`, "--doc-font-size": `${fontSize}px`, "--doc-line-height": lineHeight } as React.CSSProperties}
       data-testid="flux-editor"

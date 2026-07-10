@@ -181,6 +181,14 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     if (doc && loadedId.current !== doc._id) {
       setTitle(doc.title || "");
       loadedId.current = doc._id;
+      // Track recently opened docs for the command palette.
+      try {
+        const raw: string[] = JSON.parse(localStorage.getItem("texxel-recent-docs") ?? "[]");
+        const next = [String(doc._id), ...raw.filter((x) => x !== String(doc._id))].slice(0, 8);
+        localStorage.setItem("texxel-recent-docs", JSON.stringify(next));
+      } catch {
+        /* storage unavailable */
+      }
     }
   }, [doc]);
 

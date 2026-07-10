@@ -125,7 +125,7 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDocId, docs]);
 
-  // ── Cmd/Ctrl + \ toggles the sidebar ──
+  // ── Cmd/Ctrl + \ or command-palette event toggles the sidebar ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
@@ -133,8 +133,13 @@ export function Sidebar({
         setCollapsed((c) => !c);
       }
     };
+    const onEvt = () => setCollapsed((c) => !c);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("texxel:toggle-sidebar", onEvt);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("texxel:toggle-sidebar", onEvt);
+    };
   }, [setCollapsed]);
 
   const startResize = (e: React.MouseEvent) => {

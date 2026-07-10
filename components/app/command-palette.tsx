@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
@@ -28,6 +29,9 @@ import {
   Message,
   Magicpen,
   CalendarAdd,
+  Moon,
+  SidebarLeft,
+  Clock,
 } from "iconsax-reactjs";
 
 const PAGES_KEYS = [
@@ -87,6 +91,24 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
     if (!open) setQ("");
   }, [open]);
 
+  // Recently opened documents (tracked by the document view).
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (!open) return;
+    try {
+      setRecentIds(JSON.parse(localStorage.getItem("texxel-recent-docs") ?? "[]"));
+    } catch {
+      setRecentIds([]);
+    }
+  }, [open]);
+  const allDocs = useQuery(
+    api.flux_documents.list,
+    open && activeWorkspaceId && recentIds.length ? { workspaceId: activeWorkspaceId } : "skip",
+  );
+  const recentDocs = (recentIds
+    .map((id) => (allDocs ?? []).find((d: any) => String(d._id) === id))
+    .filter(Boolean) as any[]).slice(0, 5);
+
   const go = (href: string) => {
     setOpen(false);
     router.push(href);
@@ -104,12 +126,15 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
     window.dispatchEvent(new Event(event));
   };
 
+  const { resolvedTheme, setTheme } = useTheme();
   const ACTIONS = [
     { key: "newDoc", Icon: AddSquare, run: newDoc, testId: "cmd-new-doc" },
     { key: "newTask", Icon: TaskSquare, run: () => go("/app/tasks"), testId: "cmd-new-task" },
     { key: "newEvent", Icon: CalendarAdd, run: () => go("/app/calendar"), testId: "cmd-new-event" },
     { key: "openChat", Icon: Message, run: () => fire("flux:open-chat"), testId: "cmd-open-chat" },
     { key: "askAi", Icon: Magicpen, run: () => fire("flux:open-ai"), testId: "cmd-ask-ai" },
+    { key: "toggleTheme", Icon: Moon, run: () => { setTheme(resolvedTheme === "dark" ? "light" : "dark"); setOpen(false); }, testId: "cmd-toggle-theme" },
+    { key: "toggleSidebar", Icon: SidebarLeft, run: () => fire("texxel:toggle-sidebar"), testId: "cmd-toggle-sidebar" },
   ];
   const showActions = q.trim().length < 2;
 
@@ -133,6 +158,24 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
           />
           <CommandList className="max-h-[420px]">
             <CommandEmpty>{tc("noResults")}</CommandEmpty>
+
+            {showActions && recentDocs.length > 0 && (
+              <CommandGroup heading={t("recent")}>
+                {recentDocs.map((d: any) => (
+                  <CommandItem
+                    key={`recent-${d._id}`}
+                    value={`recent-${d._id}`}
+                    onSelect={() => go(`/app/documents/${d._id}`)}
+                    className="gap-2"
+                    data-testid="cmd-recent-doc"
+                  >
+                    <Clock variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
+                    <span className="w-5 shrink-0 text-center">{d.icon ?? "📄"}</span>
+                    <span className="truncate">{d.title || tc("untitled")}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
 
             {showActions && (
               <CommandGroup heading={t("quickActions")}>

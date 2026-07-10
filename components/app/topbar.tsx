@@ -14,6 +14,8 @@ import {
   Setting2,
   Logout,
   Profile,
+  ArrowLeft2,
+  ArrowRight2,
 } from "iconsax-reactjs";
 import {
   DropdownMenu,
@@ -40,6 +42,26 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
       <button onClick={onMenu} className="md:hidden" data-testid="topbar-menu">
         <HamburgerMenu variant="Bulk" size={22} />
       </button>
+
+      {/* Linear-style history navigation */}
+      <div className="hidden items-center gap-0.5 md:flex">
+        <button
+          onClick={() => router.back()}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          title={t("goBack")}
+          data-testid="topbar-back"
+        >
+          <ArrowLeft2 size={17} />
+        </button>
+        <button
+          onClick={() => router.forward()}
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          title={t("goForward")}
+          data-testid="topbar-forward"
+        >
+          <ArrowRight2 size={17} />
+        </button>
+      </div>
 
       <button
         onClick={onSearch}

@@ -367,6 +367,13 @@ export function RetroPlanningPanel({
     ? Math.max(0, Math.min(1, 1 - (Date.now() - (projectDueDate - totalSpan * DAY_MS)) / (totalSpan * DAY_MS)))
     : null;
 
+  // Adaptive time ruler: weekly ticks for short spans, bi-weekly / monthly for longer ones.
+  const tickStep = totalSpan > 120 ? 30 : totalSpan > 45 ? 14 : 7;
+  const ticks: { pct: number; label: string }[] = [];
+  for (let d = tickStep; d < totalSpan; d += tickStep) {
+    ticks.push({ pct: ((totalSpan - d) / totalSpan) * 100, label: fmt(getDate(d)) });
+  }
+
   return (
     <div className="flex flex-col gap-5">
       {/* Header */}
@@ -464,12 +471,23 @@ export function RetroPlanningPanel({
           <span className="text-[10px] text-destructive tabular-nums font-medium">{fmt(deadlineDate)}</span>
         </div>
         <div ref={timelineRef} className="relative px-3 py-3 space-y-2">
+          {/* Time ruler gridlines */}
+          <div className="pointer-events-none absolute inset-0 z-0">
+            {ticks.map((tk) => (
+              <div key={tk.pct} className="absolute bottom-0 top-0 flex flex-col items-center" style={{ left: `${tk.pct}%` }}>
+                <div className="w-px flex-1 bg-border/60" />
+                <span className="pb-0.5 text-[8px] tabular-nums text-muted-foreground/50">{tk.label}</span>
+              </div>
+            ))}
+          </div>
           {todayCol !== null && todayCol > 0 && todayCol < 1 && (
             <div
               className="absolute top-0 bottom-0 z-10 flex flex-col items-center"
               style={{ left: `${todayCol * 100}%` }}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-primary -mt-px" />
+              <span className="-mt-px whitespace-nowrap rounded-full bg-primary px-1.5 py-px text-[8px] font-semibold leading-tight text-primary-foreground shadow-sm">
+                {t("today")}
+              </span>
               <div className="w-px flex-1 bg-primary/40" />
             </div>
           )}

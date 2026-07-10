@@ -45,7 +45,9 @@
     "documents": "Documents",
     "events": "Events",
     "collapseSidebar": "Collapse sidebar",
-    "expandSidebar": "Expand sidebar"
+    "expandSidebar": "Expand sidebar",
+    "goBack": "Go back",
+    "goForward": "Go forward"
   },
   "commandPalette": {
     "title": "Search and navigate",
@@ -57,8 +59,11 @@
       "newTask": "New task",
       "newEvent": "New event",
       "openChat": "Open chat",
-      "askAi": "Ask AI"
-    }
+      "askAi": "Ask AI",
+      "toggleTheme": "Toggle dark / light theme",
+      "toggleSidebar": "Toggle sidebar"
+    },
+    "recent": "Recent"
   },
   "common": {
     "cancel": "Cancel",
@@ -361,7 +366,8 @@
           "name": "Event planning",
           "description": "Venue, invitations, logistics, and event day."
         }
-      }
+      },
+      "today": "Today"
     },
     "saveChanges": "Save Changes",
     "saving": "Saving...",

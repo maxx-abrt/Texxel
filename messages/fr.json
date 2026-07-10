@@ -45,7 +45,9 @@
     "documents": "Documents",
     "events": "Événements",
     "collapseSidebar": "Réduire la barre latérale",
-    "expandSidebar": "Afficher la barre latérale"
+    "expandSidebar": "Afficher la barre latérale",
+    "goBack": "Retour",
+    "goForward": "Avancer"
   },
   "commandPalette": {
     "title": "Rechercher et naviguer",
@@ -57,8 +59,11 @@
       "newTask": "Nouvelle tâche",
       "newEvent": "Nouvel événement",
       "openChat": "Ouvrir le chat",
-      "askAi": "Demander à l’IA"
-    }
+      "askAi": "Demander à l’IA",
+      "toggleTheme": "Basculer thème sombre / clair",
+      "toggleSidebar": "Afficher / masquer la barre latérale"
+    },
+    "recent": "Récents"
   },
   "common": {
     "cancel": "Annuler",
@@ -361,7 +366,8 @@
           "name": "Organisation d’événement",
           "description": "Lieu, invitations, logistique et jour J."
         }
-      }
+      },
+      "today": "Aujourd'hui"
     },
     "saveChanges": "Enregistrer",
     "saving": "Enregistrement...",

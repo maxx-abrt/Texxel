@@ -64,6 +64,7 @@ import {
   MessageText1,
   TextBlock,
   Maximize2,
+  Notepad2,
 } from "iconsax-reactjs";
 
 const FluxEditor = dynamic(() => import("@/components/app/flux-editor"), {
@@ -171,6 +172,29 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const [lockLoading, setLockLoading] = useState(false);
   const [unlockedContent, setUnlockedContent] = useState<string | null>(null);
   const [currentPassphrase, setCurrentPassphrase] = useState<string | null>(null);
+  // ── Page format (A4 / A3 / Custom / Pageless) — persisted per document ──
+  const [pageFormat, setPageFormat] = useState<"pageless" | "a4" | "a3" | "custom">("pageless");
+  const [customWidth, setCustomWidth] = useState(900);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`texxel:page:${documentId}`);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p.format) setPageFormat(p.format);
+        if (p.width) setCustomWidth(p.width);
+      } else {
+        setPageFormat("pageless");
+      }
+    } catch {}
+  }, [documentId]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(`texxel:page:${documentId}`, JSON.stringify({ format: pageFormat, width: customWidth }));
+    } catch {}
+  }, [documentId, pageFormat, customWidth]);
+  const PAGE_WIDTHS: Record<string, number> = { a4: 794, a3: 1123, pageless: 1280, custom: customWidth };
+  const pageIsFramed = pageFormat === "a4" || pageFormat === "a3" || pageFormat === "custom";
+  const pageMaxWidth = Math.max(480, Math.min(1600, PAGE_WIDTHS[pageFormat] ?? 1280));
   const editingTimer = useRef<any>(null);
   const titleTimer = useRef<any>(null);
   const contentTimer = useRef<any>(null);
@@ -459,6 +483,57 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               <Maximize2 variant="Bulk" size={17} className={cn("transition-transform", focusMode && "rotate-180")} />
             </button>
           </ActionTooltip>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="hidden h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-foreground hover:bg-muted sm:flex"
+                data-testid="doc-page-format"
+                aria-label="Page format"
+              >
+                <Notepad2 variant="Bulk" size={15} />
+                <span className="uppercase">{pageFormat === "pageless" ? "Pageless" : pageFormat === "custom" ? `${customWidth}px` : pageFormat}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-60 p-2">
+              <div className="px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Page format</div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {([
+                  { key: "pageless", label: "Pageless", hint: "Fluid" },
+                  { key: "a4", label: "A4", hint: "210mm" },
+                  { key: "a3", label: "A3", hint: "297mm" },
+                  { key: "custom", label: "Custom", hint: "Width" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setPageFormat(opt.key)}
+                    data-testid={`doc-page-${opt.key}`}
+                    className={cn(
+                      "flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-colors",
+                      pageFormat === opt.key ? "border-primary bg-[var(--flux-coral-soft)] text-foreground" : "border-border hover:bg-muted",
+                    )}
+                  >
+                    <span className={cn("flex items-center rounded-sm border", pageFormat === opt.key ? "border-primary/60" : "border-border")}
+                      style={{ width: 20, height: opt.key === "pageless" ? 15 : opt.key === "a3" ? 24 : 26, background: "color-mix(in oklch, var(--muted) 60%, var(--card))" }} />
+                    <span className="text-xs font-semibold">{opt.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{opt.hint}</span>
+                  </button>
+                ))}
+              </div>
+              {pageFormat === "custom" && (
+                <div className="mt-2 flex items-center gap-2 px-1">
+                  <input
+                    type="range" min={480} max={1600} step={20}
+                    value={customWidth}
+                    onChange={(e) => setCustomWidth(Number(e.target.value))}
+                    data-testid="doc-page-custom-width"
+                    className="flex-1 accent-[var(--primary)]"
+                  />
+                  <span className="tabular w-12 text-right text-xs font-semibold text-muted-foreground">{customWidth}</span>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
           <button
             type="button"
             onClick={openExport}
@@ -567,8 +642,8 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       )}
 
       <div
-        className={cn("mx-auto px-5 transition-[margin,max-width,padding] duration-200 md:px-12", focusMode ? "max-w-[1080px] pt-12 md:px-20" : "max-w-[920px]", doc.coverImage && !focusMode ? "pt-4" : !focusMode ? "pt-10" : "", commentsOpen && !focusMode && "lg:mr-[380px] lg:ml-auto", commentsOpen && focusMode && "lg:mr-[380px] lg:max-w-[920px]")}
-        style={{ fontFamily: documentStyle?.fontFamily ? `"${documentStyle.fontFamily}", var(--font-sans)` : undefined }}
+        className={cn("mx-auto px-5 transition-[margin,max-width,padding] duration-200 md:px-12", focusMode ? "max-w-[1080px] pt-12 md:px-20" : "max-w-[920px]", doc.coverImage && !focusMode ? "pt-4" : !focusMode ? "pt-10" : "", commentsOpen && !focusMode && "lg:mr-[380px] lg:ml-auto", commentsOpen && focusMode && "lg:mr-[380px] lg:max-w-[920px]", pageIsFramed && !commentsOpen && "doc-page-frame")}
+        style={{ fontFamily: documentStyle?.fontFamily ? `"${documentStyle.fontFamily}", var(--font-sans)` : undefined, maxWidth: !commentsOpen ? pageMaxWidth : undefined }}
       >
         {/* Icon */}
         <div className="group/icon relative">

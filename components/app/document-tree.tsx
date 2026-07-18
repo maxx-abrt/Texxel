@@ -69,15 +69,7 @@ export function DocumentTree({
   const children = useMemo(() => docs.filter((d) => (d.parentId ?? null) === parentId), [docs, parentId]);
   if (children.length === 0) return null;
   return (
-    <div className="relative">
-      {/* Notion-style indent guide line */}
-      {level > 0 && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 w-px bg-border/70"
-          style={{ left: `${(level - 1) * 14 + 21}px` }}
-        />
-      )}
+    <div className={cn("relative", level > 0 && "tx-tree-expand")}>
       {children.map((doc) => (
         <TreeNode
           key={doc._id}
@@ -251,6 +243,14 @@ function TreeNode({
         )}
         data-active={isActive || undefined}
       >
+        {Array.from({ length: level }).map((_, i) => (
+          <span
+            key={i}
+            aria-hidden
+            className="tx-tree-guide pointer-events-none absolute inset-y-0 w-px"
+            style={{ left: `${i * 14 + 20}px` }}
+          />
+        ))}
         {isActive && (
           <span className="pointer-events-none absolute inset-y-1 left-0 w-[3px] rounded-full bg-primary" data-testid="tree-active-indicator" />
         )}

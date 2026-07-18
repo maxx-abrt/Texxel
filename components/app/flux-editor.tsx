@@ -30,6 +30,7 @@ import { ConvexThreadStore } from "@/lib/convex-thread-store";
 import { cn } from "@/lib/utils";
 import { MessageText1 } from "iconsax-reactjs";
 import { ChartBlock, buildChartSlashMenuItems } from "./chart-block";
+import { suggestionMenuFloatingUIOptions } from "@/lib/suggestion-menu-options";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
@@ -359,6 +360,7 @@ export function FluxEditor({
         {editable && (
           <SuggestionMenuController
             triggerCharacter="@"
+            floatingUIOptions={suggestionMenuFloatingUIOptions}
             getItems={async (query) => filterSuggestionItems(mentionables.map((item) => ({
               title: item.label,
               subtext: item.kind,
@@ -372,6 +374,7 @@ export function FluxEditor({
         {editable && (
           <SuggestionMenuController
             triggerCharacter="/"
+            floatingUIOptions={suggestionMenuFloatingUIOptions}
             getItems={async (query) => {
               const defaults = getDefaultReactSlashMenuItems(editor);
               const chartItems = buildChartSlashMenuItems(editor, (key) => {

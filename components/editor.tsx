@@ -30,6 +30,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { ConvexThreadStore } from "@/lib/ConvexThreadStore";
 import { ColorChipSpec, DateChipSpec, BadgeChipSpec, ProgressChipSpec, EventChipSpec, PlaceChipSpec, RefChipSpec, CheckboxChipSpec, buildChipMenuItems, buildChipSlashMenuItems, genChipId } from "@/components/chips";
 import { ChartBlockSpec, buildChartSlashMenuItems } from "@/components/chart-block";
+import { suggestionMenuFloatingUIOptions } from "@/lib/suggestion-menu-options";
 import { CheckSquare } from "lucide-react";
 import * as Y from "yjs";
 import YPartyKitProvider from "y-partykit/provider";
@@ -393,6 +394,7 @@ const Editor = ({
       >
         <SuggestionMenuController
           triggerCharacter="@"
+          floatingUIOptions={suggestionMenuFloatingUIOptions}
           getItems={async (query) => {
             const q = query.toLowerCase();
             return teamMembers
@@ -419,6 +421,7 @@ const Editor = ({
         {/* Primary / slash menu — default blocks + smart chips */}
         <SuggestionMenuController
           triggerCharacter="/"
+          floatingUIOptions={suggestionMenuFloatingUIOptions}
           getItems={async (query) => {
             const defaults = getDefaultReactSlashMenuItems(editor);
             const chartItems = buildChartSlashMenuItems(editor, (key) => {
@@ -484,6 +487,7 @@ const Editor = ({
         {/* Smart chips — type ~ as secondary trigger */}
         <SuggestionMenuController
           triggerCharacter="~"
+          floatingUIOptions={suggestionMenuFloatingUIOptions}
           getItems={async (query) => buildChipMenuItems(editor, query) as any[]}
         />
         {documentId && showCommentsSidebar && (

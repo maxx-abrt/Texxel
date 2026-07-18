@@ -28,6 +28,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@floating-ui/react": "0.27.19",
     "@mantine/core": "^8.3.15",
     "@mantine/hooks": "^8.3.15",
     "@paper-design/shaders-react": "^0.0.77",

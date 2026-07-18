@@ -553,6 +553,42 @@ html[data-easyread="true"] .ProseMirror {
   padding-bottom: 56px;
 }
 
+/* ============================ SUGGESTION MENU POLISH ============================ */
+/* Override BlockNote's default suggestion menu styling to match the app's design system. */
+.bn-suggestion-menu {
+  border-radius: 14px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--elev-2) !important;
+  min-width: 280px;
+  max-width: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--foreground) 16%, transparent) transparent;
+}
+.bn-suggestion-menu::-webkit-scrollbar { width: 6px; }
+.bn-suggestion-menu::-webkit-scrollbar-track { background: transparent; }
+.bn-suggestion-menu::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--foreground) 16%, transparent);
+  border-radius: 999px;
+}
+.bn-suggestion-menu::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--foreground) 28%, transparent);
+}
+/* Tighter, more refined menu items */
+.bn-suggestion-menu-item {
+  border-radius: 10px !important;
+  transition: background-color 0.1s var(--ease-standard);
+}
+/* Subtle group label styling */
+.bn-suggestion-menu-label {
+  font-size: 10px !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding-top: 6px;
+  padding-bottom: 2px;
+}
+
 /* ── File tree: connector ladder + smooth expand ─────────────────────────── */
 .tx-tree-guide { background: color-mix(in oklch, var(--border) 70%, transparent); opacity: 0.5; transition: background-color 0.18s var(--ease-standard), opacity 0.18s var(--ease-standard); }
 .group:hover > .tx-tree-guide { background: color-mix(in oklch, var(--primary) 55%, transparent); opacity: 0.7; }

@@ -567,7 +567,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       )}
 
       <div
-        className={cn("mx-auto px-5 transition-[margin,max-width,padding] duration-200 md:px-12", focusMode ? "max-w-[980px] pt-12 md:px-20" : "max-w-[860px]", doc.coverImage && !focusMode ? "pt-4" : !focusMode ? "pt-10" : "", commentsOpen && !focusMode && "lg:mr-[380px] lg:ml-auto", commentsOpen && focusMode && "lg:mr-[380px] lg:max-w-[920px]")}
+        className={cn("mx-auto px-5 transition-[margin,max-width,padding] duration-200 md:px-12", focusMode ? "max-w-[1080px] pt-12 md:px-20" : "max-w-[920px]", doc.coverImage && !focusMode ? "pt-4" : !focusMode ? "pt-10" : "", commentsOpen && !focusMode && "lg:mr-[380px] lg:ml-auto", commentsOpen && focusMode && "lg:mr-[380px] lg:max-w-[920px]")}
         style={{ fontFamily: documentStyle?.fontFamily ? `"${documentStyle.fontFamily}", var(--font-sans)` : undefined }}
       >
         {/* Icon */}
@@ -910,7 +910,7 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
 
   return (
     <div className="min-h-full pb-32" data-testid="folder-view">
-      <div className="mx-auto max-w-[860px] px-5 pt-10 md:px-12">
+      <div className="mx-auto max-w-[920px] px-5 pt-10 md:px-12">
         <IconPicker asChild onChange={(icon: string) => update({ documentId, icon })}>
           <button className="text-6xl leading-none" data-testid="folder-emoji-icon">
             {doc.icon ?? "📁"}

@@ -10,6 +10,7 @@ import {
   Add,
   DocumentText,
   Folder,
+  FolderOpen,
   More,
   Edit2,
   Copy,
@@ -69,6 +70,14 @@ export function DocumentTree({
   if (children.length === 0) return null;
   return (
     <div className="relative">
+      {/* Notion-style indent guide line */}
+      {level > 0 && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 w-px bg-border/70"
+          style={{ left: `${(level - 1) * 14 + 21}px` }}
+        />
+      )}
       {children.map((doc) => (
         <TreeNode
           key={doc._id}
@@ -215,7 +224,7 @@ function TreeNode({
   };
 
   const style = {
-    paddingLeft: `${level * 12 + 12}px`,
+    paddingLeft: `${level * 14 + 10}px`,
     transform: transform ? CSS.Translate.toString(transform) : undefined,
   };
 
@@ -233,12 +242,12 @@ function TreeNode({
           setMenuOpen(true);
         }}
         className={cn(
-          "group relative flex items-center gap-1 rounded-lg pr-1 text-sm transition-colors",
+          "group relative flex min-h-[30px] items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors",
           "hover:bg-sidebar-accent",
-          isActive && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+          isActive && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
           isDragging && "z-50 cursor-grabbing opacity-0",
           isTrashing && "pointer-events-none scale-95 opacity-0 transition-all duration-300",
-          isOver && !isDragging && "bg-primary/10 ring-1 ring-primary/40",
+          isOver && !isDragging && "tx-drop-into bg-primary/[0.07]",
         )}
         data-active={isActive || undefined}
       >
@@ -297,7 +306,9 @@ function TreeNode({
             {!doc.icon && !isFolder && (
               <DocumentText variant="Bulk" size={15} className="shrink-0 text-muted-foreground" />
             )}
-            {isFolder && !doc.icon && <Folder variant="Bulk" size={15} className="shrink-0 text-muted-foreground" />}
+            {isFolder && !doc.icon && (open
+              ? <FolderOpen variant="Bulk" size={16} className="shrink-0 text-primary/80" />
+              : <Folder variant="Bulk" size={16} className="shrink-0 text-primary/70" />)}
             <span className={cn("truncate", isFolder && "font-medium")}>{doc.title || tc("untitled")}</span>
             {isFavorite && <Star1 variant="Bold" size={11} className="shrink-0 text-primary/70" />}
           </Link>

@@ -18,6 +18,7 @@ import { TemplatePickerDialog } from "@/components/app/template-picker-dialog";
 import { useTranslations } from "next-intl";
 import {
   Element3,
+  Chart2,
   DocumentText,
   TaskSquare,
   Briefcase,
@@ -52,6 +53,7 @@ const NAV_KEYS = [
   { href: "/app/projects", key: "projects", Icon: Briefcase },
   { href: "/app/discussions", key: "discussions", Icon: Messages3 },
   { href: "/app/calendar", key: "calendar", Icon: Calendar },
+  { href: "/app/analytics", key: "analytics", Icon: Chart2 },
   { href: "/app/databases", key: "databases", Icon: Data2 },
   { href: "/app/inbox", key: "inbox", Icon: Notification },
   { href: "/app/members", key: "members", Icon: Profile2User },
@@ -283,13 +285,20 @@ export function Sidebar({
         </div>
 
         <nav className="mt-3 space-y-0.5 px-3">
-          {NAV.map(({ href, label, Icon, exact, key }) => (
-            <Link key={href} href={href} data-testid={`sidebar-nav-${key}`} onClick={onClose}
-              className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent", isActive(href, exact) && "bg-sidebar-accent font-medium")}>
-              <Icon variant="Bulk" size={20} className={cn("text-muted-foreground", isActive(href, exact) && "text-primary")} />
-              {label}
-            </Link>
-          ))}
+          {NAV.map(({ href, label, Icon, exact, key }) => {
+            const active = isActive(href, exact);
+            return (
+              <Link key={href} href={href} data-testid={`sidebar-nav-${key}`} onClick={onClose}
+                className={cn(
+                  "relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors",
+                  active ? "bg-sidebar-accent font-semibold text-sidebar-accent-foreground" : "text-foreground/80 hover:bg-sidebar-accent hover:text-foreground",
+                )}>
+                {active && <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-primary" />}
+                <Icon variant="Bulk" size={19} className={cn("shrink-0", active ? "text-primary" : "text-muted-foreground")} />
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3 no-scrollbar">

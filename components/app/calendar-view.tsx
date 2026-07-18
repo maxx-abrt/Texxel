@@ -227,8 +227,8 @@ function MonthView({ cursor, events, onDay, onEvent, onTaskCreate, weekdays, t, 
               <div className="mt-1 space-y-1">
                 {dayEvents.slice(0, 3).map((e: any) => (
                   <span key={e._occId ?? e._id} onClick={() => onEvent(e)}
-                    className="flex cursor-pointer items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium text-white" style={{ backgroundColor: e.color ?? "var(--flux-coral)" }} data-testid="calendar-event">
-                    {e._recurring && <Repeat size={9} />}{!e.allDay && <span className="opacity-80">{fmtTime(e.start)}</span>} {e.title}
+                    className="flex cursor-pointer items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `color-mix(in oklch, ${e.color ?? "#e55a42"} 15%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#e55a42"}`, color: `color-mix(in oklch, ${e.color ?? "#e55a42"} 80%, var(--foreground))` }} data-testid="calendar-event">
+                    {e._recurring && <Repeat size={9} />}{!e.allDay && <span className="opacity-70">{fmtTime(e.start)}</span>} {e.title}
                   </span>
                 ))}
                 {dayEvents.length > 3 && <span className="px-1 text-[10px] text-muted-foreground">{t("more", { count: dayEvents.length - 3 })}</span>}
@@ -310,7 +310,7 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
         {dayList.map((d, i) => (
           <div key={i} className="min-h-[28px] space-y-0.5 border-r border-border p-1 last:border-r-0">
             {allDayByDay(d).map((e: any) => (
-              <span key={e._occId ?? e._id} onClick={() => onEvent(e)} className="flex cursor-pointer items-center gap-1 truncate rounded px-1.5 py-0.5 text-[11px] font-medium text-white" style={{ backgroundColor: e.color ?? "var(--flux-coral)" }} data-testid="calendar-event">
+              <span key={e._occId ?? e._id} onClick={() => onEvent(e)} className="flex cursor-pointer items-center gap-1 truncate rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `color-mix(in oklch, ${e.color ?? "#e55a42"} 15%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#e55a42"}`, color: `color-mix(in oklch, ${e.color ?? "#e55a42"} 80%, var(--foreground))` }} data-testid="calendar-event">
                 {e._recurring && <Repeat size={9} />}{e.title}
               </span>
             ))}
@@ -351,9 +351,9 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
               const dur = Math.max(0.5, ((e.end ?? e.start + 30 * 60000) - e.start) / 3600000);
               const height = Math.max(20, dur * HOUR_H - 2);
               return (
-                <div key={e._occId ?? e._id} onClick={() => onEvent(e)} className="absolute left-1 right-1 cursor-pointer overflow-hidden rounded-md px-1.5 py-0.5 text-[11px] font-medium text-white shadow-sm" style={{ top, height, backgroundColor: e.color ?? "var(--flux-coral)" }} data-testid="calendar-event">
+                <div key={e._occId ?? e._id} onClick={() => onEvent(e)} className="absolute left-1 right-1 cursor-pointer overflow-hidden rounded-md px-2 py-1 text-[11px] font-semibold shadow-[var(--elev-1)]" style={{ top, height, backgroundColor: `color-mix(in oklch, ${e.color ?? "#e55a42"} 16%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#e55a42"}`, color: `color-mix(in oklch, ${e.color ?? "#e55a42"} 82%, var(--foreground))` }} data-testid="calendar-event">
                   <div className="flex items-center gap-1 truncate">{e._recurring && <Repeat size={9} />}{e.title}</div>
-                  <div className="truncate opacity-80">{fmtTime(e.start)}{e.end ? ` – ${fmtTime(e.end)}` : ""}</div>
+                  <div className="truncate opacity-70">{fmtTime(e.start)}{e.end ? ` – ${fmtTime(e.end)}` : ""}</div>
                 </div>
               );
             })}

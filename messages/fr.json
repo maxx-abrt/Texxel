@@ -47,7 +47,8 @@
     "collapseSidebar": "Réduire la barre latérale",
     "expandSidebar": "Afficher la barre latérale",
     "goBack": "Retour",
-    "goForward": "Avancer"
+    "goForward": "Avancer",
+    "analytics": "Analytiques"
   },
   "commandPalette": {
     "title": "Rechercher et naviguer",

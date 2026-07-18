@@ -47,7 +47,8 @@
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "goBack": "Go back",
-    "goForward": "Go forward"
+    "goForward": "Go forward",
+    "analytics": "Analytics"
   },
   "commandPalette": {
     "title": "Search and navigate",

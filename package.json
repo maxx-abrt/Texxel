@@ -30,6 +30,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@mantine/core": "^8.3.15",
     "@mantine/hooks": "^8.3.15",
+    "@paper-design/shaders-react": "^0.0.77",
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-switch": "^1.2.6",
     "@react-pdf/renderer": "4.3.1",

@@ -450,7 +450,7 @@ function Column({ status, items, labelColor, onOpen, onAdd }: any) {
       <SortableContext items={items.map((t: any) => t._id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className={cn("flex-1 space-y-2 rounded-xl p-0.5 transition-colors", isOver && "bg-primary/5 ring-2 ring-primary/30")} style={{ minHeight: 80 }}>
           {items.map((t: any) => (
-            <SortableTaskCard key={t._id} task={t} labelColor={labelColor} onOpen={onOpen} />
+            <SortableTaskCard key={t._id} task={t} labelColor={labelColor} onOpen={onOpen} accent={status.color} />
           ))}
           {items.length === 0 && (
             <button onClick={() => onAdd(status.key)} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border py-3 text-xs text-muted-foreground hover:bg-background">
@@ -469,20 +469,21 @@ function useSortableColumn(id: string) {
   return { setNodeRef, isOver };
 }
 
-function SortableTaskCard({ task, labelColor, onOpen }: any) {
+function SortableTaskCard({ task, labelColor, onOpen, accent }: any) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
   const didDragRef = useRef(false);
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: transition ?? "transform 200ms cubic-bezier(0.25,1,0.5,1)",
     opacity: isDragging ? 0.4 : 1,
+    borderLeft: accent ? `3px solid ${accent}` : undefined,
   };
   useEffect(() => { if (isDragging) didDragRef.current = true; }, [isDragging]);
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
       onClick={() => { if (didDragRef.current) { didDragRef.current = false; return; } onOpen(task); }}
       data-testid="tasks-kanban-card"
-      className="cursor-grab touch-none rounded-xl border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing">
+      className="tx-card-hover cursor-grab touch-none rounded-xl border border-border bg-card p-3 active:cursor-grabbing">
       <TaskCardInner task={task} labelColor={labelColor} />
     </div>
   );
@@ -607,7 +608,11 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
               const statusAllSelected = statusIds.length > 0 && statusSelectedCount === statusIds.length;
               const statusSomeSelected = statusSelectedCount > 0 && !statusAllSelected;
               return (
-                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold" data-testid="tasks-list-header">
+                <div
+                  className="flex items-center gap-2.5 border-b border-border px-3 py-2.5 text-sm font-semibold"
+                  style={{ background: `color-mix(in oklch, ${s.color} 8%, var(--card))` }}
+                  data-testid="tasks-list-header"
+                >
                   {isSelecting && (
                     <button
                       onClick={() => toggleIds(statusIds)}
@@ -629,15 +634,21 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
                       </span>
                     </button>
                   )}
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
-                  <span className="text-muted-foreground">{byStatus[s.key]?.length ?? 0}</span>
+                  <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+                  <span style={{ color: `color-mix(in oklch, ${s.color} 75%, var(--foreground))` }}>{s.label}</span>
+                  <span
+                    className="tabular rounded-full px-2 py-0.5 text-xs font-bold"
+                    style={{ background: `color-mix(in oklch, ${s.color} 16%, var(--card))`, color: `color-mix(in oklch, ${s.color} 80%, var(--foreground))` }}
+                  >
+                    {byStatus[s.key]?.length ?? 0}
+                  </span>
                 </div>
               );
             }
             const task = item.task;
             const s = cols.find((c: any) => c.key === task.status);
             return (
-              <div className={cn("flex items-center gap-3 border-b border-border px-3 py-2.5 hover:bg-muted/50", isSelected(task._id) && "bg-primary/5")} data-testid="tasks-list-row">
+              <div className={cn("tx-row-hover flex items-center gap-3 border-b border-border px-3 py-2.5", isSelected(task._id) && "!bg-primary/5")} data-testid="tasks-list-row">
                 {isSelecting ? (
                   <button
                     onClick={(e) => {
@@ -677,6 +688,15 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
                 >
                   <span className={cn("truncate text-sm", s?.isDone && "text-muted-foreground line-through")}>{task.title}</span>
                 </button>
+                {s && (
+                  <span
+                    className="hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold sm:inline-flex"
+                    style={{ background: `color-mix(in oklch, ${s.color} 15%, var(--card))`, color: `color-mix(in oklch, ${s.color} 78%, var(--foreground))` }}
+                    data-testid="task-status-pill"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} /> {s.label}
+                  </span>
+                )}
                 {(task.labels ?? []).slice(0, 3).map((l: string) => (
                   <span key={l} className="hidden rounded-full px-1.5 py-0.5 text-[10px] font-medium sm:inline" style={{ backgroundColor: `color-mix(in oklch, ${labelColor[l] ?? "#888"} 18%, transparent)`, color: labelColor[l] ?? "#888" }}>{l}</span>
                 ))}

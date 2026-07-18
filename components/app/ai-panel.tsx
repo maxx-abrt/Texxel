@@ -30,6 +30,14 @@ import {
   PanelRight,
   Minimize2,
 } from "lucide-react";
+import {
+  Magicpen,
+  DocumentText as IxDoc,
+  TaskSquare as IxTask,
+  FolderAdd as IxFolder,
+  Flash as IxFlash,
+  MessageText1 as IxMsg,
+} from "iconsax-reactjs";
 
 type ChatRole = "user" | "ai";
 interface PendingAction {
@@ -216,17 +224,27 @@ export function AiPanel({
           data-testid="ai-panel"
           data-docked={docked}
         >
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/syna-light.png" alt="" draggable={false} style={{ width: 16, height: 16, maxWidth: "none", flexShrink: 0 }} className="select-none dark:hidden" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/syna-dark.png" alt="" draggable={false} style={{ width: 16, height: 16, maxWidth: "none", flexShrink: 0 }} className="hidden select-none dark:block" />
+          <div className="flex items-center justify-between border-b border-border bg-gradient-to-b from-primary/[0.06] to-transparent px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[var(--elev-1)]">
+                <Magicpen variant="Bulk" size={17} />
               </span>
-              <div className="text-sm font-bold">{t("panelTitle")}</div>
+              <div>
+                <div className="text-sm font-bold leading-tight">{t("panelTitle")}</div>
+                <div className="text-[11px] text-muted-foreground">Contextual · real-time</div>
+              </div>
             </div>
             <div className="flex items-center gap-1">
+              {messages.length > 0 && (
+                <button
+                  data-testid="ai-new-chat"
+                  onClick={() => setMessages([])}
+                  title={t("reset")}
+                  className="hidden h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
+                >
+                  <Sparkles size={14} /> {t("reset")}
+                </button>
+              )}
               <button
                 data-testid="ai-dock-toggle"
                 onClick={() => setDocked((d) => !d)}
@@ -241,17 +259,26 @@ export function AiPanel({
 
           <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
             {messages.length === 0 && (
-              <div className="space-y-3">
-                <p className="text-sm text-muted-foreground">{t("intro", { name: me?.name?.split(" ")[0] ?? t("there") })}</p>
+              <div className="space-y-4">
+                <div className="flex flex-col items-center pt-4 text-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--elev-2)]">
+                    <Magicpen variant="Bulk" size={26} />
+                  </span>
+                  <p className="mt-3 text-base font-semibold">{t("intro", { name: me?.name?.split(" ")[0] ?? t("there") })}</p>
+                  <p className="mt-1 max-w-[16rem] text-xs text-muted-foreground">{t("greetingDesc")}</p>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { icon: FolderPlus, label: t("suggestionPlanProject"), prompt: t("promptPlanProject") },
-                    { icon: ListTodo, label: t("suggestionBreakDownWork"), prompt: t("promptBreakDownWork") },
-                    { icon: FileText, label: t("suggestionDraftDoc"), prompt: t("promptDraftDoc") },
-                    { icon: Wand2, label: t("suggestionWhatsOnMyPlate"), prompt: t("promptWhatsOnMyPlate") },
+                    { Icon: IxFolder, label: t("suggestionPlanProject"), prompt: t("promptPlanProject"), color: "#e55a42" },
+                    { Icon: IxTask, label: t("suggestionBreakDownWork"), prompt: t("promptBreakDownWork"), color: "#2f7ea6" },
+                    { Icon: IxDoc, label: t("suggestionDraftDoc"), prompt: t("promptDraftDoc"), color: "#1f9d76" },
+                    { Icon: IxFlash, label: t("suggestionWhatsOnMyPlate"), prompt: t("promptWhatsOnMyPlate"), color: "#d98324" },
                   ].map((s) => (
-                    <button key={s.label} onClick={() => send(s.prompt)} className="flex items-center gap-2 rounded-xl border border-border bg-background p-2.5 text-left text-xs font-medium hover:border-primary/40 hover:bg-muted">
-                      <s.icon size={15} className="shrink-0 text-primary" /> {s.label}
+                    <button key={s.label} onClick={() => send(s.prompt)} data-testid="ai-suggestion" className="tx-card-hover flex flex-col gap-2 rounded-xl border border-border bg-background p-3 text-left text-xs font-semibold">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: `color-mix(in oklch, ${s.color} 14%, transparent)`, color: s.color }}>
+                        <s.Icon variant="Bulk" size={17} />
+                      </span>
+                      {s.label}
                     </button>
                   ))}
                 </div>
@@ -259,8 +286,13 @@ export function AiPanel({
             )}
 
             {messages.map((m, mi) => (
-              <div key={mi} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm", m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+              <div key={mi} className={cn("flex items-end gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
+                {m.role === "ai" && (
+                  <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+                    <Magicpen variant="Bulk" size={15} />
+                  </span>
+                )}
+                <div className={cn("max-w-[84%] rounded-2xl px-3.5 py-2.5 text-sm", m.role === "user" ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground shadow-[var(--elev-1)]")}>
                   {m.role === "ai" ? (
                     <div className="prose prose-sm max-w-none dark:prose-invert [&_p]:my-1 [&_ul]:my-1 [&_li]:my-0.5">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
@@ -312,7 +344,12 @@ export function AiPanel({
             ))}
 
             {busy && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 size={15} className="animate-spin" /> {t("thinking")}</div>
+              <div className="flex items-end gap-2">
+                <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><Magicpen variant="Bulk" size={15} /></span>
+                <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-3.5 py-3 shadow-[var(--elev-1)]">
+                  <span className="tx-typing-dot" /><span className="tx-typing-dot" style={{ animationDelay: "0.15s" }} /><span className="tx-typing-dot" style={{ animationDelay: "0.3s" }} />
+                </div>
+              </div>
             )}
           </div>
 

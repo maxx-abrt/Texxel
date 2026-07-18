@@ -234,7 +234,7 @@ function TreeNode({
           setMenuOpen(true);
         }}
         className={cn(
-          "group relative flex min-h-[32px] items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors",
+          "group relative flex min-h-[32px] items-center gap-0.5 rounded-lg pr-1 text-[13.5px] transition-colors",
           "hover:bg-sidebar-accent",
           isActive && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
           isDragging && "z-50 cursor-grabbing opacity-0",
@@ -257,28 +257,23 @@ function TreeNode({
         {isOver && !isDragging && (
           <span className="pointer-events-none absolute inset-y-0 left-0 w-1 rounded-l-lg bg-primary" />
         )}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleOpen(String(doc._id), !open);
-          }}
-          onPointerDown={stop}
-          className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-border",
-            !canExpand && "invisible",
-          )}
-          data-testid="tree-expand"
-        >
-          {canExpand ? (
+        {canExpand && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              onToggleOpen(String(doc._id), !open);
+            }}
+            onPointerDown={stop}
+            className="flex h-4 w-4 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-border"
+            data-testid="tree-expand"
+          >
             <ArrowRight2
               variant="Bulk"
-              size={14}
+              size={13}
               className={cn("transition-transform duration-200", open && "rotate-90")}
             />
-          ) : (
-            <span className="h-1 w-1 rounded-full bg-transparent" />
-          )}
-        </button>
+          </button>
+        )}
         {editing ? (
           <input
             ref={inputRef}

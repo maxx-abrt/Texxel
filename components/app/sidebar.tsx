@@ -301,7 +301,7 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-2 no-scrollbar">
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1.5 no-scrollbar">
           {favorites && favorites.length > 0 && (
             <div className="mb-3">
               <button

@@ -216,7 +216,7 @@ function TreeNode({
   };
 
   const style = {
-    paddingLeft: `${level * 20 + 8}px`,
+    paddingLeft: `${level * 16}px`,
     transform: transform ? CSS.Translate.toString(transform) : undefined,
   };
 
@@ -247,8 +247,8 @@ function TreeNode({
           <span
             key={i}
             aria-hidden
-            className="tx-tree-guide pointer-events-none absolute inset-y-1 w-0.5 rounded-full"
-            style={{ left: `${i * 20 + 16}px` }}
+            className="tx-tree-guide pointer-events-none absolute inset-y-0.5 w-0.5 rounded-full"
+            style={{ left: `${i * 16 + 10}px` }}
           />
         ))}
         {isActive && (

@@ -11,7 +11,6 @@ import {
   BlockNoteSchema,
   defaultInlineContentSpecs,
   defaultBlockSpecs,
-  insertOrUpdateBlock,
   type PartialBlock,
 } from "@blocknote/core";
 import { CommentsExtension } from "@blocknote/core/comments";
@@ -29,8 +28,8 @@ import {
 import { BlockNoteView } from "@blocknote/mantine";
 import { ConvexThreadStore } from "@/lib/convex-thread-store";
 import { cn } from "@/lib/utils";
-import { MessageText1, Chart2 } from "iconsax-reactjs";
-import { ChartBlock } from "./chart-block";
+import { MessageText1 } from "iconsax-reactjs";
+import { ChartBlock, buildChartSlashMenuItems } from "./chart-block";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
@@ -72,7 +71,7 @@ const Mention = createReactInlineContentSpec(
 );
 
 export const fluxEditorSchema = BlockNoteSchema.create({
-  blockSpecs: { ...defaultBlockSpecs, chart: ChartBlock },
+  blockSpecs: { ...defaultBlockSpecs, chart: ChartBlock() },
   inlineContentSpecs: { ...defaultInlineContentSpecs, mention: Mention },
 });
 
@@ -200,6 +199,7 @@ export function FluxEditor({
   const { resolvedTheme } = useTheme();
   const { locale } = useLocale();
   const tComments = useTranslations("docsExperience.comments");
+  const tChips = useTranslations("chips");
   const convex = useConvex();
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
   const createThread = useMutation(api.flux_commentThreads.createThread);
@@ -353,6 +353,7 @@ export function FluxEditor({
         onChange={handleChange}
         renderEditor={false}
         comments={false}
+        slashMenu={false}
       >
         <BlockNoteViewEditor />
         {editable && (
@@ -366,6 +367,20 @@ export function FluxEditor({
                 " ",
               ]),
             })), query)}
+          />
+        )}
+        {editable && (
+          <SuggestionMenuController
+            triggerCharacter="/"
+            getItems={async (query) => {
+              const defaults = getDefaultReactSlashMenuItems(editor);
+              const chartItems = buildChartSlashMenuItems(editor, (key) => {
+                try { return tChips(key as any); } catch { return key; }
+              });
+              const all = [...defaults, ...chartItems];
+              if (!query) return all;
+              return filterSuggestionItems(all, query);
+            }}
           />
         )}
         {threadStore && editable && <FloatingComposerController />}

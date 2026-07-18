@@ -1740,7 +1740,20 @@
       "line": "Ligne",
       "area": "Aires",
       "pie": "Secteurs"
-    }
+    },
+    "title": "Graphique",
+    "bar": "Barres",
+    "line": "Lignes",
+    "area": "Aires",
+    "pie": "Camembert",
+    "data": "Données",
+    "addRow": "Ajouter une ligne",
+    "label": "Libellé",
+    "value": "Valeur",
+    "color": "Couleur",
+    "done": "Terminé",
+    "insert": "Graphique",
+    "insertDesc": "Graphique en barres, lignes, aires ou camembert"
   },
   "databases": {
     "title": "Bases de données",

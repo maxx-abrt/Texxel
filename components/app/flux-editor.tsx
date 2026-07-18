@@ -10,6 +10,8 @@ import { useTranslations } from "next-intl";
 import {
   BlockNoteSchema,
   defaultInlineContentSpecs,
+  defaultBlockSpecs,
+  insertOrUpdateBlock,
   type PartialBlock,
 } from "@blocknote/core";
 import { CommentsExtension } from "@blocknote/core/comments";
@@ -21,12 +23,14 @@ import {
   ThreadsSidebar,
   useCreateBlockNote,
   createReactInlineContentSpec,
+  getDefaultReactSlashMenuItems,
   SuggestionMenuController,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { ConvexThreadStore } from "@/lib/convex-thread-store";
 import { cn } from "@/lib/utils";
-import { MessageText1 } from "iconsax-reactjs";
+import { MessageText1, Chart2 } from "iconsax-reactjs";
+import { ChartBlock } from "./chart-block";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
@@ -68,6 +72,7 @@ const Mention = createReactInlineContentSpec(
 );
 
 export const fluxEditorSchema = BlockNoteSchema.create({
+  blockSpecs: { ...defaultBlockSpecs, chart: ChartBlock },
   inlineContentSpecs: { ...defaultInlineContentSpecs, mention: Mention },
 });
 

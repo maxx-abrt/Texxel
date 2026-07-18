@@ -1740,7 +1740,20 @@
       "line": "Line",
       "area": "Area",
       "pie": "Pie"
-    }
+    },
+    "title": "Chart",
+    "bar": "Bar",
+    "line": "Line",
+    "area": "Area",
+    "pie": "Pie",
+    "data": "Data",
+    "addRow": "Add row",
+    "label": "Label",
+    "value": "Value",
+    "color": "Color",
+    "done": "Done",
+    "insert": "Chart",
+    "insertDesc": "Bar, line, area or pie chart"
   },
   "databases": {
     "title": "Databases",

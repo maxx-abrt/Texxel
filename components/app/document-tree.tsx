@@ -216,7 +216,7 @@ function TreeNode({
   };
 
   const style = {
-    paddingLeft: `${level * 14 + 10}px`,
+    paddingLeft: `${level * 20 + 8}px`,
     transform: transform ? CSS.Translate.toString(transform) : undefined,
   };
 
@@ -234,7 +234,7 @@ function TreeNode({
           setMenuOpen(true);
         }}
         className={cn(
-          "group relative flex min-h-[30px] items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors",
+          "group relative flex min-h-[32px] items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors",
           "hover:bg-sidebar-accent",
           isActive && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
           isDragging && "z-50 cursor-grabbing opacity-0",
@@ -247,8 +247,8 @@ function TreeNode({
           <span
             key={i}
             aria-hidden
-            className="tx-tree-guide pointer-events-none absolute inset-y-0 w-px"
-            style={{ left: `${i * 14 + 20}px` }}
+            className="tx-tree-guide pointer-events-none absolute inset-y-1 w-0.5 rounded-full"
+            style={{ left: `${i * 20 + 16}px` }}
           />
         ))}
         {isActive && (

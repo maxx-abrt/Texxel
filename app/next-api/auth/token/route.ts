@@ -34,8 +34,18 @@ function needsRefresh(jwt: string): boolean {
   return Date.now() / 1000 > exp - REFRESH_BUFFER_SECONDS;
 }
 
+function isHttps(): boolean {
+  const redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI ?? "";
+  try {
+    return new URL(redirectUri).protocol === "https:";
+  } catch {
+    return process.env.NODE_ENV === "production";
+  }
+}
+
 function sessionCookie(value: string): string {
-  return `wos-session=${value}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
+  const secure = isHttps() ? "; Secure" : "";
+  return `wos-session=${value}; HttpOnly${secure}; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
 }
 
 export async function GET() {

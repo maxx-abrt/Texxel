@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { TaskBulkImportDialog } from "@/components/app/task-bulk-import-dialog";
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors,
-  closestCorners, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent,
+  pointerWithin, rectIntersection, closestCenter, useDroppable, type DragStartEvent, type DragOverEvent, type DragEndEvent, type DragCancelEvent, type CollisionDetection,
 } from "@dnd-kit/core";
 import {
   SortableContext, useSortable, arrayMove, verticalListSortingStrategy,
@@ -334,6 +334,17 @@ export function TasksView() {
 
 /* ───────────────────────── Kanban board (dnd-kit) ───────────────────────── */
 
+// Custom collision detection: first try pointerWithin (great for column droppables,
+// including empty columns), then fall back to rectIntersection, then closestCenter.
+// This reliably detects drops on empty columns where closestCorners fails.
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) return pointerCollisions;
+  const rectCollisions = rectIntersection(args);
+  if (rectCollisions.length > 0) return rectCollisions;
+  return closestCenter(args);
+};
+
 function KanbanBoard({ cols, tasks, labelColor, onOpen, onAdd, onMove }: any) {
   // Local board state for instant, smooth drag feedback. Synced from props when
   // not actively dragging.
@@ -391,25 +402,44 @@ function KanbanBoard({ cols, tasks, labelColor, onOpen, onAdd, onMove }: any) {
     });
   };
 
+  const onDragCancel = (_e: DragCancelEvent) => {
+    setActiveId(null);
+    draggingRef.current = false;
+  };
+
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     setActiveId(null);
     draggingRef.current = false;
     if (!over) return;
     const activeC = findContainer(String(active.id));
-    let overC = findContainer(String(over.id));
+    const overC = findContainer(String(over.id));
     if (!activeC || !overC) return;
 
     setBoard((prev) => {
       const next = { ...prev };
-      const items = [...(next[overC!] ?? [])];
+
+      // If the active item is not yet in the target column (onDragOver didn't fire),
+      // move it there first before attempting to reorder.
+      let items = [...(next[overC!] ?? [])];
+      if (activeC !== overC) {
+        const srcItems = [...(next[activeC] ?? [])];
+        const idx = srcItems.findIndex((t) => t._id === active.id);
+        if (idx >= 0) {
+          const [moved] = srcItems.splice(idx, 1);
+          next[activeC] = srcItems;
+          items = [...items, { ...moved, status: overC! }];
+        }
+      }
+
       const oldIndex = items.findIndex((t) => t._id === active.id);
       const newIndex = items.findIndex((t) => t._id === over.id);
       let ordered = items;
       if (oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) {
         ordered = arrayMove(items, oldIndex, newIndex);
-        next[overC!] = ordered;
       }
+      next[overC!] = ordered;
+
       // Persist: status + order for the moved task.
       const finalIndex = ordered.findIndex((t) => t._id === active.id);
       const order = (finalIndex >= 0 ? finalIndex : ordered.length) * 1000;
@@ -419,7 +449,7 @@ function KanbanBoard({ cols, tasks, labelColor, onOpen, onAdd, onMove }: any) {
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd}>
+    <DndContext sensors={sensors} collisionDetection={kanbanCollisionDetection} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
       <div className="flex gap-4 overflow-x-auto pb-2" data-testid="tasks-kanban-board">
         {cols.map((s: Status) => (
           <Column key={s.key} status={s} items={board[s.key] ?? []} labelColor={labelColor} onOpen={onOpen} onAdd={onAdd} />
@@ -448,7 +478,7 @@ function Column({ status, items, labelColor, onOpen, onAdd }: any) {
         </button>
       </div>
       <SortableContext items={items.map((t: any) => t._id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className={cn("flex-1 space-y-2 rounded-xl p-0.5 transition-colors", isOver && "bg-primary/5 ring-2 ring-primary/30")} style={{ minHeight: 80 }}>
+        <div ref={setNodeRef} className={cn("flex-1 space-y-2 rounded-xl p-0.5 transition-colors", isOver && "bg-primary/5 ring-2 ring-primary/30")} style={{ minHeight: 120 }}>
           {items.map((t: any) => (
             <SortableTaskCard key={t._id} task={t} labelColor={labelColor} onOpen={onOpen} accent={status.color} />
           ))}
@@ -474,7 +504,7 @@ function SortableTaskCard({ task, labelColor, onOpen, accent }: any) {
   const didDragRef = useRef(false);
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: transition ?? "transform 200ms cubic-bezier(0.25,1,0.5,1)",
+    transition: isDragging ? undefined : (transition ?? "transform 200ms cubic-bezier(0.25,1,0.5,1)"),
     opacity: isDragging ? 0.4 : 1,
     borderLeft: accent ? `3px solid ${accent}` : undefined,
   };
@@ -483,7 +513,7 @@ function SortableTaskCard({ task, labelColor, onOpen, accent }: any) {
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}
       onClick={() => { if (didDragRef.current) { didDragRef.current = false; return; } onOpen(task); }}
       data-testid="tasks-kanban-card"
-      className="tx-card-hover cursor-grab touch-none rounded-xl border border-border bg-card p-3 active:cursor-grabbing">
+      className="cursor-grab touch-none rounded-xl border border-border bg-card p-3 transition-shadow hover:shadow-md active:cursor-grabbing">
       <TaskCardInner task={task} labelColor={labelColor} />
     </div>
   );

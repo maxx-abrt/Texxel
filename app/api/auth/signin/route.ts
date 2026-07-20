@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   if (!process.env.WORKOS_API_KEY || process.env.WORKOS_API_KEY.includes("...")) {
     return Response.json({ error: "WorkOS sign-in is not configured" }, { status: 503 });
   }
-  const signInUrl = await getSignInUrl();
+  const loginHint = new URL(request.url).searchParams.get("login_hint") || undefined;
+  const signInUrl = await getSignInUrl({ loginHint });
   return Response.redirect(signInUrl);
 }

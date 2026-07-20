@@ -7,7 +7,6 @@ import { useConvexAuth } from "convex/react";
 import {
   ArrowRight2,
   Sms,
-  Lock1,
   Flash,
   DocumentText,
   TaskSquare,
@@ -51,7 +50,9 @@ export default function AuthPage() {
       } catch {}
     }
     // WorkOS AuthKit owns the credential step; our page is the branded entry.
-    window.location.href = "/next-api/auth/signin";
+    const params = new URLSearchParams();
+    if (email) params.set("login_hint", email);
+    window.location.href = `/next-api/auth/signin?${params.toString()}`;
   };
 
   return (
@@ -94,7 +95,7 @@ export default function AuthPage() {
               <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
             </div>
 
-            {/* Email form */}
+            {/* Email form — WorkOS handles magic link / password on its hosted page */}
             <form
               className="space-y-4"
               onSubmit={(e) => {
@@ -118,31 +119,19 @@ export default function AuthPage() {
                 </div>
               </label>
 
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">Password</span>
-                <div className="flex h-11 items-center gap-2.5 rounded-xl border border-border bg-background px-3.5 opacity-90 transition-colors focus-within:border-primary/60">
-                  <Lock1 variant="Bulk" size={18} className="shrink-0 text-muted-foreground" />
-                  <input
-                    type="password"
-                    placeholder="Continue securely with AuthKit"
-                    aria-label="Password"
-                    data-testid="auth-password-input"
-                    readOnly
-                    onFocus={goWorkos}
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  />
-                </div>
-              </label>
-
               <button
                 type="submit"
                 disabled={submitting}
                 data-testid="auth-submit-button"
                 className="tx-focus mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-[var(--elev-1)] transition-[filter,box-shadow] hover:shadow-[var(--elev-2)] hover:brightness-[0.98] disabled:opacity-60"
               >
-                {submitting ? "Redirecting…" : mode === "signin" ? "Sign in" : "Create account"}
+                {submitting ? "Redirecting…" : mode === "signin" ? "Continue with email" : "Create account"}
                 {!submitting && <ArrowRight2 variant="Bulk" size={16} />}
               </button>
+
+              <p className="text-xs text-muted-foreground">
+                You'll receive a magic link or be asked for a password — secured by WorkOS.
+              </p>
             </form>
 
             <p className="mt-6 text-sm text-muted-foreground">

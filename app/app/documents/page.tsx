@@ -6,14 +6,13 @@ import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
-import { useLocale } from "@/components/providers/locale-provider";
 import { useTranslations } from "next-intl";
-import { getBuiltinTemplates } from "@/lib/doc-templates";
 import { PageContainer, PageHeader, EmptyState, btnPrimary, btnOutline, timeAgo, inputBase } from "@/components/app/common";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { TemplatePickerDialog } from "@/components/app/template-picker-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { DocumentText, Add, SearchNormal1, Clock, Star1, Trash, Folder } from "iconsax-reactjs";
+import { DocumentText, Add, SearchNormal1, Clock, Star1, Folder } from "iconsax-reactjs";
+import { Upload } from "lucide-react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { useTrashDnd } from "@/components/providers/dnd-trash-provider";
@@ -21,7 +20,6 @@ import { useTrashDnd } from "@/components/providers/dnd-trash-provider";
 export default function DocumentsPage() {
   const router = useRouter();
   const { activeWorkspaceId } = useWorkspace();
-  const { locale } = useLocale();
   const t = useTranslations("editor");
   const tc = useTranslations("common");
   const docs = useQuery(
@@ -32,16 +30,10 @@ export default function DocumentsPage() {
     api.flux_documents.listFavorites,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
-  const savedTemplates = useQuery(
-    api.flux_docTemplates.list,
-    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
-  );
   const createDoc = useMutation(api.flux_documents.create);
-  const removeTemplate = useMutation(api.flux_docTemplates.remove);
   const [q, setQ] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  const builtins = getBuiltinTemplates(locale);
+  const [pickerTab, setPickerTab] = useState<"templates" | "import">("templates");
 
   const onNew = async () => {
     if (!activeWorkspaceId) return;
@@ -64,6 +56,11 @@ export default function DocumentsPage() {
     }
   };
 
+  const openPicker = (tab: "templates" | "import" = "templates") => {
+    setPickerTab(tab);
+    setPickerOpen(true);
+  };
+
   const favIds = new Set((favorites ?? []).map((f: any) => f._id));
   const filtered = (docs ?? [])
     .filter((d: any) => d.title.toLowerCase().includes(q.toLowerCase()))
@@ -77,9 +74,14 @@ export default function DocumentsPage() {
         icon={DocumentText}
         testId="documents-header"
         actions={
-          <button onClick={() => setPickerOpen(true)} className={btnPrimary} data-testid="new-document-btn">
-            <Add variant="Bulk" size={18} /> {t("newDocument")}
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => openPicker("import")} className={btnOutline} data-testid="import-document-btn">
+              <Upload variant="Bulk" size={18} /> {t("importTab")}
+            </button>
+            <button onClick={() => openPicker("templates")} className={btnPrimary} data-testid="new-document-btn">
+              <Add variant="Bulk" size={18} /> {t("newDocument")}
+            </button>
+          </div>
         }
       />
 
@@ -122,40 +124,13 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* Template picker */}
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="sm:max-w-2xl" data-testid="template-picker">
-          <DialogHeader><DialogTitle>{t("templateDialogTitle")}</DialogTitle><DialogDescription>{t("templateDialogDesc")}</DialogDescription></DialogHeader>
-          <div className="grid max-h-[60vh] gap-3 overflow-y-auto sm:grid-cols-2">
-            <button onClick={onNew} data-testid="template-blank" className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:shadow-sm">
-              <span className="text-2xl">📄</span>
-              <span><span className="block font-semibold">{t("blankDocument")}</span><span className="text-xs text-muted-foreground">{t("startFromScratch")}</span></span>
-            </button>
-            {builtins.map((tpl) => (
-              <button key={tpl.id} onClick={() => createFrom({ title: tpl.title, icon: tpl.icon, content: JSON.stringify(tpl.blocks) })} data-testid="template-builtin" className="flex items-start gap-3 rounded-2xl border border-border p-4 text-left transition hover:border-primary hover:shadow-sm">
-                <span className="text-2xl">{tpl.icon}</span>
-                <span><span className="block font-semibold">{tpl.title}</span><span className="text-xs text-muted-foreground">{tpl.description}</span></span>
-              </button>
-            ))}
-          </div>
-          {(savedTemplates ?? []).length > 0 && (
-            <div className="mt-2 border-t border-border pt-3">
-              <p className="mb-2 text-xs font-semibold text-muted-foreground">{t("savedTemplates")}</p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {savedTemplates!.map((tpl: any) => (
-                  <div key={tpl._id} className="group flex items-center gap-2 rounded-xl border border-border p-2.5">
-                    <button onClick={() => createFrom({ title: tpl.title, icon: tpl.icon, content: tpl.content })} className="flex flex-1 items-center gap-2 text-left" data-testid="template-saved">
-                      <span className="text-xl">{tpl.icon ?? "📄"}</span>
-                      <span className="truncate text-sm font-medium">{tpl.title}</span>
-                    </button>
-                    <button onClick={() => removeTemplate({ templateId: tpl._id })} className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-destructive"><Trash variant="Bulk" size={15} /></button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Template picker (shared) */}
+      <TemplatePickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={createFrom}
+        initialTab={pickerTab}
+      />
     </PageContainer>
   );
 }
@@ -182,7 +157,7 @@ function DraggableDocumentCard({ doc, isFavorite }: { doc: any; isFavorite: bool
       className={cn(
         "group relative flex flex-col rounded-2xl border border-border bg-card p-4 transition-all hover:shadow-sm",
         isDragging && "z-50 cursor-grabbing opacity-0",
-        isTrashing && "pointer-events-none scale-95 opacity-0 transition-all duration-300",
+        isTrashing && "pointer-events-none scale-80 translate-y-2 opacity-0 transition-all duration-350",
         isFolder && "bg-sidebar-accent/30 hover:bg-sidebar-accent/50",
       )}
     >

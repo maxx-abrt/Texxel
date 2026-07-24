@@ -68,8 +68,8 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
       if (!activeId) return;
       const overId = String(over.id);
 
-      // Move to root (Private section header or root tree drop zone).
-      if (overId === "sidebar-private-root" || overId.startsWith("sidebar-root-tree")) {
+      // Move to root (Private section header, root tree drop zone, or root area).
+      if (overId === "sidebar-private-root" || overId === "sidebar-root-area" || overId.startsWith("sidebar-root-tree")) {
         try {
           await moveDoc({ documentId: activeId as Id<"flux_documents">, parentId: undefined });
           toast.success("Moved to root");
@@ -124,7 +124,7 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
         onDragEnd={handleDragEnd}
       >
         {children}
-        <DragOverlay dropAnimation={null}>
+        <DragOverlay dropAnimation={{ duration: 250, easing: "cubic-bezier(0.18, 0.89, 0.32, 1.28)" }}>
           {activeDrag && <DragPreview {...activeDrag} />}
         </DragOverlay>
       </DndContext>
@@ -136,7 +136,7 @@ function DragPreview({ title, icon, type }: { title: string; icon?: string; type
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-2xl ring-2 ring-primary/30",
+        "tx-drag-preview flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-2xl ring-2 ring-primary/30",
         type === "card" && "w-56",
         type !== "card" && "w-52",
       )}

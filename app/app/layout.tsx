@@ -13,6 +13,7 @@ import { DockedBubbles } from "@/components/app/docked-bubbles";
 import { ShortcutsHelp } from "@/components/app/shortcuts-help";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
 import { AccentProvider } from "@/components/providers/accent-provider";
+import { usePersistedState } from "@/hooks/use-sidebar-prefs";
 import { useTranslations } from "next-intl";
 
 function UserStoreSync({ children }: { children: React.ReactNode }) {
@@ -46,6 +47,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { isLoading, needsOnboarding } = useWorkspace();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [collapsed, setCollapsed] = usePersistedState<boolean>("texxel-sidebar-collapsed", false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -58,6 +60,22 @@ function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
+        e.preventDefault();
+        setCollapsed((c) => !c);
+      }
+    };
+    const onEvt = () => setCollapsed((c) => !c);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("texxel:toggle-sidebar", onEvt);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("texxel:toggle-sidebar", onEvt);
+    };
+  }, [setCollapsed]);
+
   if (isLoading) return <Loader stage="workspace" />;
   if (needsOnboarding) return <Onboarding />;
 
@@ -65,9 +83,20 @@ function Shell({ children }: { children: React.ReactNode }) {
     <TrashDndProvider>
       <AccentProvider />
       <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} onSearch={() => setSearchOpen(true)} />
+        <Sidebar
+          mobileOpen={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          onSearch={() => setSearchOpen(true)}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+        />
         <div className="flex min-w-0 flex-1 flex-col">
-          <Topbar onMenu={() => setMobileOpen(true)} onSearch={() => setSearchOpen(true)} />
+          <Topbar
+            onMenu={() => setMobileOpen(true)}
+            onSearch={() => setSearchOpen(true)}
+            sidebarCollapsed={collapsed}
+            onExpandSidebar={() => setCollapsed(false)}
+          />
           <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
         </div>
         <CommandPalette open={searchOpen} setOpen={setSearchOpen} />

@@ -297,9 +297,9 @@ function DocumentTreeNode({
       ...(isTrashing
         ? {
             pointerEvents: "none" as const,
-            transform: "scale(0.95)",
+            transform: "scale(0.8) translateY(8px)",
             opacity: 0,
-            transition: "all 300ms",
+            transition: "all 350ms cubic-bezier(0.36, 0, 0.66, -0.56)",
           }
         : {}),
     },

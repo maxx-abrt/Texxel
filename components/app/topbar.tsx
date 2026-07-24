@@ -16,6 +16,7 @@ import {
   Profile,
   ArrowLeft2,
   ArrowRight2,
+  SidebarRight,
 } from "iconsax-reactjs";
 import {
   DropdownMenu,
@@ -28,7 +29,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslations } from "next-intl";
 
-export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void }) {
+export function Topbar({ onMenu, onSearch, sidebarCollapsed, onExpandSidebar }: { onMenu: () => void; onSearch: () => void; sidebarCollapsed?: boolean; onExpandSidebar?: () => void }) {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { me, activeWorkspaceId } = useWorkspace();
@@ -42,6 +43,17 @@ export function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () 
       <button onClick={onMenu} className="md:hidden" data-testid="topbar-menu">
         <HamburgerMenu variant="Bulk" size={22} />
       </button>
+
+      {sidebarCollapsed && (
+        <button
+          onClick={onExpandSidebar}
+          className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-muted hover:text-foreground md:flex"
+          title={`${t("expandSidebar")} (\u2318\\)`}
+          data-testid="topbar-expand-sidebar"
+        >
+          <SidebarRight variant="Bulk" size={18} />
+        </button>
+      )}
 
       {/* Linear-style history navigation */}
       <div className="hidden items-center gap-0.5 md:flex">

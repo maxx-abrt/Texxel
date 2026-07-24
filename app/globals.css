@@ -484,6 +484,34 @@ html[data-easyread="true"] .ProseMirror {
 .tx-drop-into { box-shadow: inset 0 0 0 2px color-mix(in oklch, var(--primary) 45%, transparent); border-radius: 8px; }
 .tx-drop-line { height: 2px; background: var(--primary); border-radius: 2px; }
 
+/* ── Drag & drop animations ─────────────────────────────────────────────── */
+.tx-drag-preview {
+  animation: tx-drag-appear 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes tx-drag-appear {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.tx-trash-wobble {
+  animation: tx-trash-shake 0.4s ease-in-out infinite;
+  transform-origin: center;
+}
+@keyframes tx-trash-shake {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(-8deg) scale(1.1); }
+  40% { transform: rotate(8deg) scale(1.1); }
+  60% { transform: rotate(-6deg) scale(1.08); }
+  80% { transform: rotate(6deg) scale(1.08); }
+}
+
+@keyframes tx-drop-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.tx-drop-pop { animation: tx-drop-pop 0.3s ease-out; }
+
 /* ── Wider, calmer document writing surface ──────────────────────────────── */
 .doc-surface { max-width: 860px; margin-inline: auto; }
 .doc-surface-wide { max-width: 1080px; margin-inline: auto; }

@@ -36,7 +36,6 @@ import {
   Folder,
   Messages3,
   SidebarLeft,
-  SidebarRight,
 } from "iconsax-reactjs";
 import {
   DropdownMenu,
@@ -66,10 +65,14 @@ export function Sidebar({
   mobileOpen,
   onClose,
   onSearch,
+  collapsed,
+  setCollapsed,
 }: {
   mobileOpen: boolean;
   onClose: () => void;
   onSearch: () => void;
+  collapsed: boolean;
+  setCollapsed: (v: boolean | ((prev: boolean) => boolean)) => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -87,6 +90,7 @@ export function Sidebar({
   const { isOver, setNodeRef } = useDroppable({ id: "sidebar-trash" });
   const { isOver: isOverRoot, setNodeRef: setRootRef } = useDroppable({ id: "sidebar-private-root" });
   const { isOver: isOverRootTree, setNodeRef: setRootTreeRef } = useDroppable({ id: "sidebar-root-tree" });
+  const { isOver: isOverRootArea, setNodeRef: setRootAreaRef } = useDroppable({ id: "sidebar-root-area" });
   const { activeDrag } = useTrashDnd();
 
   const t = useTranslations("nav");
@@ -95,7 +99,6 @@ export function Sidebar({
 
   // ── Persisted layout preferences ──
   const [width, setWidth] = usePersistedState<number>("texxel-sidebar-width", 280);
-  const [collapsed, setCollapsed] = usePersistedState<boolean>("texxel-sidebar-collapsed", false);
   const [sections, setSections] = usePersistedState<Record<string, boolean>>("texxel-sidebar-sections", {});
   const [openList, setOpenList] = usePersistedState<string[]>(
     `texxel-tree-open:${activeWorkspaceId ?? "ws"}`,
@@ -126,23 +129,6 @@ export function Sidebar({
     if (toOpen.length) setOpenList((prev) => Array.from(new Set([...prev, ...toOpen])));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDocId, docs]);
-
-  // ── Cmd/Ctrl + \ or command-palette event toggles the sidebar ──
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "\\") {
-        e.preventDefault();
-        setCollapsed((c) => !c);
-      }
-    };
-    const onEvt = () => setCollapsed((c) => !c);
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("texxel:toggle-sidebar", onEvt);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("texxel:toggle-sidebar", onEvt);
-    };
-  }, [setCollapsed]);
 
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -205,16 +191,6 @@ export function Sidebar({
     <>
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
-      )}
-      {collapsed && (
-        <button
-          onClick={() => setCollapsed(false)}
-          className="fixed bottom-5 left-3 z-40 hidden h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-md transition-colors hover:bg-muted hover:text-foreground md:flex"
-          title={`${t("expandSidebar")} (\u2318\\)`}
-          data-testid="sidebar-expand-btn"
-        >
-          <SidebarRight variant="Bulk" size={18} />
-        </button>
       )}
       <aside
         data-testid="app-sidebar"
@@ -346,7 +322,14 @@ export function Sidebar({
             </div>
           </div>
           {sectionOpen("private") && (
-            <>
+            <div
+              ref={setRootAreaRef}
+              className={cn(
+                "mt-0.5 min-h-[2rem] rounded-lg transition-all",
+                activeDrag && "border border-dashed border-primary/20 p-0.5",
+                isOverRootArea && activeDrag && "bg-primary/[0.06] ring-1 ring-primary/30 border-primary/40",
+              )}
+            >
               <DocumentTree
                 docs={docs ?? []}
                 parentId={null}
@@ -363,7 +346,12 @@ export function Sidebar({
                   <Add variant="Bulk" size={16} /> {t("newPage")}
                 </button>
               )}
-            </>
+              {activeDrag && docs && docs.length === 0 && (
+                <div className="flex items-center justify-center gap-1.5 py-3 text-xs text-primary/60">
+                  <DocumentText variant="Bulk" size={14} /> {t("moveToRoot")}
+                </div>
+              )}
+            </div>
           )}
           {activeDrag && (
             <div
@@ -396,7 +384,7 @@ export function Sidebar({
                 isOver && "scale-105 text-destructive",
               )}
             >
-              <Trash variant="Bulk" size={20} className={cn("text-muted-foreground", isOver && "text-destructive")} /> {t("trash")}
+              <Trash variant="Bulk" size={20} className={cn("text-muted-foreground transition-colors", isOver && "text-destructive tx-trash-wobble")} /> {t("trash")}
             </Link>
           </div>
           <Link href="/app/settings" onClick={onClose} className={cn("flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm hover:bg-sidebar-accent", isActive("/app/settings") && "bg-sidebar-accent font-medium")}>
@@ -443,7 +431,7 @@ function DraggableFavorite({ doc, onNavigate, active }: { doc: any; onNavigate: 
         "relative flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-sidebar-accent",
         active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         isDragging && "z-50 cursor-grabbing opacity-0",
-        isTrashing && "pointer-events-none scale-95 opacity-0 transition-all duration-300",
+        isTrashing && "pointer-events-none scale-80 translate-y-2 opacity-0 transition-all duration-350",
       )}
     >
       {active && <span className="pointer-events-none absolute inset-y-1 left-0 w-[3px] rounded-full bg-primary" />}

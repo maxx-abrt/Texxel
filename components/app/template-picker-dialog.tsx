@@ -13,8 +13,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLocale, useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, AlertCircle, Upload } from "lucide-react";
-import { DocumentText, SearchNormal1, Trash, FileText } from "iconsax-reactjs";
+import { Loader2, CheckCircle2, AlertCircle, Upload, FileText } from "lucide-react";
+import { DocumentText, SearchNormal1, Trash } from "iconsax-reactjs";
 
 interface TemplatePickerDialogProps {
   open: boolean;
@@ -327,7 +327,7 @@ export function TemplatePickerDialog({ open, onOpenChange, parentId, onSelect, i
                     key={`${file.name}-${idx}`}
                     className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
                   >
-                    <FileText variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
+                    <FileText size={16} className="shrink-0 text-muted-foreground" />
                     <span className="flex-1 truncate">{file.name}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {(file.size / 1024).toFixed(0)}KB

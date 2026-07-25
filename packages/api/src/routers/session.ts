@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../trpc";
-import { resolveMobileSession } from "../workos";
+import { authenticateMobileSessionWithCode, resolveMobileSession } from "../workos";
 
 const sealedInput = z.object({
   sealed: z.string().min(1),
@@ -17,6 +17,16 @@ const sealedInput = z.object({
  * a fresh token.
  */
 export const sessionRouter = router({
+  codeExchange: publicProcedure
+    .input(z.object({ code: z.string().min(1) }))
+    .mutation(async ({ input }) => {
+      try {
+        return await authenticateMobileSessionWithCode(input.code);
+      } catch {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "code_exchange_failed" });
+      }
+    }),
+
   exchange: publicProcedure.input(sealedInput).mutation(async ({ input }) => {
     try {
       return await resolveMobileSession(input.sealed, { force: input.force });

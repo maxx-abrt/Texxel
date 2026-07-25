@@ -23,6 +23,12 @@ export const CONVEX_URL =
   process.env.EXPO_PUBLIC_CONVEX_URL ?? "https://veracious-reindeer-573.eu-west-1.convex.cloud";
 
 export const TRPC_URL = `${API_URL}${API_PREFIX}/trpc`;
-export const AUTH_START_URL = `${API_URL}${API_PREFIX}/mobile/auth/start`;
+
+/** WorkOS Client ID (public — safe to embed in the mobile app). */
+export const WORKOS_CLIENT_ID =
+  process.env.EXPO_PUBLIC_WORKOS_CLIENT_ID ?? "client_01KVW89GASSRCG2KRX2ZB183QN";
+
+/** WorkOS AuthKit authorization endpoint base. */
+export const WORKOS_AUTHORIZE_URL = "https://api.workos.com/user_management/authorize";
 
 export const APP_NAME = "Bureau";

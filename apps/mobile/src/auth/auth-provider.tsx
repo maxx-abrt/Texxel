@@ -11,7 +11,8 @@ import {
   type ReactNode,
 } from "react";
 
-import { AUTH_START_URL } from "@/src/config";
+import { trpc } from "@/src/api/trpc";
+import { WORKOS_AUTHORIZE_URL, WORKOS_CLIENT_ID } from "@/src/config";
 import { storage } from "@/src/utils/storage";
 import {
   adoptSealedSession,
@@ -70,8 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSigningIn(true);
     try {
       const redirectUri = Linking.createURL("auth");
-      const startUrl = `${AUTH_START_URL}?redirect=${encodeURIComponent(redirectUri)}`;
-      const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectUri, {
+      const authUrl =
+        `${WORKOS_AUTHORIZE_URL}` +
+        `?response_type=code` +
+        `&client_id=${WORKOS_CLIENT_ID}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&provider=authkit`;
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri, {
         preferEphemeralSession: false,
       });
 
@@ -81,13 +87,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const sealed = Linking.parse(result.url).queryParams?.session;
-      if (typeof sealed !== "string" || sealed.length === 0) {
+      const code = Linking.parse(result.url).queryParams?.code;
+      if (typeof code !== "string" || code.length === 0) {
         setError("auth.errorIncomplete");
         return;
       }
 
-      const ok = await adoptSealedSession(sealed);
+      const res = await trpc.session.codeExchange.mutate({ code });
+      const ok = await adoptSealedSession(res.sealed);
       if (!ok) {
         setError("auth.errorSession");
         return;

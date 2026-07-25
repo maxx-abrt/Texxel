@@ -79,6 +79,43 @@ export async function sealMobileSession(session: MobileSession): Promise<string>
   return sealData(session, { password: cookiePassword() });
 }
 
+/**
+ * Exchange an authorization code (received via the deep-link redirect from
+ * WorkOS AuthKit) for an access + refresh token, then seal the session.
+ *
+ * Returns the same shape as `resolveMobileSession` so the mobile client can
+ * adopt the sealed blob directly.
+ */
+export async function authenticateMobileSessionWithCode(
+  code: string,
+): Promise<ResolvedMobileSession> {
+  const apiKey = process.env.WORKOS_API_KEY;
+  const clientId = process.env.WORKOS_CLIENT_ID;
+  if (!apiKey || !clientId) throw new Error("workos_not_configured");
+
+  const workos = new WorkOS(apiKey);
+  const auth = await workos.userManagement.authenticateWithCode({
+    code,
+    clientId,
+  });
+
+  const session: MobileSession = {
+    accessToken: auth.accessToken,
+    refreshToken: auth.refreshToken,
+    user: (auth.user as MobileSession["user"]) ?? null,
+  };
+
+  const sealed = await sealMobileSession(session);
+  const nowSeconds = Date.now() / 1000;
+
+  return {
+    accessToken: auth.accessToken,
+    expiresAt: (decodeExp(auth.accessToken) ?? nowSeconds + 300) * 1000,
+    sealed,
+    user: shapeUser(session, auth.accessToken),
+  };
+}
+
 export async function unsealMobileSession(sealed: string): Promise<MobileSession> {
   return unsealData<MobileSession>(sealed, { password: cookiePassword() });
 }

@@ -9,10 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "NODE_ENV": "production"
-      }
+      "distribution": "internal"
     },
     "production": {
       "autoIncrement": true

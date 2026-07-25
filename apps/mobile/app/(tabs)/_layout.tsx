@@ -95,7 +95,7 @@ function LiquidTabBar({ state, navigation }: BottomTabBarProps) {
         <BlurView
           intensity={isDark ? 55 : 70}
           tint={isDark ? "dark" : "light"}
-          experimentalBlurMethod={Platform.OS === "android" ? "dimezisBlurView" : undefined}
+          blurMethod={Platform.OS === "android" ? "dimezisBlurView" : undefined}
           style={{ backgroundColor: alpha(c.card, isDark ? 0.42 : 0.5) }}
         >
           {/* Specular highlight: bright at the top edge, gone by the middle. */}

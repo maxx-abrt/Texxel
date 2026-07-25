@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "bureau",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.a2e.bureau",
@@ -20,7 +19,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#faf6f2"
       },
-      "edgeToEdgeEnabled": true,
       "package": "org.a2e.bureau"
     },
     "web": {

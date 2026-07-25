@@ -1,101 +1,58 @@
-# A2E Thread
+# Bureau
 
-A connected workspace for notes, tasks, projects, and team collaboration. Built for how modern teams actually work — fast, real-time, and collaborative.
-
-Powered by Convex (real-time backend), Neon Auth (authentication), and EdgeStore (file storage).
-
-## Features
-
-### Notes & Docs
-- Rich block-based editor (BlockNote)
-- Infinite nested documents
-- Drag-and-drop reordering
-- Customizable icons and cover images
-- Publish documents to the web
-- Trash with soft delete and recovery
-
-### Tasks & Projects
-- Create and assign tasks with priorities and due dates
-- Kanban-style project boards
-- Task comments and status tracking
-- Filter and group by status, priority, assignee
-
-### Teams & Collaboration
-- Create team workspaces with roles (Owner, Admin, Member)
-- Invite members by email
-- Shared projects and documents per team
-- Real-time updates across all team members
-
-### Inbox & Notifications
-- Unified inbox for all activity
-- Notifications for assignments, mentions, comments
-- Mark read / clear all
-
-### Auth & Onboarding
-- Email + OTP sign-in via Neon Auth
-- Password reset flow
-- Multi-step onboarding (role, use case, team setup)
-- Secure session management
-
-### UX
-- Light and dark mode
-- Fully responsive
-- Fast search (Cmd+K)
-
-## Technologies
-
-![NextJS](https://img.shields.io/badge/Next-black?style=for-the-badge&logo=next.js&logoColor=white)
-![Shadcn-ui](https://img.shields.io/badge/shadcn/ui-000000.svg?style=for-the-badge&logo=shadcn/ui&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6.svg?style=for-the-badge&logo=TypeScript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC.svg?style=for-the-badge&logo=Tailwind-CSS&logoColor=white)
-![Convex](https://img.shields.io/badge/Convex-ee342f.svg?style=for-the-badge&logo=Convex&logoColor=white)
-![Edgestore](https://img.shields.io/badge/Edgestore-a57fff.svg?style=for-the-badge&logo=Edgestore&logoColor=white)
-![Blocknote](https://img.shields.io/badge/Blocknote-ff8c00.svg?style=for-the-badge&logo=Blocknote&logoColor=white)
-![dnd-kit](https://img.shields.io/badge/dnd--kit-000000?style=for-the-badge&logo=react&logoColor=white)
-
-## Installation
-
-1. Clone the repository
-2. Install the dependencies
+A connected workspace for notes, tasks, projects and team collaboration — web + native mobile,
+sharing one real-time Convex backend and one WorkOS identity.
 
 ```
-npm install
+bureau/
+├── apps/
+│   ├── web/          Next.js 16 app (App Router) + Convex functions  → texxel.app
+│   └── mobile/       Expo SDK 54 app (Expo Router)                   → Bureau (iOS / Android)
+├── packages/
+│   ├── api/          tRPC router shared by web + mobile (WorkOS session bridge, runtime config)
+│   ├── ui/           Design tokens — the "Warm Paper" palette, spacing, radii, colour helpers
+│   └── config/       Shared TypeScript base config
+├── turbo.json        Task pipeline
+└── pnpm-workspace.yaml
 ```
 
-3. Set up the environment variables
+## Getting started
 
-```
-CONVEX_DEPLOYMENT=
-NEXT_PUBLIC_CONVEX_URL=
+```bash
+corepack enable
+pnpm install
 
-# Neon Auth
-NEON_AUTH_BASE_URL=
-NEON_AUTH_COOKIE_SECRET=
-NEON_AUTH_JWKS_URL=
+# web (Next.js on :3000) + Convex dev
+pnpm dev:web
+cd apps/web && npx convex dev
 
-# EdgeStore
-EDGE_STORE_ACCESS_KEY=
-EDGE_STORE_SECRET_KEY=
-
-# For deploying
-CONVEX_DEPLOY_KEY=
+# mobile (Metro)
+pnpm dev:mobile
 ```
 
-See [Neon Auth docs](https://neon.tech/docs/guides/neon-auth) to get your auth credentials.
-See [Convex auth config](https://docs.convex.dev/auth/overview) to configure the JWKS provider.
+## Stack
 
-4. Run Convex
+| Layer         | Web                              | Mobile                                  |
+| ------------- | -------------------------------- | --------------------------------------- |
+| Framework     | Next.js 16 (App Router)          | Expo SDK 54 + Expo Router               |
+| Data          | Convex (real-time)               | Convex (real-time, same deployment)     |
+| Auth          | WorkOS AuthKit (cookie session)  | WorkOS AuthKit (sealed keychain session)|
+| Typed RPC     | tRPC (`@bureau/api`)             | tRPC client (`@bureau/api` types)       |
+| Editor        | BlockNote                        | Native block editor (BlockNote-compatible JSON) |
+| Icons         | iconsax-reactjs (Bulk)           | iconsax-react-native (Bulk)             |
+| Design tokens | `@bureau/ui`                     | `@bureau/ui`                            |
 
-```
-npx convex dev
-```
+## Mobile authentication
 
-5. Run the development server
+The Expo app never sees the WorkOS API key or a raw refresh token:
 
-```
-npm run dev
-```
+1. the app opens `<API>/api/mobile/auth/start?redirect=bureau://auth` in a system auth session;
+2. WorkOS AuthKit signs the user in and returns to the app's **existing** `/callback` route;
+3. `/api/mobile/auth/handoff` re-seals `{ accessToken, refreshToken, user }` with
+   `WORKOS_COOKIE_PASSWORD` and deep-links `bureau://auth?session=<sealed>`;
+4. the app stores that opaque blob in the device keychain and swaps it for a short-lived
+   access token through `trpc.session.exchange` whenever Convex asks for one.
 
-## License
+No additional WorkOS redirect URI is required for production.
 
-MIT
+See [`SETUP.md`](./SETUP.md) for the deployment checklist (Vercel, Convex, WorkOS, EAS).

@@ -1,10 +1,38 @@
-.env.local
 node_modules
-.env
-.next
-.qodo
+.pnpm-store
 
-# local dev
-dev.log
+# env
+.env
 .env.local
+.env*.local
+
+# next
+.next
+out
+next-env.d.ts
+
+# turbo
+.turbo
+
+# expo
+.expo
+.expo-shared
+dist
+web-build
+ios
+android
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-cache
+
+# typescript
+*.tsbuildinfo
+
+# misc
+.DS_Store
+dev.log
+.qodo
 Dev.md

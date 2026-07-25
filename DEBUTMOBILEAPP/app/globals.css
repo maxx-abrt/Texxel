@@ -1,0 +1,353 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  --color-ink: var(--ink);
+  --color-mint: var(--mint);
+  --color-amber: var(--amber);
+  --color-ocean: var(--ocean);
+  --color-violet: var(--violet);
+  --color-sand: var(--sand);
+
+  --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+
+  /* Warm Paper — light */
+  --background: #faf6f2;
+  --foreground: #31302e;
+  --card: #fffdfa;
+  --card-foreground: #31302e;
+  --popover: #fffdfa;
+  --popover-foreground: #31302e;
+  --secondary: #f1eae3;
+  --secondary-foreground: #31302e;
+  --muted: #f2ece5;
+  --muted-foreground: #7a746d;
+  --accent: #f9e3dc;
+  --accent-foreground: #8a3524;
+  --border: #e9e1d8;
+  --input: #e9e1d8;
+  --destructive: #c93c2a;
+  --destructive-foreground: #faf6f2;
+
+  /* Brand accent (overridable at runtime) */
+  --primary: #e55a42;
+  --primary-foreground: #faf6f2;
+  --ring: #e55a42;
+
+  /* Semantic */
+  --mint: #1f9d76;
+  --amber: #d98324;
+  --ocean: #2f7ea6;
+  --violet: #7c5cff;
+  --sand: #f1eae3;
+  --ink: #31302e;
+
+  --radius: 0.75rem;
+
+  --shadow-soft: 0 1px 2px hsl(28 25% 22% / 0.05), 0 8px 24px -12px hsl(28 25% 22% / 0.1);
+  --shadow-lift: 0 2px 4px hsl(28 25% 22% / 0.06), 0 18px 40px -18px hsl(28 25% 22% / 0.18);
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #31302e;
+  --foreground: #faf6f2;
+  --card: #3a3936;
+  --card-foreground: #faf6f2;
+  --popover: #3a3936;
+  --popover-foreground: #faf6f2;
+  --secondary: #44423f;
+  --secondary-foreground: #faf6f2;
+  --muted: #413f3c;
+  --muted-foreground: #b3ada6;
+  --accent: #4c3a33;
+  --accent-foreground: #f4c4b8;
+  --border: #4a4844;
+  --input: #4f4d49;
+  --destructive: #e05741;
+  --destructive-foreground: #faf6f2;
+
+  --mint: #55d6b6;
+  --amber: #e8a352;
+  --ocean: #5fb6d6;
+  --violet: #9d86ff;
+  --sand: #3e3c38;
+  --ink: #faf6f2;
+
+  --shadow-soft: 0 1px 2px hsl(24 30% 3% / 0.4), 0 8px 24px -12px hsl(24 30% 3% / 0.5);
+  --shadow-lift: 0 2px 4px hsl(24 30% 3% / 0.4), 0 18px 40px -18px hsl(24 30% 3% / 0.6);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 22%, transparent);
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility tint-mint {
+  background: color-mix(in oklch, var(--mint) 15%, var(--card));
+  color: color-mix(in oklch, var(--mint) 80%, var(--foreground));
+}
+@utility tint-amber {
+  background: color-mix(in oklch, var(--amber) 15%, var(--card));
+  color: color-mix(in oklch, var(--amber) 80%, var(--foreground));
+}
+@utility tint-ocean {
+  background: color-mix(in oklch, var(--ocean) 15%, var(--card));
+  color: color-mix(in oklch, var(--ocean) 80%, var(--foreground));
+}
+@utility tint-violet {
+  background: color-mix(in oklch, var(--violet) 15%, var(--card));
+  color: color-mix(in oklch, var(--violet) 80%, var(--foreground));
+}
+@utility tint-coral {
+  background: color-mix(in oklch, var(--primary) 15%, var(--card));
+  color: color-mix(in oklch, var(--primary) 80%, var(--foreground));
+}
+@utility tint-red {
+  background: color-mix(in oklch, var(--destructive) 15%, var(--card));
+  color: color-mix(in oklch, var(--destructive) 80%, var(--foreground));
+}
+
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+@utility shadow-lift {
+  box-shadow: var(--shadow-lift);
+}
+
+@utility press {
+  transition:
+    transform 180ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    opacity 180ms ease,
+    background-color 180ms ease;
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ---------- Entrance animations ---------- */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  70% {
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0.05);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@utility animate-rise {
+  animation: rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@utility animate-pop {
+  animation: pop 420ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+@utility animate-fade {
+  animation: fade-in 400ms ease both;
+}
+@utility animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+.stagger > * {
+  animation: rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 20ms;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 170ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 220ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 270ms;
+}
+.stagger > *:nth-child(7) {
+  animation-delay: 320ms;
+}
+.stagger > *:nth-child(8) {
+  animation-delay: 370ms;
+}
+.stagger > *:nth-child(n + 9) {
+  animation-delay: 420ms;
+}
+
+/* ---------- Device shell ---------- */
+.device-stage {
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in oklch, var(--primary) 8%, var(--background)) 0%, var(--background) 60%);
+}
+
+/* ---------- View transitions ---------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+}
+
+@keyframes vt-slide-from-right {
+  from {
+    transform: translateX(28px);
+    opacity: 0;
+  }
+}
+@keyframes vt-slide-to-left {
+  to {
+    transform: translateX(-18px);
+    opacity: 0;
+  }
+}
+@keyframes vt-slide-from-left {
+  from {
+    transform: translateX(-28px);
+    opacity: 0;
+  }
+}
+@keyframes vt-slide-to-right {
+  to {
+    transform: translateX(18px);
+    opacity: 0;
+  }
+}
+
+::view-transition-old(.nav-forward) {
+  animation: vt-slide-to-left 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+::view-transition-new(.nav-forward) {
+  animation: vt-slide-from-right 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+::view-transition-old(.nav-back) {
+  animation: vt-slide-to-right 280ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+::view-transition-new(.nav-back) {
+  animation: vt-slide-from-left 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

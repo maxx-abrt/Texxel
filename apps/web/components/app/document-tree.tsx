@@ -198,7 +198,7 @@ function DocumentTreeNode({
 
   const isTrashing = trashingIds.has(doc._id);
 
-  const setRefs = (el: HTMLButtonElement | null) => {
+  const setRefs = (el: HTMLDivElement | null) => {
     setDragRef(el as any);
     setDropRef(el as any);
   };
@@ -288,7 +288,7 @@ function DocumentTreeNode({
 
   const canExpand = isFolderNode || hasChildren;
 
-  const triggerProps: React.HTMLAttributes<HTMLButtonElement> = {
+  const triggerProps: React.HTMLAttributes<HTMLDivElement> = {
     ...attributes,
     ...listeners,
     style: {

@@ -257,8 +257,8 @@ type FolderProps = {
   element: React.ReactNode
   isSelectable?: boolean
   isSelect?: boolean
-  triggerRef?: React.Ref<HTMLButtonElement>
-  triggerProps?: React.HTMLAttributes<HTMLButtonElement>
+  triggerRef?: React.Ref<HTMLDivElement>
+  triggerProps?: React.HTMLAttributes<HTMLDivElement>
   chevronIcon?: React.ReactNode
 } & FolderComponentProps
 
@@ -301,56 +301,61 @@ const Folder = forwardRef<
         className="relative"
       >
         <AccordionPrimitive.Header>
-          <AccordionPrimitive.Trigger
-            ref={triggerRef}
-            {...triggerProps}
-            className={cn(
-              "tx-tree-row group flex min-h-7.5 w-full items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors duration-150",
-              "hover:bg-sidebar-accent",
-              isSelect && isSelectable && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
-              isSelectable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
-              triggerProps?.className,
-              className,
-            )}
-            disabled={!isSelectable}
-            onClick={(e) => {
-              triggerProps?.onClick?.(e)
-              handleExpand(value)
-            }}
-          >
-            {isSelect && isSelectable && (
-              <span className="pointer-events-none absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
-            )}
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground">
-              {chevronIcon ?? (
-                <ChevronIcon
-                  variant="Bulk"
-                  size={13}
-                  className={cn(
-                    "tx-tree-chevron transition-transform duration-200",
-                    isOpen && "rotate-90",
-                  )}
-                />
+          <AccordionPrimitive.Trigger asChild>
+            <div
+              ref={triggerRef}
+              {...triggerProps}
+              role="button"
+              tabIndex={isSelectable ? 0 : -1}
+              aria-disabled={!isSelectable}
+              className={cn(
+                "tx-tree-row group flex min-h-7.5 w-full items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors duration-150",
+                "hover:bg-sidebar-accent",
+                isSelect && isSelectable && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+                isSelectable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
+                triggerProps?.className,
+                className,
               )}
-            </span>
-            {isOpen
-              ? openIcon ?? (
-                  <FolderOpenIcon
+              onClick={(e) => {
+                if (!isSelectable) return
+                triggerProps?.onClick?.(e)
+                handleExpand(value)
+              }}
+            >
+              {isSelect && isSelectable && (
+                <span className="pointer-events-none absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
+              )}
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center text-muted-foreground">
+                {chevronIcon ?? (
+                  <ChevronIcon
                     variant="Bulk"
-                    size={16}
-                    className="shrink-0 text-primary/80"
-                  />
-                )
-              : closeIcon ?? (
-                  <FolderIcon
-                    variant="Bulk"
-                    size={16}
-                    className="shrink-0 text-primary/70"
+                    size={13}
+                    className={cn(
+                      "tx-tree-chevron transition-transform duration-200",
+                      isOpen && "rotate-90",
+                    )}
                   />
                 )}
-            <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 truncate">
-              {element}
-            </span>
+              </span>
+              {isOpen
+                ? openIcon ?? (
+                    <FolderOpenIcon
+                      variant="Bulk"
+                      size={16}
+                      className="shrink-0 text-primary/80"
+                    />
+                  )
+                : closeIcon ?? (
+                    <FolderIcon
+                      variant="Bulk"
+                      size={16}
+                      className="shrink-0 text-primary/70"
+                    />
+                  )}
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 truncate">
+                {element}
+              </span>
+            </div>
           </AccordionPrimitive.Trigger>
         </AccordionPrimitive.Header>
         <AccordionPrimitive.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down relative overflow-hidden">
@@ -378,14 +383,14 @@ const Folder = forwardRef<
 Folder.displayName = "Folder"
 
 const File = forwardRef<
-  HTMLButtonElement,
+  HTMLDivElement,
   {
     value: string
     handleSelect?: (id: string) => void
     isSelectable?: boolean
     isSelect?: boolean
     fileIcon?: React.ReactNode
-  } & React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
+  } & React.HTMLAttributes<HTMLDivElement>
 >(
   (
     {
@@ -405,38 +410,43 @@ const File = forwardRef<
     return (
       <AccordionPrimitive.Item value={value} className="relative">
         <AccordionPrimitive.Header>
-          <AccordionPrimitive.Trigger
-            ref={ref}
-            {...props}
-            dir={direction}
-            disabled={!isSelectable}
-            aria-label="File"
-            className={cn(
-              "tx-tree-row group flex min-h-7.5 w-full items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors duration-150",
-              "hover:bg-sidebar-accent",
-              isSelected && isSelectable && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
-              isSelectable ? "cursor-pointer" : "opacity-50 cursor-not-allowed",
-              className,
-            )}
-            onClick={() => {
-              handleSelect?.(value)
-              selectItem(value)
-            }}
-          >
-            {isSelected && isSelectable && (
-              <span className="pointer-events-none absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
-            )}
-            <span className="flex h-4 w-4 shrink-0" />
-            {fileIcon ?? (
-              <FileIcon
-                variant="Bulk"
-                size={15}
-                className="shrink-0 text-muted-foreground"
-              />
-            )}
-            <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 truncate">
-              {children}
-            </span>
+          <AccordionPrimitive.Trigger asChild>
+            <div
+              ref={ref}
+              {...props}
+              dir={direction}
+              role="button"
+              tabIndex={isSelectable ? 0 : -1}
+              aria-disabled={!isSelectable}
+              aria-label="File"
+              className={cn(
+                "tx-tree-row group flex min-h-7.5 w-full items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors duration-150",
+                "hover:bg-sidebar-accent",
+                isSelected && isSelectable && "bg-sidebar-accent font-semibold text-sidebar-accent-foreground",
+                isSelectable ? "cursor-pointer" : "opacity-50 cursor-not-allowed",
+                className,
+              )}
+              onClick={() => {
+                if (!isSelectable) return
+                handleSelect?.(value)
+                selectItem(value)
+              }}
+            >
+              {isSelected && isSelectable && (
+                <span className="pointer-events-none absolute inset-y-1 left-0 w-0.75 rounded-full bg-primary" />
+              )}
+              <span className="flex h-4 w-4 shrink-0" />
+              {fileIcon ?? (
+                <FileIcon
+                  variant="Bulk"
+                  size={15}
+                  className="shrink-0 text-muted-foreground"
+                />
+              )}
+              <span className="flex min-w-0 flex-1 items-center gap-1.5 py-1 truncate">
+                {children}
+              </span>
+            </div>
           </AccordionPrimitive.Trigger>
         </AccordionPrimitive.Header>
       </AccordionPrimitive.Item>

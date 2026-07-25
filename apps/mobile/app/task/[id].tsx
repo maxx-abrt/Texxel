@@ -1,8 +1,11 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { useState } from "react";
+import { Alert, ScrollView, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { CommentSection } from "@/src/components/tasks/comment-section";
+import { TaskEditSheet } from "@/src/components/tasks/task-edit-sheet";
 import { Avatar } from "@/src/components/ui/avatar";
 import { Card, SectionTitle } from "@/src/components/ui/card";
 import { Icons } from "@/src/components/ui/icons";
@@ -36,7 +39,9 @@ export default function TaskDetailScreen() {
 
   const task = useTask(id);
   const statuses = useStatuses();
-  const { toggleTaskStatus } = useActions();
+  const { toggleTaskStatus, deleteTask } = useActions();
+
+  const [editing, setEditing] = useState(false);
 
   if (task.loading) {
     return (
@@ -68,7 +73,42 @@ export default function TaskDetailScreen() {
 
   return (
     <Screen testID="task-detail-screen">
-      <ScreenHeader onBack={() => router.back()} title={detail.projectName ?? t("tasks.one")} subtitle={timeAgo(detail.updatedAt)} />
+      <ScreenHeader
+        onBack={() => router.back()}
+        title={detail.projectName ?? t("tasks.one")}
+        subtitle={timeAgo(detail.updatedAt)}
+        right={
+          <View style={{ flexDirection: "row", gap: spacing.sm }}>
+            <Press testID="task-edit-btn" onPress={() => setEditing(true)} hitSlop={8}>
+              <Icons.edit size={22} color={c.foreground} variant="Linear" />
+            </Press>
+            <Press
+              testID="task-delete-btn"
+              onPress={() => {
+                Alert.alert(t("tasks.delete"), t("tasks.deleteConfirm"), [
+                  { text: t("common.cancel"), style: "cancel" },
+                  {
+                    text: t("common.delete"),
+                    style: "destructive",
+                    onPress: async () => {
+                      const ok = await deleteTask(detail.id);
+                      if (ok) {
+                        toast(t("tasks.deleted"), "success");
+                        router.back();
+                      } else {
+                        toast(t("common.somethingWrong"), "error");
+                      }
+                    },
+                  },
+                ]);
+              }}
+              hitSlop={8}
+            >
+              <Icons.trash size={22} color={c.mutedForeground} variant="Linear" />
+            </Press>
+          </View>
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -246,7 +286,29 @@ export default function TaskDetailScreen() {
             {detail.isDone ? t("tasks.reopen") : t("tasks.markDone")}
           </Txt>
         </Press>
+
+        <Animated.View entering={FadeInDown.delay(240).duration(380)}>
+          <CommentSection taskId={detail.id} />
+        </Animated.View>
       </ScrollView>
+
+      <TaskEditSheet
+        visible={editing}
+        onClose={() => setEditing(false)}
+        task={
+          detail
+            ? {
+                id: detail.id,
+                title: detail.title,
+                priority: detail.priority,
+                dueDate: detail.dueDate,
+                status: detail.status,
+                projectId: detail.projectId,
+                assigneeId: detail.assignee?.id,
+              }
+            : null
+        }
+      />
     </Screen>
   );
 }

@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { QuickAddSheet } from "@/src/components/tasks/quick-add-sheet";
+import { TaskCreateSheet } from "@/src/components/tasks/task-create-sheet";
 import { DayStrip, DayTimeline } from "@/src/components/tasks/schedule";
 import { TaskCard } from "@/src/components/tasks/task-card";
 import { FloatingAction, HeaderActions } from "@/src/components/ui/chrome";
@@ -38,6 +39,7 @@ export default function TasksScreen() {
   const [compact, setCompact] = useState(true);
   const [day, setDay] = useState(() => startOfDay(Date.now()));
   const [quickAdd, setQuickAdd] = useState(false);
+  const [fullAdd, setFullAdd] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const tasks = useTasks();
@@ -239,7 +241,7 @@ export default function TasksScreen() {
               title={t("tasks.nothingHere")}
               description={t("tasks.nothingHereBody")}
               actionLabel={t("tasks.new")}
-              onAction={() => setQuickAdd(true)}
+              onAction={() => setFullAdd(true)}
             />
           ) : (
             visible.map((task, index) => (
@@ -266,6 +268,7 @@ export default function TasksScreen() {
 
       <FloatingAction testID="tasks-new-fab" label={t("tasks.new")} onPress={() => setQuickAdd(true)} />
       <QuickAddSheet visible={quickAdd} onClose={() => setQuickAdd(false)} />
+      <TaskCreateSheet visible={fullAdd} onClose={() => setFullAdd(false)} />
     </Screen>
   );
 }

@@ -1,13 +1,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ProjectEditSheet } from "@/src/components/projects/project-edit-sheet";
 import { TaskCard } from "@/src/components/tasks/task-card";
+import { TaskCreateSheet } from "@/src/components/tasks/task-create-sheet";
 import { AvatarStack } from "@/src/components/ui/avatar";
 import { SectionTitle } from "@/src/components/ui/card";
 import { Icons } from "@/src/components/ui/icons";
+import { Press } from "@/src/components/ui/press";
 import { ProgressBar } from "@/src/components/ui/progress";
 import { Screen, ScreenHeader } from "@/src/components/ui/screen";
 import { EmptyState } from "@/src/components/ui/states";
@@ -31,6 +34,9 @@ export default function ProjectScreen() {
   const tasks = useTasks();
   const { toggleTaskStatus } = useActions();
 
+  const [editing, setEditing] = useState(false);
+  const [addingTask, setAddingTask] = useState(false);
+
   const project = projects.data.find((p) => p.id === id) ?? null;
   const projectTasks = useMemo(() => tasks.data.filter((t) => t.projectId === id), [id, tasks.data]);
 
@@ -50,7 +56,16 @@ export default function ProjectScreen() {
 
   return (
     <Screen testID="project-screen">
-      <ScreenHeader onBack={() => router.back()} title={project.name} subtitle={project.client} />
+      <ScreenHeader
+        onBack={() => router.back()}
+        title={project.name}
+        subtitle={project.client}
+        right={
+          <Press testID="project-edit-btn" onPress={() => setEditing(true)} hitSlop={8}>
+            <Icons.edit size={22} color={c.foreground} variant="Linear" />
+          </Press>
+        }
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -111,6 +126,43 @@ export default function ProjectScreen() {
           )}
         </View>
       </ScrollView>
+
+      <Press
+        testID="project-add-task-btn"
+        onPress={() => setAddingTask(true)}
+        haptic="medium"
+        style={{
+          position: "absolute",
+          right: spacing.lg,
+          bottom: insets.bottom + spacing.lg,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: spacing.sm,
+          height: 48,
+          paddingHorizontal: spacing.lg,
+          borderRadius: 999,
+          backgroundColor: c.ink,
+        }}
+      >
+        <Icons.add size={20} color={c.onInk} variant="Bulk" />
+        <Txt variant="bodyStrong" color={c.onInk}>
+          {t("tasks.new")}
+        </Txt>
+      </Press>
+      <ProjectEditSheet
+        visible={editing}
+        onClose={() => setEditing(false)}
+        project={
+          project
+            ? { id: project.id, name: project.name, client: project.client, status: project.status, color: project.tone }
+            : null
+        }
+      />
+      <TaskCreateSheet
+        visible={addingTask}
+        onClose={() => setAddingTask(false)}
+        presetProjectId={id}
+      />
     </Screen>
   );
 }

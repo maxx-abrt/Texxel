@@ -7,10 +7,14 @@ import { tones } from "@/src/theme/tokens";
 import { convexApi, type ConvexDocument, type ConvexTask } from "./convex-api";
 import type {
   Result,
+  VmComment,
   VmDoc,
   VmEvent,
+  VmLabel,
+  VmMember,
   VmNotification,
   VmProject,
+  VmProjectDetail,
   VmStatus,
   VmTask,
 } from "./types";
@@ -90,7 +94,7 @@ function mapTask(
     priority: task.priority ?? "none",
     dueDate: task.dueDate ?? null,
     labels: task.labels ?? [],
-    assignee: task.assignee ? { name: task.assignee.name ?? task.assignee.email ?? null, image: task.assignee.image } : null,
+    assignee: task.assignee ? { id: task.assignee._id, name: task.assignee.name ?? task.assignee.email ?? null, image: task.assignee.image } : null,
     projectId: task.projectId ?? null,
     projectName: task.projectId ? (projectNames.get(task.projectId) ?? null) : null,
     updatedAt: task.updatedAt,
@@ -219,6 +223,138 @@ export function useNotifications(): Result<VmNotification[]> {
   }, [live, rows]);
 }
 
+export function useLabels(): Result<VmLabel[]> {
+  const { enabled, args } = useScope();
+  const rows = useQuery(convexApi.labels.list, args);
+
+  return useMemo(() => {
+    if (!enabled) return { data: [], loading: false };
+    if (rows === undefined) return { data: [], loading: true };
+    return {
+      data: rows.map((l) => ({ id: l._id, name: l.name, color: l.color ?? tones.ocean })),
+      loading: false,
+    };
+  }, [enabled, rows]);
+}
+
+export function useWorkspaceMembers(): Result<VmMember[]> {
+  const { enabled, args } = useScope();
+  const rows = useQuery(convexApi.workspaces.listMembers, args);
+
+  return useMemo(() => {
+    if (!enabled) return { data: [], loading: false };
+    if (rows === undefined) return { data: [], loading: true };
+    return {
+      data: rows.map((m) => ({
+        userId: m.userId ?? m._id ?? "",
+        name: m.name ?? null,
+        email: m.email ?? null,
+        image: m.image ?? null,
+        role: m.role ?? "member",
+      })),
+      loading: false,
+    };
+  }, [enabled, rows]);
+}
+
+export function useProjectDetail(projectId?: string): Result<VmProjectDetail | null> {
+  const { live } = useWorkspace();
+  const row = useQuery(
+    convexApi.projectDetail.detail,
+    live && projectId ? ({ projectId } as never) : "skip",
+  );
+
+  return useMemo(() => {
+    if (!live) return { data: null, loading: false };
+    if (row === undefined) return { data: null, loading: true };
+    if (row === null) return { data: null, loading: false };
+    const p = row.project;
+    return {
+      data: {
+        id: p._id,
+        name: p.name,
+        client: p.client,
+        status: p.status,
+        tone: p.color ?? toneFor(p._id),
+        done: row.progress.done,
+        total: row.progress.total,
+        dueDate: p.endDate ?? null,
+        members: row.members.map((m) => ({
+          name: m.name ?? m.email ?? null,
+          image: m.image ?? null,
+        })),
+        description: p.description,
+        startDate: p.startDate ?? null,
+        progressByStatus: row.progress.byStatus,
+      },
+      loading: false,
+    };
+  }, [live, projectId, row]);
+}
+
+export function useProjectMembers(projectId?: string): Result<VmMember[]> {
+  const { live } = useWorkspace();
+  const rows = useQuery(
+    convexApi.projectDetail.listMembers,
+    live && projectId ? ({ projectId } as never) : "skip",
+  );
+
+  return useMemo(() => {
+    if (!live) return { data: [], loading: false };
+    if (rows === undefined) return { data: [], loading: true };
+    return {
+      data: rows.map((m) => ({
+        userId: m.userId,
+        name: m.name ?? null,
+        email: m.email ?? null,
+        image: m.image ?? null,
+        role: m.role ?? "member",
+      })),
+      loading: false,
+    };
+  }, [live, projectId, rows]);
+}
+
+export function useTaskComments(taskId?: string): Result<VmComment[]> {
+  const { live } = useWorkspace();
+  const rows = useQuery(
+    convexApi.tasks.listComments,
+    live && taskId ? ({ taskId } as never) : "skip",
+  );
+
+  return useMemo(() => {
+    if (!live) return { data: [], loading: false };
+    if (rows === undefined) return { data: [], loading: true };
+    return {
+      data: rows.map((c) => ({
+        id: c._id,
+        content: c.content,
+        authorName: c.user?.name ?? c.user?.email ?? null,
+        authorImage: c.user?.image ?? null,
+        createdAt: c.createdAt,
+      })),
+      loading: false,
+    };
+  }, [live, rows, taskId]);
+}
+
+export function useTaskChildren(taskId?: string): Result<VmTask[]> {
+  const { live } = useWorkspace();
+  const statuses = useStatuses();
+  const projects = useProjects();
+  const rows = useQuery(
+    convexApi.tasks.listChildren,
+    live && taskId ? ({ parentId: taskId } as never) : "skip",
+  );
+
+  return useMemo(() => {
+    if (!live) return { data: [], loading: false };
+    if (rows === undefined) return { data: [], loading: true };
+    const names = new Map(projects.data.map((p) => [p.id, p.name]));
+    return { data: rows.map((t) => mapTask(t, statuses.data, names)), loading: false };
+  }, [live, projects.data, rows, statuses.data, taskId]);
+}
+
 export function useHeatmap(): Result<{ counts: Record<string, number>; total: number }> {
   const { live, workspaceId } = useWorkspace();
   const rows = useQuery(
@@ -241,6 +377,15 @@ export function useActions() {
   const { live, workspaceId } = useWorkspace();
   const setStatus = useMutation(convexApi.tasks.setStatus);
   const createTask = useMutation(convexApi.tasks.create);
+  const updateTask = useMutation(convexApi.tasks.update);
+  const removeTask = useMutation(convexApi.tasks.remove);
+  const addComment = useMutation(convexApi.tasks.addComment);
+  const createProject = useMutation(convexApi.projects.create);
+  const updateProject = useMutation(convexApi.projects.update);
+  const removeProject = useMutation(convexApi.projects.remove);
+  const addProjectMember = useMutation(convexApi.projectDetail.addMember);
+  const removeProjectMember = useMutation(convexApi.projectDetail.removeMember);
+  const createLabel = useMutation(convexApi.labels.create);
   const updateDoc = useMutation(convexApi.documents.update);
   const createDoc = useMutation(convexApi.documents.create);
   const markAllRead = useMutation(convexApi.notifications.markAllRead);
@@ -255,11 +400,130 @@ export function useActions() {
   );
 
   const addTask = useCallback(
-    async (title: string, extras: { dueDate?: number; priority?: string; projectId?: string } = {}) => {
+    async (
+      title: string,
+      extras: {
+        dueDate?: number;
+        priority?: string;
+        projectId?: string;
+        description?: string;
+        status?: string;
+        assigneeId?: string;
+        labels?: string[];
+      } = {},
+    ) => {
       if (!live || !workspaceId) return null;
       return (await createTask({ workspaceId, title, ...extras } as never)) as string;
     },
     [createTask, live, workspaceId],
+  );
+
+  const editTask = useCallback(
+    async (
+      taskId: string,
+      patch: {
+        title?: string;
+        description?: string;
+        status?: string;
+        priority?: "none" | "low" | "medium" | "high" | "urgent";
+        assigneeId?: string;
+        dueDate?: number;
+        projectId?: string;
+        labels?: string[];
+      },
+    ) => {
+      if (!live) return false;
+      await updateTask({ taskId, ...patch } as never);
+      return true;
+    },
+    [live, updateTask],
+  );
+
+  const deleteTask = useCallback(
+    async (taskId: string) => {
+      if (!live) return false;
+      await removeTask({ taskId } as never);
+      return true;
+    },
+    [live, removeTask],
+  );
+
+  const addTaskComment = useCallback(
+    async (taskId: string, content: string) => {
+      if (!live) return false;
+      await addComment({ taskId, content } as never);
+      return true;
+    },
+    [addComment, live],
+  );
+
+  const addProject = useCallback(
+    async (data: {
+      name: string;
+      client: string;
+      status: "planning" | "active" | "completed" | "on_hold";
+      endDate?: number;
+      description?: string;
+      color?: string;
+    }) => {
+      if (!live || !workspaceId) return null;
+      return (await createProject({ workspaceId, ...data } as never)) as string;
+    },
+    [createProject, live, workspaceId],
+  );
+
+  const editProject = useCallback(
+    async (
+      projectId: string,
+      patch: {
+        name?: string;
+        client?: string;
+        status?: "planning" | "active" | "completed" | "on_hold";
+        endDate?: number | null;
+        description?: string;
+        color?: string;
+      },
+    ) => {
+      if (!live) return false;
+      await updateProject({ projectId, ...patch } as never);
+      return true;
+    },
+    [live, updateProject],
+  );
+
+  const deleteProject = useCallback(
+    async (projectId: string) => {
+      if (!live) return false;
+      await removeProject({ projectId } as never);
+      return true;
+    },
+    [live, removeProject],
+  );
+
+  const addMemberToProject = useCallback(
+    async (projectId: string, userId: string, role?: string) => {
+      if (!live) return false;
+      await addProjectMember({ projectId, userId, role } as never);
+      return true;
+    },
+    [addProjectMember, live],
+  );
+
+  const removeMemberFromProject = useCallback(
+    async (projectId: string, userId: string) => {
+      if (!live) return false;
+      await removeProjectMember({ projectId, userId } as never);
+      return true;
+    },
+    [live, removeProjectMember],
+  );
+
+  const addLabel = useCallback(
+    async (name: string, color?: string) => {
+      if (!live || !workspaceId) return null;
+      return (await createLabel({ workspaceId, name, color } as never)) as string;
+    },
+    [createLabel, live, workspaceId],
   );
 
   const saveDocument = useCallback(
@@ -285,5 +549,21 @@ export function useActions() {
     return true;
   }, [live, markAllRead]);
 
-  return { live, toggleTaskStatus, addTask, saveDocument, addDocument, readAllNotifications };
+  return {
+    live,
+    toggleTaskStatus,
+    addTask,
+    editTask,
+    deleteTask,
+    addTaskComment,
+    addProject,
+    editProject,
+    deleteProject,
+    addMemberToProject,
+    removeMemberFromProject,
+    addLabel,
+    saveDocument,
+    addDocument,
+    readAllNotifications,
+  };
 }

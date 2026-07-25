@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { TextInput, View, Platform, type NativeSyntheticEvent, type TextInputKeyPressEventData } from "react-native";
+import {
+  Keyboard,
+  TextInput,
+  View,
+  Platform,
+  type NativeSyntheticEvent,
+  type TextInputKeyPressEventData,
+  type TextInputSelectionChangeEventData,
+} from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
 import Animated, { LinearTransition, runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
@@ -24,12 +32,35 @@ type Props = {
   contentBottomPadding: number;
 };
 
+const HISTORY_LIMIT = 50;
+const TEXT_HISTORY_DEBOUNCE_MS = 800;
+
+const MARKDOWN_TRIGGERS: { pattern: RegExp; type: BlockType }[] = [
+  { pattern: /^### $/, type: "heading3" },
+  { pattern: /^## $/, type: "heading2" },
+  { pattern: /^# $/, type: "heading1" },
+  { pattern: /^[-*] $/, type: "bulletListItem" },
+  { pattern: /^\d+\. $/, type: "numberedListItem" },
+  { pattern: /^> $/, type: "quote" },
+  { pattern: /^``` $/, type: "codeBlock" },
+  { pattern: /^\[\] $/, type: "checkListItem" },
+  { pattern: /^\[ \] $/, type: "checkListItem" },
+];
+
+const TRIGGER_CHARS = /^[#*\d.>\[\]` ]*$/;
+
+const LIST_TYPES: BlockType[] = ["bulletListItem", "numberedListItem", "checkListItem"];
+
+function isListType(type: BlockType): boolean {
+  return LIST_TYPES.includes(type);
+}
+
 /**
  * Notion-style block editor.
  *
- * Each block owns a `TextInput`; Enter splits, Backspace-on-empty merges, "/"
- * opens the block menu and the gutter handle drags to reorder with live
- * layout animation.
+ * Each block owns a `TextInput`; Enter splits, Backspace-at-start merges,
+ * "/" opens the block menu, markdown prefixes auto-convert, and the gutter
+ * handle drags to reorder with live layout animation.
  */
 export function BlockEditor({
   title,
@@ -44,17 +75,98 @@ export function BlockEditor({
   const { c } = useTheme();
   const inputs = useRef<Record<string, TextInput | null>>({});
   const heights = useRef<Record<string, number>>({});
+  const selections = useRef<Record<string, { start: number; end: number }>>({});
+  const pendingSelection = useRef<{ id: string; position: number } | null>(null);
+
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
+  // ── Undo / Redo ──────────────────────────────────────────────
+  const historyRef = useRef<{ title: string; blocks: NativeBlock[] }[]>([]);
+  const redoRef = useRef<{ title: string; blocks: NativeBlock[] }[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const textHistoryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTextSnapshot = useRef<{ title: string; blocks: NativeBlock[] } | null>(null);
+
+  const pushHistory = useCallback(
+    (snapshot: { title: string; blocks: NativeBlock[] }) => {
+      const entry = { title: snapshot.title, blocks: snapshot.blocks.map((b) => ({ ...b })) };
+      historyRef.current = [...historyRef.current.slice(-(HISTORY_LIMIT - 1)), entry];
+      redoRef.current = [];
+      setCanUndo(true);
+      setCanRedo(false);
+    },
+    [],
+  );
+
+  const pushHistoryDebounced = useCallback(
+    (snapshot: { title: string; blocks: NativeBlock[] }) => {
+      if (textHistoryTimer.current) clearTimeout(textHistoryTimer.current);
+      if (!lastTextSnapshot.current) {
+        lastTextSnapshot.current = { title: snapshot.title, blocks: snapshot.blocks.map((b) => ({ ...b })) };
+      }
+      textHistoryTimer.current = setTimeout(() => {
+        if (lastTextSnapshot.current) {
+          pushHistory(lastTextSnapshot.current);
+          lastTextSnapshot.current = null;
+        }
+      }, TEXT_HISTORY_DEBOUNCE_MS);
+    },
+    [pushHistory],
+  );
+
+  const undo = useCallback(() => {
+    if (historyRef.current.length === 0) return;
+    const prev = historyRef.current[historyRef.current.length - 1];
+    const current = { title, blocks: blocks.map((b) => ({ ...b })) };
+    redoRef.current = [...redoRef.current, current];
+    historyRef.current = historyRef.current.slice(0, -1);
+    onChangeTitle(prev.title);
+    onChangeBlocks(prev.blocks.map((b) => ({ ...b })));
+    setCanUndo(historyRef.current.length > 0);
+    setCanRedo(true);
+    fireHaptic("light");
+  }, [title, blocks, onChangeTitle, onChangeBlocks]);
+
+  const redo = useCallback(() => {
+    if (redoRef.current.length === 0) return;
+    const next = redoRef.current[redoRef.current.length - 1];
+    const current = { title, blocks: blocks.map((b) => ({ ...b })) };
+    historyRef.current = [...historyRef.current, current];
+    redoRef.current = redoRef.current.slice(0, -1);
+    onChangeTitle(next.title);
+    onChangeBlocks(next.blocks.map((b) => ({ ...b })));
+    setCanUndo(true);
+    setCanRedo(redoRef.current.length > 0);
+    fireHaptic("light");
+  }, [title, blocks, onChangeTitle, onChangeBlocks]);
+
+  // ── Focus management ─────────────────────────────────────────
+  const requestFocus = useCallback((id: string) => {
+    setFocusId(id);
+    setFocusTick((n) => n + 1);
+  }, []);
+
   useEffect(() => {
     if (!focusId) return;
-    const handle = requestAnimationFrame(() => inputs.current[focusId]?.focus());
-    return () => cancelAnimationFrame(handle);
-  }, [focusId, blocks.length]);
+    const raf = requestAnimationFrame(() => {
+      const ref = inputs.current[focusId];
+      if (!ref) return;
+      ref.focus();
+      if (pendingSelection.current && pendingSelection.current.id === focusId) {
+        const pos = pendingSelection.current.position;
+        ref.setNativeProps({ selection: { start: pos, end: pos } });
+        pendingSelection.current = null;
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [focusId, focusTick]);
 
+  // ── Block operations ─────────────────────────────────────────
   const patch = useCallback(
     (id: string, changes: Partial<NativeBlock>) => {
       onChangeBlocks(blocks.map((b) => (b.id === id ? { ...b, ...changes } : b)));
@@ -67,32 +179,56 @@ export function BlockEditor({
       const index = blocks.findIndex((b) => b.id === id);
       if (index < 0) return;
 
+      // Slash menu
       if (value === "/" && blocks[index].text === "") {
         setMenuFor(id);
         return;
       }
 
+      // Markdown auto-format: check if the new value matches a trigger
+      if (TRIGGER_CHARS.test(value) && blocks[index].type === "paragraph") {
+        for (const trigger of MARKDOWN_TRIGGERS) {
+          if (trigger.pattern.test(value)) {
+            pushHistory({ title, blocks });
+            patch(id, { type: trigger.type, text: "" });
+            fireHaptic("light");
+            return;
+          }
+        }
+      }
+
+      // Newline → split block
       if (value.includes("\n")) {
         const cut = value.indexOf("\n");
         const head = value.slice(0, cut);
         const tail = value.slice(cut + 1);
         const current = blocks[index];
-        const nextType: BlockType =
-          current.type === "bulletListItem" || current.type === "numberedListItem" || current.type === "checkListItem"
-            ? current.type
-            : "paragraph";
+
+        // Enter on empty list item → exit list to paragraph
+        if (head === "" && isListType(current.type)) {
+          pushHistory({ title, blocks });
+          patch(id, { type: "paragraph" });
+          fireHaptic("light");
+          return;
+        }
+
+        const nextType: BlockType = isListType(current.type) ? current.type : "paragraph";
         const created = makeBlock(nextType, tail);
         const next = [...blocks];
         next[index] = { ...current, text: head };
         next.splice(index + 1, 0, created);
+        pushHistory({ title, blocks });
         onChangeBlocks(next);
-        setFocusId(created.id);
+        requestFocus(created.id);
+        fireHaptic("light");
         return;
       }
 
+      // Debounced text history for undo
+      pushHistoryDebounced({ title, blocks });
       patch(id, { text: value });
     },
-    [blocks, onChangeBlocks, patch],
+    [blocks, title, onChangeBlocks, patch, pushHistory, pushHistoryDebounced, requestFocus],
   );
 
   const onKeyPress = useCallback(
@@ -101,27 +237,58 @@ export function BlockEditor({
       const index = blocks.findIndex((b) => b.id === id);
       if (index <= 0) return;
       const block = blocks[index];
-      if (block.text.length > 0) return;
+      const sel = selections.current[id];
+      const atStart = block.text.length === 0 || (sel && sel.start === 0 && sel.end === 0);
+
+      if (!atStart) return;
 
       const previous = blocks[index - 1];
-      const next = blocks.filter((b) => b.id !== id);
-      onChangeBlocks(next);
-      setFocusId(previous.id);
+      const mergePos = previous.text.length;
+
+      if (block.text.length > 0) {
+        // Merge text from current block into previous
+        const mergedText = previous.text + block.text;
+        const next = blocks.filter((b) => b.id !== id);
+        const merged = next.map((b) => (b.id === previous.id ? { ...b, text: mergedText } : b));
+        pushHistory({ title, blocks });
+        onChangeBlocks(merged);
+        pendingSelection.current = { id: previous.id, position: mergePos };
+        requestFocus(previous.id);
+      } else {
+        // Empty block — just remove
+        const next = blocks.filter((b) => b.id !== id);
+        pushHistory({ title, blocks });
+        onChangeBlocks(next);
+        pendingSelection.current = { id: previous.id, position: mergePos };
+        requestFocus(previous.id);
+      }
       fireHaptic("light");
     },
-    [blocks, onChangeBlocks],
+    [blocks, title, onChangeBlocks, pushHistory, requestFocus],
+  );
+
+  const onSelectionChange = useCallback(
+    (id: string, event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => {
+      selections.current[id] = {
+        start: event.nativeEvent.selection.start,
+        end: event.nativeEvent.selection.end,
+      };
+    },
+    [],
   );
 
   const insertBelow = useCallback(
     (id: string, type: BlockType = "paragraph") => {
       const index = blocks.findIndex((b) => b.id === id);
+      if (index < 0) return;
       const created = makeBlock(type);
       const next = [...blocks];
       next.splice(index + 1, 0, created);
+      pushHistory({ title, blocks });
       onChangeBlocks(next);
-      if (type !== "divider") setFocusId(created.id);
+      if (type !== "divider") requestFocus(created.id);
     },
-    [blocks, onChangeBlocks],
+    [blocks, title, onChangeBlocks, pushHistory, requestFocus],
   );
 
   const applyType = useCallback(
@@ -130,23 +297,29 @@ export function BlockEditor({
       if (index < 0) return;
       if (type === "divider") {
         const next = [...blocks];
+        pushHistory({ title, blocks });
         next[index] = { ...makeBlock("divider"), id: blocks[index].id };
         if (index === blocks.length - 1) next.push(makeBlock("paragraph"));
         onChangeBlocks(next);
+        fireHaptic("light");
         return;
       }
+      pushHistory({ title, blocks });
       patch(id, { type });
-      setFocusId(id);
+      requestFocus(id);
+      fireHaptic("light");
     },
-    [blocks, onChangeBlocks, patch],
+    [blocks, title, onChangeBlocks, patch, pushHistory, requestFocus],
   );
 
   const removeBlock = useCallback(
     (id: string) => {
       const next = blocks.filter((b) => b.id !== id);
+      pushHistory({ title, blocks });
       onChangeBlocks(next.length > 0 ? next : [makeBlock("paragraph")]);
+      fireHaptic("light");
     },
-    [blocks, onChangeBlocks],
+    [blocks, title, onChangeBlocks, pushHistory],
   );
 
   const move = useCallback(
@@ -155,10 +328,26 @@ export function BlockEditor({
       const next = [...blocks];
       const [item] = next.splice(from, 1);
       next.splice(to, 0, item);
+      pushHistory({ title, blocks });
       onChangeBlocks(next);
       fireHaptic("light");
     },
-    [blocks, onChangeBlocks],
+    [blocks, title, onChangeBlocks, pushHistory],
+  );
+
+  const onTitleKeyPress = useCallback(
+    (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+      if (event.nativeEvent.key !== "Enter") return;
+      if (blocks.length > 0) {
+        requestFocus(blocks[0].id);
+      } else {
+        const created = makeBlock("paragraph");
+        pushHistory({ title, blocks });
+        onChangeBlocks([created]);
+        requestFocus(created.id);
+      }
+    },
+    [blocks, title, onChangeBlocks, pushHistory, requestFocus],
   );
 
   const numbering = useMemo(() => {
@@ -191,6 +380,7 @@ export function BlockEditor({
           testID="doc-title-input"
           value={title}
           onChangeText={onChangeTitle}
+          onKeyPress={onTitleKeyPress}
           editable={editable}
           placeholder={t("common.untitled")}
           placeholderTextColor={c.mutedForeground}
@@ -211,8 +401,6 @@ export function BlockEditor({
             <BlockRow
               key={block.id}
               block={block}
-              index={index}
-              total={blocks.length}
               number={numbering[block.id]}
               editable={editable}
               active={activeId === block.id}
@@ -227,6 +415,7 @@ export function BlockEditor({
               onBlur={() => setActiveId((current) => (current === block.id ? null : current))}
               onChangeText={(value) => setText(block.id, value)}
               onKeyPress={(event) => onKeyPress(block.id, event)}
+              onSelectionChange={(event) => onSelectionChange(block.id, event)}
               onToggleCheck={() => patch(block.id, { checked: !block.checked })}
               onOpenMenu={() => setMenuFor(block.id)}
               onDelete={() => removeBlock(block.id)}
@@ -240,9 +429,10 @@ export function BlockEditor({
             testID="editor-append-block"
             haptic="none"
             onPress={() => {
+              Keyboard.dismiss();
               const last = blocks[blocks.length - 1];
               if (last && last.text === "" && last.type === "paragraph") {
-                setFocusId(last.id);
+                requestFocus(last.id);
                 return;
               }
               insertBelow(last?.id ?? "", "paragraph");
@@ -261,6 +451,10 @@ export function BlockEditor({
           <EditorToolbar
             onPick={(type) => applyType(activeId, type)}
             onOpenMenu={() => setMenuFor(activeId)}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         </KeyboardStickyView>
       ) : null}
@@ -343,22 +537,31 @@ function BlockIcon({ type }: { type: BlockType }) {
 function EditorToolbar({
   onPick,
   onOpenMenu,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: {
   onPick: (type: BlockType) => void;
   onOpenMenu: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }) {
+  const t = useT();
   const { c, accent } = useTheme();
-  const items: { type: BlockType; label: string }[] = [
-    { type: "paragraph", label: "Text" },
-    { type: "heading1", label: "H1" },
-    { type: "heading2", label: "H2" },
-    { type: "heading3", label: "H3" },
-    { type: "bulletListItem", label: "List" },
-    { type: "numberedListItem", label: "1." },
-    { type: "checkListItem", label: "To-do" },
-    { type: "quote", label: "Quote" },
-    { type: "codeBlock", label: "Code" },
-    { type: "divider", label: "Divider" },
+  const items: { type: BlockType; label: TranslationKey }[] = [
+    { type: "paragraph", label: "toolbar.text" },
+    { type: "heading1", label: "toolbar.h1" },
+    { type: "heading2", label: "toolbar.h2" },
+    { type: "heading3", label: "toolbar.h3" },
+    { type: "bulletListItem", label: "toolbar.list" },
+    { type: "numberedListItem", label: "toolbar.numbered" },
+    { type: "checkListItem", label: "toolbar.todo" },
+    { type: "quote", label: "toolbar.quote" },
+    { type: "codeBlock", label: "toolbar.code" },
+    { type: "divider", label: "toolbar.divider" },
   ];
 
   return (
@@ -375,6 +578,39 @@ function EditorToolbar({
         backgroundColor: c.card,
       }}
     >
+      <Press
+        testID="editor-toolbar-undo"
+        onPress={onUndo}
+        disabled={!canUndo}
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: radius.md,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: c.muted,
+          opacity: canUndo ? 1 : 0.4,
+        }}
+      >
+        <Icons.undo size={18} color={c.mutedForeground} variant="Linear" />
+      </Press>
+      <Press
+        testID="editor-toolbar-redo"
+        onPress={onRedo}
+        disabled={!canRedo}
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: radius.md,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: c.muted,
+          opacity: canRedo ? 1 : 0.4,
+        }}
+      >
+        <Icons.redo size={18} color={c.mutedForeground} variant="Linear" />
+      </Press>
+      <View style={{ width: 1, height: 24, backgroundColor: c.border }} />
       <Press
         testID="editor-toolbar-menu"
         onPress={onOpenMenu}
@@ -409,7 +645,7 @@ function EditorToolbar({
             }}
           >
             <Txt variant="label" muted>
-              {item.label}
+              {t(item.label)}
             </Txt>
           </Press>
         ))}
@@ -420,8 +656,6 @@ function EditorToolbar({
 
 type RowProps = {
   block: NativeBlock;
-  index: number;
-  total: number;
   number?: number;
   editable: boolean;
   active: boolean;
@@ -432,6 +666,7 @@ type RowProps = {
   onBlur: () => void;
   onChangeText: (value: string) => void;
   onKeyPress: (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => void;
+  onSelectionChange: (event: NativeSyntheticEvent<TextInputSelectionChangeEventData>) => void;
   onToggleCheck: () => void;
   onOpenMenu: () => void;
   onDelete: () => void;
@@ -452,6 +687,7 @@ function BlockRow({
   onBlur,
   onChangeText,
   onKeyPress,
+  onSelectionChange,
   onToggleCheck,
   onOpenMenu,
   onDelete,
@@ -504,7 +740,7 @@ function BlockRow({
           onLayout={(e) => onMeasure(e.nativeEvent.layout.height)}
           style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.md }}
         >
-          <DragHandle gesture={pan} visible />
+          <DragHandle gesture={pan} active />
           <View style={{ flex: 1, height: 1, backgroundColor: c.borderStrong }} />
           <Press testID={`block-delete-${block.id}`} hitSlop={8} onPress={onDelete} style={{ padding: 4 }}>
             <Icons.trash size={15} color={c.mutedForeground} variant="Bulk" />
@@ -535,7 +771,7 @@ function BlockRow({
         >
           <Icons.danger size={17} color={c.mutedForeground} variant="Bulk" />
           <Txt variant="caption" muted style={{ flex: 1 }}>
-            {`This ${String(block.raw.type ?? "block")} block is preserved — edit it on the web app.`}
+            {t("doc.unsupported", { type: String(block.raw.type ?? "block") })}
           </Txt>
         </View>
       </Animated.View>
@@ -552,7 +788,7 @@ function BlockRow({
         onLayout={(e) => onMeasure(e.nativeEvent.layout.height)}
         style={{ flexDirection: "row", alignItems: "flex-start", gap: spacing.xs, paddingVertical: 2 }}
       >
-        <DragHandle gesture={pan} visible={active} />
+        <DragHandle gesture={pan} active={active} />
 
         <View style={{ width: 22, alignItems: "center", paddingTop: markerOffset(block.type) }}>
           {block.type === "bulletListItem" ? (
@@ -609,6 +845,7 @@ function BlockRow({
             scrollEnabled={false}
             onChangeText={onChangeText}
             onKeyPress={onKeyPress}
+            onSelectionChange={onSelectionChange}
             onFocus={onFocus}
             onBlur={onBlur}
             onContentSizeChange={
@@ -647,7 +884,7 @@ function BlockRow({
   );
 }
 
-function DragHandle({ gesture, visible }: { gesture: ReturnType<typeof Gesture.Pan>; visible: boolean }) {
+function DragHandle({ gesture, active }: { gesture: ReturnType<typeof Gesture.Pan>; active: boolean }) {
   const { c } = useTheme();
   return (
     <GestureDetector gesture={gesture}>
@@ -656,7 +893,7 @@ function DragHandle({ gesture, visible }: { gesture: ReturnType<typeof Gesture.P
           width: 22,
           paddingTop: 8,
           alignItems: "center",
-          opacity: visible ? 0.75 : 0,
+          opacity: active ? 0.75 : 0.3,
         }}
       >
         <Icons.drag size={15} color={c.mutedForeground} variant="Bulk" />

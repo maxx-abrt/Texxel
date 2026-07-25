@@ -1,7 +1,7 @@
 /** View models shared by the screens — identical whether the data comes from
  * Convex or is empty (not signed in). */
 
-export type Person = { name: string | null; image?: string | null };
+export type Person = { id?: string | null; name: string | null; image?: string | null };
 
 export type VmWorkspace = {
   id: string;
@@ -73,6 +73,30 @@ export type VmNotification = {
 };
 
 export type VmStatus = { key: string; label: string; color: string; isDone: boolean };
+
+export type VmLabel = { id: string; name: string; color: string };
+
+export type VmComment = {
+  id: string;
+  content: string;
+  authorName: string | null;
+  authorImage: string | null;
+  createdAt: number;
+};
+
+export type VmMember = {
+  userId: string;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: string;
+};
+
+export type VmProjectDetail = VmProject & {
+  description?: string;
+  startDate?: number | null;
+  progressByStatus: Record<string, number>;
+};
 
 export type Result<T> = {
   data: T;

@@ -7,6 +7,8 @@
 import Activity from "iconsax-react-native/dist/esm/Activity";
 import Add from "iconsax-react-native/dist/esm/Add";
 import AddCircle from "iconsax-react-native/dist/esm/AddCircle";
+import ArrowCircleLeft2 from "iconsax-react-native/dist/esm/ArrowCircleLeft2";
+import ArrowCircleRight2 from "iconsax-react-native/dist/esm/ArrowCircleRight2";
 import ArrowDown2 from "iconsax-react-native/dist/esm/ArrowDown2";
 import ArrowLeft2 from "iconsax-react-native/dist/esm/ArrowLeft2";
 import ArrowRight2 from "iconsax-react-native/dist/esm/ArrowRight2";
@@ -96,6 +98,8 @@ export const Icons = {
   tickCircle: TickCircle,
   tickSquare: TickSquare,
   trash: Trash,
+  undo: ArrowCircleLeft2,
+  redo: ArrowCircleRight2,
   user: User,
   workspace: Element3,
 } as const;

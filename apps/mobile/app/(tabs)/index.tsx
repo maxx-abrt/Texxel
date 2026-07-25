@@ -5,6 +5,7 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NewProjectCard, ProjectCard } from "@/src/components/home/project-card";
+import { ProjectCreateSheet } from "@/src/components/projects/project-create-sheet";
 import { QuickAddSheet } from "@/src/components/tasks/quick-add-sheet";
 import { TaskCard } from "@/src/components/tasks/task-card";
 import { Avatar } from "@/src/components/ui/avatar";
@@ -41,6 +42,7 @@ export default function HomeScreen() {
   const { toggleTaskStatus } = useActions();
 
   const [quickAdd, setQuickAdd] = useState(false);
+  const [projectCreate, setProjectCreate] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const unread = notifications.data.filter((n) => !n.read).length;
@@ -221,7 +223,7 @@ export default function HomeScreen() {
                   </View>
                 ))
               : projects.data.map((project) => <ProjectCard key={project.id} project={project} />)}
-            <NewProjectCard onPress={() => toast(t("home.projectsWeb"), "info")} />
+            <NewProjectCard onPress={() => setProjectCreate(true)} />
           </ScrollView>
         </Animated.View>
 
@@ -388,6 +390,7 @@ export default function HomeScreen() {
 
       <FloatingAction testID="home-new-task-fab" label={t("tasks.new")} onPress={() => setQuickAdd(true)} />
       <QuickAddSheet visible={quickAdd} onClose={() => setQuickAdd(false)} />
+      <ProjectCreateSheet visible={projectCreate} onClose={() => setProjectCreate(false)} />
     </Screen>
   );
 }

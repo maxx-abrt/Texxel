@@ -40,7 +40,6 @@ export default function ProfileScreen() {
   const {
     c,
     accent,
-    onAccent,
     accentId,
     setAccentId,
     mode,
@@ -56,7 +55,7 @@ export default function ProfileScreen() {
     reduceMotion,
     setReduceMotion,
   } = useTheme();
-  const { mode: appMode, user, signOut, leaveDemo } = useAuth();
+  const { user, signOut } = useAuth();
   const { profile, workspace, workspaces, setWorkspaceId } = useWorkspace();
 
   const tasks = useTasks();
@@ -100,8 +99,7 @@ export default function ProfileScreen() {
                   {displayName}
                 </Txt>
                 <Txt variant="caption" color={alpha(c.onInk, 0.6)} numberOfLines={1}>
-                  {displayEmail ||
-                    (appMode === "demo" ? t("profile.demoWorkspace") : t("profile.signedInWorkos"))}
+                  {displayEmail || t("profile.signedInWorkos")}
                 </Txt>
               </View>
             </View>
@@ -133,41 +131,6 @@ export default function ProfileScreen() {
             </View>
           </View>
         </Animated.View>
-
-        {appMode === "demo" ? (
-          <Animated.View entering={FadeInDown.delay(60).duration(400)}>
-            <Card testID="demo-banner" style={{ borderColor: tint(accent, 0.4), gap: spacing.md }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-                <Icons.magic size={20} color={accent} variant="Bulk" />
-                <Txt variant="bodyStrong" style={{ flex: 1 }}>
-                  {t("profile.demoTitle")}
-                </Txt>
-              </View>
-              <Txt variant="caption" muted>
-                {t("profile.demoBody")}
-              </Txt>
-              <Press
-                testID="demo-signin-button"
-                onPress={() => {
-                  leaveDemo();
-                  router.replace("/sign-in");
-                }}
-                haptic="medium"
-                style={{
-                  height: 44,
-                  borderRadius: radius.pill,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: accent,
-                }}
-              >
-                <Txt variant="label" color={onAccent}>
-                  {t("auth.continue")}
-                </Txt>
-              </Press>
-            </Card>
-          </Animated.View>
-        ) : null}
 
         <Animated.View entering={FadeInDown.delay(120).duration(400)} style={{ gap: spacing.md }}>
           <SectionTitle title={t("common.workspace")} />
@@ -477,11 +440,7 @@ export default function ProfileScreen() {
           >
             <Icons.logout size={18} color={c.destructive} variant="Bulk" />
             <Txt variant="label" color={c.destructive}>
-              {signingOut
-                ? t("common.saving")
-                : appMode === "demo"
-                  ? t("profile.leaveDemo")
-                  : t("common.signOut")}
+              {signingOut ? t("common.saving") : t("common.signOut")}
             </Txt>
           </Press>
 

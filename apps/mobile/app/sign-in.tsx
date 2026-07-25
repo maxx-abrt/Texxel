@@ -23,10 +23,10 @@ const HIGHLIGHTS = [
 export default function SignInScreen() {
   const insets = useSafeAreaInsets();
   const t = useT();
-  const { status, mode, signIn, signingIn, error, enterDemo } = useAuth();
+  const { status, signIn, signingIn, error } = useAuth();
   const { c, accent, onAccent, isDark, shadow, tint, scale } = useTheme();
 
-  if (status === "authenticated" || mode === "demo") return <Redirect href="/(tabs)" />;
+  if (status === "authenticated") return <Redirect href="/(tabs)" />;
 
   return (
     <View style={{ flex: 1, backgroundColor: c.background }} testID="sign-in-screen">
@@ -160,26 +160,6 @@ export default function SignInScreen() {
             <Txt variant="bodyStrong" color={c.onInk}>
               {signingIn ? t("auth.opening") : t("auth.continue")}
             </Txt>
-          </Press>
-
-          <Press
-            testID="sign-in-demo-button"
-            accessibilityRole="button"
-            onPress={enterDemo}
-            style={{
-              height: 50,
-              borderRadius: radius.pill,
-              borderWidth: 1,
-              borderColor: c.border,
-              backgroundColor: c.card,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: spacing.sm,
-            }}
-          >
-            <Icons.magic size={18} color={accent} variant="Bulk" />
-            <Txt variant="label">{t("auth.demo")}</Txt>
           </Press>
 
           <Txt variant="caption" muted align="center" style={{ marginTop: spacing.xs }}>

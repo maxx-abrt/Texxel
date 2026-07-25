@@ -5,15 +5,6 @@ import { excerptOf } from "@/src/lib/blocks";
 import { startOfDay } from "@/src/lib/format";
 import { tones } from "@/src/theme/tokens";
 import { convexApi, type ConvexDocument, type ConvexTask } from "./convex-api";
-import {
-  demoDocs,
-  demoEvents,
-  demoHeatmap,
-  demoNotifications,
-  demoProjects,
-  demoStatuses,
-  demoTasks,
-} from "./demo";
 import type {
   Result,
   VmDoc,
@@ -27,8 +18,7 @@ import { useWorkspace } from "./workspace-provider";
 
 /**
  * One hook per data set. Each resolves against Convex when the user is signed
- * in, and against the bundled demo workspace otherwise, so every screen has a
- * single code path.
+ * in, and returns empty data otherwise.
  */
 
 const TONE_CYCLE = [tones.coral, tones.mint, tones.amber, tones.ocean, tones.violet, tones.rose];
@@ -50,8 +40,8 @@ export function useStatuses(): Result<VmStatus[]> {
   const rows = useQuery(convexApi.taskStatuses.list, args);
 
   return useMemo(() => {
-    if (!enabled) return { data: demoStatuses, loading: false };
-    if (rows === undefined) return { data: demoStatuses, loading: true };
+    if (!enabled) return { data: [], loading: false };
+    if (rows === undefined) return { data: [], loading: true };
     return {
       data: rows.map((s) => ({ key: s.key, label: s.label, color: s.color, isDone: Boolean(s.isDone) })),
       loading: false,
@@ -64,7 +54,7 @@ export function useProjects(): Result<VmProject[]> {
   const rows = useQuery(convexApi.projects.list, args);
 
   return useMemo(() => {
-    if (!enabled) return { data: demoProjects, loading: false };
+    if (!enabled) return { data: [], loading: false };
     if (rows === undefined) return { data: [], loading: true };
     return {
       data: rows.map((p) => ({
@@ -114,7 +104,7 @@ export function useTasks(): Result<VmTask[]> {
   const projects = useProjects();
 
   return useMemo(() => {
-    if (!enabled) return { data: demoTasks, loading: false };
+    if (!enabled) return { data: [], loading: false };
     if (rows === undefined) return { data: [], loading: true };
     const names = new Map(projects.data.map((p) => [p.id, p.name]));
     return { data: rows.map((t) => mapTask(t, statuses.data, names)), loading: false };
@@ -132,7 +122,7 @@ export function useTask(taskId?: string): Result<VmTask | null> {
 
   return useMemo(() => {
     if (!live) {
-      return { data: demoTasks.find((t) => t.id === taskId) ?? null, loading: false };
+      return { data: null, loading: false };
     }
     if (row === undefined) return { data: null, loading: true };
     if (row === null) return { data: null, loading: false };
@@ -160,7 +150,7 @@ export function useDocs(): Result<VmDoc[]> {
   const rows = useQuery(convexApi.documents.list, args);
 
   return useMemo(() => {
-    if (!enabled) return { data: demoDocs, loading: false };
+    if (!enabled) return { data: [], loading: false };
     if (rows === undefined) return { data: [], loading: true };
     return { data: rows.map(mapDoc), loading: false };
   }, [enabled, rows]);
@@ -174,7 +164,7 @@ export function useDoc(documentId?: string): Result<VmDoc | null> {
   );
 
   return useMemo(() => {
-    if (!live) return { data: demoDocs.find((d) => d.id === documentId) ?? null, loading: false };
+    if (!live) return { data: null, loading: false };
     if (row === undefined) return { data: null, loading: true };
     return { data: row ? mapDoc(row) : null, loading: false };
   }, [documentId, live, row]);
@@ -191,11 +181,7 @@ export function useEvents(day: number): Result<VmEvent[]> {
 
   return useMemo(() => {
     if (!live || !workspaceId) {
-      const offset = start - startOfDay(Date.now());
-      return {
-        data: demoEvents.map((e) => ({ ...e, start: e.start + offset, end: e.end + offset })),
-        loading: false,
-      };
+      return { data: [], loading: false };
     }
     if (rows === undefined) return { data: [], loading: true };
     return {
@@ -217,7 +203,7 @@ export function useNotifications(): Result<VmNotification[]> {
   const rows = useQuery(convexApi.notifications.listMine, live ? ({ limit: 40 } as never) : "skip");
 
   return useMemo(() => {
-    if (!live) return { data: demoNotifications, loading: false };
+    if (!live) return { data: [], loading: false };
     if (rows === undefined) return { data: [], loading: true };
     return {
       data: rows.map((n) => ({
@@ -242,19 +228,15 @@ export function useHeatmap(): Result<{ counts: Record<string, number>; total: nu
 
   return useMemo(() => {
     if (!live || !workspaceId) {
-      const counts = demoHeatmap();
-      return {
-        data: { counts, total: Object.values(counts).reduce((a, b) => a + b, 0) },
-        loading: false,
-      };
+      return { data: { counts: {}, total: 0 }, loading: false };
     }
     if (rows === undefined) return { data: { counts: {}, total: 0 }, loading: true };
     return { data: rows, loading: false };
   }, [live, rows, workspaceId]);
 }
 
-/** Write path. In demo mode every mutation resolves to `false` so callers can
- * surface a "sign in to edit" toast instead of failing silently. */
+/** Write path. When not signed in, every mutation resolves to `false` so
+ * callers can surface a "sign in to edit" toast instead of failing silently. */
 export function useActions() {
   const { live, workspaceId } = useWorkspace();
   const setStatus = useMutation(convexApi.tasks.setStatus);

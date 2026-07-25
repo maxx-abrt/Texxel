@@ -4,18 +4,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { useAuth } from "@/src/auth/auth-provider";
 import { storage } from "@/src/utils/storage";
 import { convexApi } from "./convex-api";
-import { demoUser, demoWorkspace } from "./demo";
 import type { VmWorkspace } from "./types";
 
 const LAST_WORKSPACE_KEY = "bureau.workspace";
 
 type WorkspaceValue = {
-  /** `true` when data must come from Convex, `false` for the demo workspace. */
+  /** `true` when data must come from Convex. */
   live: boolean;
   loading: boolean;
   workspace: VmWorkspace | null;
   workspaces: VmWorkspace[];
-  /** Convex workspace id, or `null` in demo mode — pass to Convex queries. */
+  /** Convex workspace id, or `null` when not yet loaded — pass to Convex queries. */
   workspaceId: string | null;
   setWorkspaceId: (id: string) => void;
   profile: { id: string | null; name: string | null; email: string | null; image: string | null };
@@ -24,8 +23,8 @@ type WorkspaceValue = {
 const WorkspaceContext = createContext<WorkspaceValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
-  const { mode, status, user } = useAuth();
-  const live = mode === "live" && status === "authenticated";
+  const { status, user } = useAuth();
+  const live = status === "authenticated";
 
   const [selected, setSelected] = useState<string | null>(null);
   const storeUser = useMutation(convexApi.users.store);
@@ -58,11 +57,11 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       return {
         live: false,
         loading: false,
-        workspace: demoWorkspace,
-        workspaces: [demoWorkspace],
+        workspace: null,
+        workspaces: [],
         workspaceId: null,
         setWorkspaceId,
-        profile: demoUser,
+        profile: { id: null, name: null, email: null, image: null },
       };
     }
 

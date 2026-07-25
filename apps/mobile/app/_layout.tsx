@@ -80,6 +80,7 @@ function ThemedShell() {
       >
         <Stack.Screen name="index" options={{ animation: "fade" }} />
         <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
+        <Stack.Screen name="auth" options={{ headerShown: false, animation: "fade" }} />
         <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
         <Stack.Screen name="inbox" options={{ presentation: "modal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="search" options={{ presentation: "modal", animation: "slide_from_bottom" }} />

@@ -12,8 +12,8 @@ import {
 } from "react";
 
 import { trpc } from "@/src/api/trpc";
+import { isCodeProcessed, markCodeProcessed, resetCodeProcessed } from "@/src/auth/callback-guard";
 import { WORKOS_AUTHORIZE_URL, WORKOS_CLIENT_ID } from "@/src/config";
-import { storage } from "@/src/utils/storage";
 import {
   adoptSealedSession,
   clearSession,
@@ -26,29 +26,21 @@ import {
 
 WebBrowser.maybeCompleteAuthSession();
 
-const DEMO_KEY = "bureau.demo";
-
-export type AppMode = "live" | "demo";
-
 type AuthValue = {
   /** `loading` until the keychain has been read and the token exchanged. */
   status: "loading" | "authenticated" | "unauthenticated";
-  mode: AppMode;
   user: SessionUser | null;
   signingIn: boolean;
   /** Translation key of the last sign-in failure. */
   error: string | null;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
-  enterDemo: () => void;
-  leaveDemo: () => void;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const session = useSyncExternalStore(subscribeSession, getSessionSnapshot, getSessionSnapshot);
-  const [mode, setMode] = useState<AppMode>("live");
   const [bootstrapped, setBootstrapped] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,8 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const demo = await storage.getItem<string>(DEMO_KEY, "");
-      if (alive && demo === "1") setMode("demo");
       await restoreSession();
       if (alive) setBootstrapped(true);
     })();
@@ -77,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         `&client_id=${WORKOS_CLIENT_ID}` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}` +
         `&provider=authkit`;
+      resetCodeProcessed();
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri, {
         preferEphemeralSession: false,
       });
@@ -87,20 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // On Android the redirect may have been handled by app/auth.tsx already.
+      if (isCodeProcessed()) return;
+
       const code = Linking.parse(result.url).queryParams?.code;
       if (typeof code !== "string" || code.length === 0) {
         setError("auth.errorIncomplete");
         return;
       }
 
+      markCodeProcessed();
       const res = await trpc.session.codeExchange.mutate({ code });
       const ok = await adoptSealedSession(res.sealed);
       if (!ok) {
         setError("auth.errorSession");
         return;
       }
-      setMode("live");
-      void storage.setItem(DEMO_KEY, "0");
     } catch {
       setError("auth.errorNetwork");
     } finally {
@@ -110,33 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await clearSession();
-    setMode("live");
-    void storage.setItem(DEMO_KEY, "0");
-  }, []);
-
-  const enterDemo = useCallback(() => {
-    setMode("demo");
-    void storage.setItem(DEMO_KEY, "1");
-  }, []);
-
-  const leaveDemo = useCallback(() => {
-    setMode("live");
-    void storage.setItem(DEMO_KEY, "0");
   }, []);
 
   const value = useMemo<AuthValue>(
     () => ({
       status: bootstrapped ? session.status : "loading",
-      mode,
       user: session.user,
       signingIn,
       error,
       signIn,
       signOut,
-      enterDemo,
-      leaveDemo,
     }),
-    [bootstrapped, enterDemo, error, leaveDemo, mode, session.status, session.user, signIn, signOut, signingIn],
+    [bootstrapped, error, session.status, session.user, signIn, signOut, signingIn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

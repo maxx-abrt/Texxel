@@ -5,9 +5,9 @@ import { useAuth } from "@/src/auth/auth-provider";
 import { Txt } from "@/src/components/ui/txt";
 import { useTheme } from "@/src/theme/theme-provider";
 
-/** Boot gate: keychain restore → tabs, demo workspace, or the sign-in screen. */
+/** Boot gate: keychain restore → tabs or the sign-in screen. */
 export default function Index() {
-  const { status, mode } = useAuth();
+  const { status } = useAuth();
   const { c, accent } = useTheme();
 
   if (status === "loading") {
@@ -24,6 +24,6 @@ export default function Index() {
     );
   }
 
-  if (status === "authenticated" || mode === "demo") return <Redirect href="/(tabs)" />;
+  if (status === "authenticated") return <Redirect href="/(tabs)" />;
   return <Redirect href="/sign-in" />;
 }

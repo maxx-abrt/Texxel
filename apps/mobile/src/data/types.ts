@@ -1,5 +1,5 @@
 /** View models shared by the screens — identical whether the data comes from
- * Convex or from the bundled demo workspace. */
+ * Convex or is empty (not signed in). */
 
 export type Person = { name: string | null; image?: string | null };
 

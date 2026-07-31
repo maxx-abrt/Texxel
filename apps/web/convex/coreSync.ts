@@ -1,4 +1,4 @@
-import { action, internalMutation, internalQuery, mutation } from "./_generated/server";
+import { action, internalAction, internalMutation, internalQuery, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { ConvexHttpClient } from "convex/browser";
@@ -68,6 +68,12 @@ const importMembershipRef = makeFunctionReference<
   Record<string, unknown>,
   { membershipId: string; created: boolean }
 >("sync:importMembership");
+
+const notifyWorkspaceRef = makeFunctionReference<
+  "mutation",
+  { secret: string; workspaceId: string; type: string; title: string; message?: string; link?: string; sourceApp: string },
+  { sent: number }
+>("sync:notifyWorkspace");
 
 function coreClient() {
   const url = process.env.CONVEX_CORE_URL;
@@ -331,5 +337,36 @@ export const importLocalMembers = action({
       }
     }
     return { imported, skipped, coreId };
+  },
+});
+
+/**
+ * Dual-write helper: fan out a notification to the linked core workspace via
+ * the service bridge. Scheduled from `notifyWorkspaceMembers` (mutation
+ * context can't use HTTP clients directly). Best-effort — failures are
+ * swallowed so a core outage never blocks local notifications.
+ */
+export const notifyCore = internalAction({
+  args: {
+    coreWorkspaceId: v.string(),
+    type: v.string(),
+    title: v.string(),
+    message: v.string(),
+    link: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    try {
+      await coreClient().mutation(notifyWorkspaceRef, {
+        secret: serviceSecret(),
+        workspaceId: args.coreWorkspaceId,
+        type: args.type,
+        title: args.title,
+        message: args.message,
+        link: args.link,
+        sourceApp: "bureau",
+      });
+    } catch {
+      // Best-effort: core outage must not break local notifications.
+    }
   },
 });

@@ -7,6 +7,8 @@ import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useCoreWorkspaceLink } from "@/hooks/use-core-workspace-link";
+import { useUserPrefs, useUpdatePrefs, useMyPermissions, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
@@ -85,14 +87,22 @@ function DensityPicker() {
 
 function AccentPicker() {
   const t = useTranslations("settings");
-  const prefs = useQuery(api.flux_userPrefs.get);
-  const updatePrefs = useMutation(api.flux_userPrefs.update);
-  const current = normalizeAccent(prefs?.accentColor) ?? DEFAULT_ACCENT;
+  const localPrefs = useQuery(api.flux_userPrefs.get);
+  const localUpdatePrefs = useMutation(api.flux_userPrefs.update);
+  const corePrefs = useUserPrefs();
+  const coreUpdatePrefs = useUpdatePrefs();
+  const useCore = coreFlags.prefs;
+  const accentColor = useCore ? corePrefs?.accentColor : (localPrefs as any)?.accentColor;
+  const current = normalizeAccent(accentColor) ?? DEFAULT_ACCENT;
 
   const pick = async (color: string) => {
     applyAccent(color);
     cacheAccent(color === DEFAULT_ACCENT ? null : color);
-    await updatePrefs({ accentColor: color });
+    if (useCore) {
+      await coreUpdatePrefs({ accentColor: color });
+    } else {
+      await localUpdatePrefs({ accentColor: color });
+    }
     toast.success(t("accent.saved"));
   };
 
@@ -326,6 +336,9 @@ export default function SettingsPage() {
   const tc = useTranslations("common");
   const ta = useTranslations("auth");
   const myPermissions = useQuery(api.flux_roles.myPermissions, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
+  const coreMyPermissions = useMyPermissions(coreFlags.roles ? coreWsId : null);
+  const effectivePermissions = coreFlags.roles ? (coreMyPermissions ?? []) : (myPermissions ?? []);
 
   const updateProfile = useMutation(api.users.updateProfile);
   const updateWorkspace = useMutation(api.workspaces.update);
@@ -345,7 +358,7 @@ export default function SettingsPage() {
   useEffect(() => { setWsName(activeWorkspace?.name ?? ""); }, [activeWorkspace]);
   useEffect(() => { if (search.get("new") === "1") document.getElementById("create-workspace")?.scrollIntoView({ behavior: "smooth" }); }, [search]);
 
-  const canManageWs = (myPermissions ?? []).includes("workspace:manage");
+  const canManageWs = effectivePermissions.includes("workspace:manage");
   const isOwner = activeWorkspace?.role === "owner";
 
   const handleDeleteWorkspace = async () => {

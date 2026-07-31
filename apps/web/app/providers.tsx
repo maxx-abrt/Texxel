@@ -119,7 +119,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ConvexProviderWithAuth client={convex} useAuth={useWorkosAuth}>
       {/* Shared A2E core client (second Convex deployment) — same WorkOS token. */}
-      <CoreProvider fetchToken={coreFetchToken}>
+      <CoreProvider
+        fetchToken={coreFetchToken}
+        routes={{
+          drive: () => "/app/documents",
+          event: (id) => `/app/calendar?event=${id}`,
+          task: (id) => `/app/tasks?task=${id}`,
+          contact: () => "/app/members",
+          member: (id) => `/app/members?member=${id}`,
+        }}
+      >
         <WorkspaceProvider>
           <ThemeProvider
             attribute="class"

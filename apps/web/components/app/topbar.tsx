@@ -4,6 +4,8 @@ import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useUnreadCount } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import {
   HamburgerMenu,
@@ -33,7 +35,14 @@ export function Topbar({ onMenu, onSearch, sidebarCollapsed, onExpandSidebar }: 
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { me, activeWorkspaceId } = useWorkspace();
-  const unread = useQuery(api.notifications.unreadCount) as number | undefined;
+  const localUnread = useQuery(api.notifications.unreadCount) as number | undefined;
+  const coreUnread = useUnreadCount();
+  // When the core flag is ON, merge both counts: workspace-wide notifications
+  // are dual-written to core, but targeted notifications (mentions, replies)
+  // remain local-only during transition.
+  const unread = coreFlags.notifications
+    ? (coreUnread ?? 0) + (localUnread ?? 0)
+    : localUnread;
   const t = useTranslations("nav");
   const ts = useTranslations("settings");
   const ta = useTranslations("auth");

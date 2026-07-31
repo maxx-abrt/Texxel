@@ -64,7 +64,8 @@
       "toggleTheme": "Basculer thème sombre / clair",
       "toggleSidebar": "Afficher / masquer la barre latérale"
     },
-    "recent": "Récents"
+    "recent": "Récents",
+    "suite": "Suite"
   },
   "common": {
     "cancel": "Annuler",

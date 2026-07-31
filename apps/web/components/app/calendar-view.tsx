@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useEvents, useEventMutations } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
+import { useQuotaGuard } from "@/hooks/use-quota-guard";
+import { UpgradeDialog } from "@/components/app/upgrade-dialog";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { PageContainer, btnPrimary, btnOutline, btnGhost, inputBase } from "@/components/app/common";
 import { cn } from "@/lib/utils";
@@ -39,10 +43,23 @@ export function CalendarView() {
   const { activeWorkspaceId } = useWorkspace();
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState(() => new Date());
-  const events = useQuery(api.flux_events.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
-  const create = useMutation(api.flux_events.create);
-  const update = useMutation(api.flux_events.update);
-  const remove = useMutation(api.flux_events.remove);
+  const eventQuota = useQuotaGuard("maxEvents");
+  const { guard: guardEventQuota, catchQuota: catchEventQuota, dialogState: eventQuotaDialog, setDialogState: setEventQuotaDialog } = eventQuota;
+
+  // Dual-path: when the core flag is ON, merge core + local events.
+  // Core events are tagged with _isCore so recurring operations can route
+  // to the correct mutation (core vs local).
+  const useCore = coreFlags.events;
+  const localEvents = useQuery(api.flux_events.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const coreEvents = useEvents(useCore ? activeWorkspaceId : null);
+  const events = useCore
+    ? [...(coreEvents ?? []).map((e) => ({ ...e, _isCore: true })), ...(localEvents ?? [])]
+    : localEvents;
+
+  const localCreate = useMutation(api.flux_events.create);
+  const localUpdate = useMutation(api.flux_events.update);
+  const localRemove = useMutation(api.flux_events.remove);
+  const coreMutations = useEventMutations();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -134,11 +151,51 @@ export function CalendarView() {
         t={t}
         tc={tc}
         onSave={async (data: any) => {
-          if (editing) { await update({ eventId: editing._id, ...data }); toast.success(t("eventUpdated")); }
-          else { if (!activeWorkspaceId) return; await create({ workspaceId: activeWorkspaceId, ...data }); toast.success(t("eventCreated")); }
+          if (editing) {
+            if (editing._isCore) {
+              await coreMutations.update({ eventId: editing._id as any, ...data });
+            } else {
+              await localUpdate({ eventId: editing._id, ...data });
+            }
+            toast.success(t("eventUpdated"));
+          } else {
+            if (!activeWorkspaceId) return;
+            if (useCore && !guardEventQuota()) return;
+            if (useCore) {
+              await catchEventQuota(() => coreMutations.create({
+                workspaceId: activeWorkspaceId as any,
+                title: data.title,
+                description: data.description,
+                start: data.start,
+                end: data.end,
+                allDay: data.allDay,
+                color: data.color,
+                location: data.location,
+                sourceApp: "bureau",
+                linkedTo: data.projectId ? { app: "bureau", type: "project", id: data.projectId } : undefined,
+                recurrenceFreq: data.recurrenceFreq,
+                recurrenceInterval: data.recurrenceInterval,
+                recurrenceDaysOfWeek: data.recurrenceDaysOfWeek,
+                recurrenceMonthlyPosition: data.recurrenceMonthlyPosition,
+                recurrenceEndAfter: data.recurrenceEndAfter,
+                recurrenceUntil: data.recurrenceUntil,
+              }));
+            } else {
+              await localCreate({ workspaceId: activeWorkspaceId, ...data });
+            }
+            toast.success(t("eventCreated"));
+          }
           setDialogOpen(false);
         }}
-        onDelete={editing ? async () => { await remove({ eventId: editing._id }); toast.success(t("eventDeleted")); setDialogOpen(false); } : undefined}
+        onDelete={editing ? async () => {
+          if (editing._isCore) {
+            await coreMutations.remove({ eventId: editing._id as any });
+          } else {
+            await localRemove({ eventId: editing._id });
+          }
+          toast.success(t("eventDeleted"));
+          setDialogOpen(false);
+        } : undefined}
       />
 
       {/* Recurring event occurrence options dialog */}
@@ -149,9 +206,35 @@ export function CalendarView() {
           <div className="space-y-2">
             <button className={cn(btnOutline, "w-full justify-start")} onClick={() => {
               if (!recurOpts) return;
-              detachOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
-                .then((newId: any) => { setRecurOpts(null); setEditing({ ...recurOpts, _id: newId, _recurring: false }); setSeedDate(null); setSeedEnd(null); setDialogOpen(true); })
-                .catch(() => toast.error("Failed to detach occurrence"));
+              if (recurOpts._isCore) {
+                // Core: create standalone event + add exception to series
+                coreMutations.create({
+                  workspaceId: activeWorkspaceId as any,
+                  title: recurOpts.title,
+                  description: recurOpts.description,
+                  start: recurOpts._occurrenceStart,
+                  end: recurOpts.end != null ? recurOpts._occurrenceStart + (recurOpts.end - recurOpts.start) : undefined,
+                  allDay: recurOpts.allDay,
+                  color: recurOpts.color,
+                  location: recurOpts.location,
+                  sourceApp: "bureau",
+                  linkedTo: recurOpts.linkedTo,
+                }).then((newId: any) => {
+                  const existing = recurOpts.recurrenceExceptions ?? [];
+                  return coreMutations.update({
+                    eventId: recurOpts._id as any,
+                    recurrenceExceptions: [...existing, recurOpts._occurrenceStart],
+                  }).then(() => newId);
+                }).then((newId: any) => {
+                  setRecurOpts(null);
+                  setEditing({ ...recurOpts, _id: newId, _recurring: false, _isCore: true });
+                  setSeedDate(null); setSeedEnd(null); setDialogOpen(true);
+                }).catch(() => toast.error("Failed to detach occurrence"));
+              } else {
+                detachOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
+                  .then((newId: any) => { setRecurOpts(null); setEditing({ ...recurOpts, _id: newId, _recurring: false }); setSeedDate(null); setSeedEnd(null); setDialogOpen(true); })
+                  .catch(() => toast.error("Failed to detach occurrence"));
+              }
             }}>{t("editThisOccurrence") ?? "Edit this occurrence only"}</button>
             <button className={cn(btnOutline, "w-full justify-start")} onClick={() => {
               const e = recurOpts; setRecurOpts(null);
@@ -159,15 +242,30 @@ export function CalendarView() {
             }}>{t("editAllOccurrences") ?? "Edit all occurrences"}</button>
             <button className={cn(btnOutline, "w-full justify-start text-destructive border-destructive/40")} onClick={() => {
               if (!recurOpts) return;
-              skipOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
-                .then(() => { toast.success(t("eventDeleted") ?? "Occurrence deleted"); setRecurOpts(null); })
-                .catch(() => toast.error("Failed"));
+              if (recurOpts._isCore) {
+                const existing = recurOpts.recurrenceExceptions ?? [];
+                coreMutations.update({
+                  eventId: recurOpts._id as any,
+                  recurrenceExceptions: [...existing, recurOpts._occurrenceStart],
+                }).then(() => { toast.success(t("eventDeleted") ?? "Occurrence deleted"); setRecurOpts(null); })
+                  .catch(() => toast.error("Failed"));
+              } else {
+                skipOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
+                  .then(() => { toast.success(t("eventDeleted") ?? "Occurrence deleted"); setRecurOpts(null); })
+                  .catch(() => toast.error("Failed"));
+              }
             }}>{t("deleteThisOccurrence") ?? "Delete this occurrence only"}</button>
             <button className={cn(btnOutline, "w-full justify-start text-destructive border-destructive/40")} onClick={() => {
               if (!recurOpts) return;
-              remove({ eventId: recurOpts._id })
-                .then(() => { toast.success(t("eventDeleted") ?? "Event deleted"); setRecurOpts(null); })
-                .catch(() => toast.error("Failed"));
+              if (recurOpts._isCore) {
+                coreMutations.remove({ eventId: recurOpts._id as any })
+                  .then(() => { toast.success(t("eventDeleted") ?? "Event deleted"); setRecurOpts(null); })
+                  .catch(() => toast.error("Failed"));
+              } else {
+                localRemove({ eventId: recurOpts._id })
+                  .then(() => { toast.success(t("eventDeleted") ?? "Event deleted"); setRecurOpts(null); })
+                  .catch(() => toast.error("Failed"));
+              }
             }}>{t("deleteAllOccurrences") ?? "Delete all occurrences"}</button>
           </div>
         </DialogContent>
@@ -183,6 +281,8 @@ export function CalendarView() {
         t={t}
         tc={tc}
       />
+
+      {coreFlags.quotas && <UpgradeDialog state={eventQuotaDialog} onOpenChange={(o) => setEventQuotaDialog((s) => ({ ...s, open: o }))} />}
     </PageContainer>
   );
 }

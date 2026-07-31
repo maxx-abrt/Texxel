@@ -8,6 +8,10 @@ import { useQuery, useMutation } from "convex/react";
 import { FolderKanban } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@/convex/_generated/api";
+import { useTasks, useTaskStatuses, useTaskMutations, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
+import { useQuotaGuard } from "@/hooks/use-quota-guard";
+import { UpgradeDialog } from "@/components/app/upgrade-dialog";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useBulkSelect } from "@/hooks/useBulkSelect";
@@ -87,17 +91,44 @@ export function TasksView() {
   const t = useTranslations("tasks");
   const search = useSearchParams();
   const { activeWorkspaceId, me } = useWorkspace();
-  const tasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
-  const statuses = useQuery(api.flux_taskStatuses.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip") as Status[] | undefined;
+  const useCore = coreFlags.tasks;
+  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
+  const taskQuota = useQuotaGuard("maxTasks");
+  const { guard: guardTaskQuota, catchQuota: catchTaskQuota, dialogState: taskQuotaDialog, setDialogState: setTaskQuotaDialog } = taskQuota;
+
+  // Local (Bureau) queries — always loaded (sidecar data + legacy rows)
+  const localTasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const localStatuses = useQuery(api.flux_taskStatuses.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip") as Status[] | undefined;
   const members = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const projects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const labels = useQuery(api.flux_labels.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
 
-  const create = useMutation(api.flux_tasks.create);
-  const update = useMutation(api.flux_tasks.update);
-  const setStatus = useMutation(api.flux_tasks.setStatus);
-  const remove = useMutation(api.flux_tasks.remove);
-  const ensureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
+  // Core queries — loaded when the flag is ON
+  const coreTasks = useTasks(useCore ? activeWorkspaceId : null);
+  const coreStatuses = useTaskStatuses(useCore ? activeWorkspaceId : null);
+
+  // Merge: when the core flag is ON, use core tasks + core statuses.
+  // Local tasks remain for the projectId sidecar join (via coreTaskId).
+  // For now, during transition, we display core tasks when the flag is ON.
+  const tasks = useCore ? coreTasks : localTasks;
+  const statuses: Status[] | undefined = useCore
+    ? (coreStatuses as Status[] | undefined)
+    : localStatuses;
+
+  const localCreate = useMutation(api.flux_tasks.create);
+  const localUpdate = useMutation(api.flux_tasks.update);
+  const localSetStatus = useMutation(api.flux_tasks.setStatus);
+  const localRemove = useMutation(api.flux_tasks.remove);
+  const localEnsureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
+  const coreMutations = useTaskMutations();
+
+  // Route to core or local based on flag.
+  // Note: core's useTaskStatuses auto-seeds defaults; local needs ensureDefaults.
+  const create = useCore ? coreMutations.create : localCreate;
+  const update = useCore ? coreMutations.update : localUpdate;
+  const setStatus = useCore ? coreMutations.setStatus : localSetStatus;
+  const remove = useCore ? coreMutations.remove : localRemove;
+  const ensureDefaults = useCore ? (async () => {}) : localEnsureDefaults;
 
   const [view, setView] = useState<"board" | "list" | "assignee">("board");
   const [createOpen, setCreateOpen] = useState(false);
@@ -294,7 +325,23 @@ export function TasksView() {
         workspaceId={activeWorkspaceId}
         onCreate={async (data: any) => {
           if (!activeWorkspaceId) return;
-          await create({ workspaceId: activeWorkspaceId, ...data });
+          if (useCore && !guardTaskQuota()) return;
+          if (useCore) {
+            await catchTaskQuota(async () => { await create({
+              workspaceId: activeWorkspaceId as any,
+              title: data.title,
+              description: data.description,
+              status: data.status,
+              priority: data.priority,
+              assigneeId: data.assigneeId,
+              dueDate: data.dueDate,
+              labels: data.labels,
+              sourceApp: "bureau",
+              linkedTo: data.projectId ? { app: "bureau", type: "project", id: data.projectId } : undefined,
+            } as any); });
+          } else {
+            await create({ workspaceId: activeWorkspaceId, ...data });
+          }
           toast.success(t("created"));
           setCreateOpen(false);
         }}
@@ -328,6 +375,8 @@ export function TasksView() {
       />
 
       <StatusManagerDialog open={statusMgrOpen} onOpenChange={setStatusMgrOpen} statuses={cols} workspaceId={activeWorkspaceId} />
+
+      {coreFlags.quotas && <UpgradeDialog state={taskQuotaDialog} onOpenChange={(o) => setTaskQuotaDialog((s) => ({ ...s, open: o }))} />}
     </PageContainer>
   );
 }
@@ -1208,10 +1257,16 @@ function AssigneeLanesView({ tasks, members, cols, labelColor, onOpen }: any) {
 
 function StatusManagerDialog({ open, onOpenChange, statuses, workspaceId }: any) {
   const t = useTranslations("tasks");
-  const createStatus = useMutation(api.flux_taskStatuses.create);
-  const updateStatus = useMutation(api.flux_taskStatuses.update);
-  const removeStatus = useMutation(api.flux_taskStatuses.remove);
-  const ensureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
+  const useCore = coreFlags.tasks;
+  const localCreateStatus = useMutation(api.flux_taskStatuses.create);
+  const localUpdateStatus = useMutation(api.flux_taskStatuses.update);
+  const localRemoveStatus = useMutation(api.flux_taskStatuses.remove);
+  const localEnsureDefaults = useMutation(api.flux_taskStatuses.ensureDefaults);
+  const coreMutations = useTaskMutations();
+  const createStatus = useCore ? coreMutations.createStatus : localCreateStatus;
+  const updateStatus = useCore ? coreMutations.updateStatus : localUpdateStatus;
+  const removeStatus = useCore ? coreMutations.removeStatus : localRemoveStatus;
+  const ensureDefaults = useCore ? (async () => {}) : localEnsureDefaults;
   const [newLabel, setNewLabel] = useState("");
   const [newColor, setNewColor] = useState(STATUS_PALETTE[0]);
 
@@ -1220,7 +1275,7 @@ function StatusManagerDialog({ open, onOpenChange, statuses, workspaceId }: any)
     if ((statuses ?? []).every((s: Status) => s._id == null)) {
       await ensureDefaults({ workspaceId });
     }
-    await createStatus({ workspaceId, label: newLabel.trim(), color: newColor });
+    await createStatus({ workspaceId, label: newLabel.trim(), color: newColor } as any);
     setNewLabel("");
     setNewColor(STATUS_PALETTE[Math.floor(Math.random() * STATUS_PALETTE.length)]);
     toast.success(t("statusAdded"));

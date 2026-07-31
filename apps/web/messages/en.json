@@ -64,7 +64,8 @@
       "toggleTheme": "Toggle dark / light theme",
       "toggleSidebar": "Toggle sidebar"
     },
-    "recent": "Recent"
+    "recent": "Recent",
+    "suite": "Suite"
   },
   "common": {
     "cancel": "Cancel",

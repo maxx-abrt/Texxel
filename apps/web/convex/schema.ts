@@ -120,6 +120,7 @@ export default defineSchema({
     status: v.string(),
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
+    coreTaskId: v.optional(v.string()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -127,7 +128,8 @@ export default defineSchema({
     .index("by_workspace", ["workspaceId"])
     .index("by_project", ["projectId"])
     .index("by_assignee", ["assigneeId"])
-    .index("by_parent", ["parentId"]),
+    .index("by_parent", ["parentId"])
+    .index("by_coreTaskId", ["coreTaskId"]),
 
   activities: defineTable({
     workspaceId: v.id("workspaces"),
@@ -676,12 +678,14 @@ export default defineSchema({
     location: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
     taskId: v.optional(v.id("tasks")),
+    coreEventId: v.optional(v.string()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_workspace", ["workspaceId"])
-    .index("by_workspace_start", ["workspaceId", "start"]),
+    .index("by_workspace_start", ["workspaceId", "start"])
+    .index("by_coreEventId", ["coreEventId"]),
 
   flux_favorites: defineTable({
     userId: v.id("users"),

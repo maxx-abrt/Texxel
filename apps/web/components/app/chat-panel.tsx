@@ -5,6 +5,9 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useUpload, useFileUrl, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
+import { useQuotaGuard } from "@/hooks/use-quota-guard";
+import { UpgradeDialog } from "@/components/app/upgrade-dialog";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -105,6 +108,10 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
   const coreUpload = useUpload();
   const t = useTranslations("chat");
   const workspaceId = activeWorkspaceId;
+  const storageQuota = useQuotaGuard("storageBytes");
+  const fileSizeQuota = useQuotaGuard("maxFileUploadBytes");
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
+  const [quotaDialogData, setQuotaDialogData] = useState<{ domain: any; used: number; limit: number } | undefined>(undefined);
 
   const channels = useQuery(
     api.flux_chat.listChannels,
@@ -235,6 +242,11 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
         alert(`File too large: ${file.name} (max 10 MB)`);
         continue;
       }
+      // Quota pre-checks (core drive only)
+      if (USE_CORE_DRIVE && coreFlags.quotas) {
+        if (!fileSizeQuota.guard()) continue;
+        if (!storageQuota.guard()) continue;
+      }
       const local: ChatAttachment = {
         name: file.name,
         size: file.size,
@@ -245,7 +257,7 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
       setAttachments((prev) => [...prev, local]);
       try {
         if (USE_CORE_DRIVE && coreWorkspace?._id) {
-          const { fileId } = await coreUpload.upload({
+          const uploadFn = () => coreUpload.upload({
             workspaceId: coreWorkspace._id as any,
             file,
             sourceApp: "bureau",
@@ -253,6 +265,11 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
               ? { app: "bureau", type: "chat_channel", id: channelId }
               : undefined,
           });
+          const result = coreFlags.quotas
+            ? await storageQuota.catchQuota(uploadFn)
+            : await uploadFn();
+          if (!result) continue;
+          const { fileId } = result;
           setAttachments((prev) =>
             prev.map((a) =>
               a === local ? { ...a, coreFileId: fileId as string, uploading: false } : a,
@@ -766,6 +783,13 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
         open={membersOpen}
         onOpenChange={setMembersOpen}
       />
+
+      {coreFlags.quotas && (
+        <UpgradeDialog
+          state={{ open: quotaDialogOpen, ...quotaDialogData }}
+          onOpenChange={setQuotaDialogOpen}
+        />
+      )}
     </div>
   );
 }

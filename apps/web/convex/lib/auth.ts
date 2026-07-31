@@ -1,6 +1,7 @@
 import { GenericMutationCtx, GenericQueryCtx } from "convex/server";
 import { Id } from "../_generated/dataModel";
 import { DataModel } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 
 export type QCtx = GenericQueryCtx<DataModel>;
 export type MCtx = GenericMutationCtx<DataModel>;
@@ -109,6 +110,20 @@ export async function notifyWorkspaceMembers(
       link: args.link,
       metadata: args.metadata,
       createdAt: Date.now(),
+    });
+  }
+
+  // Dual-write to A2E Core via the service bridge (best-effort, scheduled as
+  // an action since mutation context can't use HTTP clients). Only fires when
+  // the workspace is linked to core (has a coreId).
+  const workspace = await ctx.db.get(args.workspaceId);
+  if (workspace?.coreId) {
+    await ctx.scheduler.runAfter(0, internal.coreSync.notifyCore, {
+      coreWorkspaceId: workspace.coreId,
+      type: args.type,
+      title: args.title,
+      message: args.message,
+      link: args.link,
     });
   }
 }

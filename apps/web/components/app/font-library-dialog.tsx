@@ -7,6 +7,9 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useResolvedFonts } from "@/hooks/use-resolved-fonts";
 import { useUpload, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
+import { useQuotaGuard } from "@/hooks/use-quota-guard";
+import { UpgradeDialog } from "@/components/app/upgrade-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -68,6 +71,10 @@ export function FontLibraryDialog({
   const fonts = useResolvedFonts(workspaceId);
   const { activeWorkspace: coreWorkspace } = useCoreWorkspace();
   const coreUpload = useUpload();
+  const storageQuota = useQuotaGuard("storageBytes");
+  const fileSizeQuota = useQuotaGuard("maxFileUploadBytes");
+  const [quotaDialogOpen, setQuotaDialogOpen] = useState(false);
+  const [quotaDialogData, setQuotaDialogData] = useState<{ domain: any; used: number; limit: number } | undefined>(undefined);
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
   const createUploaded = useMutation(api.flux_fonts.createUploaded);
   const createGoogle = useMutation(api.flux_fonts.createGoogle);
@@ -124,13 +131,19 @@ export function FontLibraryDialog({
       let storageId: Id<"_storage"> | undefined;
       let coreFileId: string | undefined;
       if (USE_CORE_DRIVE && coreWorkspace?._id) {
-        const uploaded = await coreUpload.upload({
+        if (coreFlags.quotas) {
+          if (!fileSizeQuota.guard()) { setBusy(false); return; }
+          if (!storageQuota.guard()) { setBusy(false); return; }
+        }
+        const uploadFn = () => coreUpload.upload({
           workspaceId: coreWorkspace._id as any,
           file,
           sourceApp: "bureau",
           linkedTo: { app: "bureau", type: "font", id: workspaceId as string },
         });
-        coreFileId = uploaded.fileId as string;
+        const result = coreFlags.quotas ? await storageQuota.catchQuota(uploadFn) : await uploadFn();
+        if (!result) { setBusy(false); return; }
+        coreFileId = result.fileId as string;
       } else {
         const uploadUrl = await generateUploadUrl();
         const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type || `font/${format}` }, body: file });
@@ -198,6 +211,7 @@ export function FontLibraryDialog({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] overflow-hidden p-0 sm:max-w-2xl" data-testid="font-library-dialog">
         <DialogHeader className="border-b border-border px-5 py-4 text-left">
@@ -296,5 +310,13 @@ export function FontLibraryDialog({
         </div>
       </DialogContent>
     </Dialog>
+
+    {coreFlags.quotas && (
+      <UpgradeDialog
+        state={{ open: quotaDialogOpen, ...quotaDialogData }}
+        onOpenChange={setQuotaDialogOpen}
+      />
+    )}
+    </>
   );
 }

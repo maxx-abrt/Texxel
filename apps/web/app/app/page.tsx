@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useEvents, useTasks } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale, useTranslations } from "next-intl";
 import { PageContainer, timeAgo, btnPrimary } from "@/components/app/common";
@@ -39,10 +41,12 @@ export default function HomePage() {
     api.flux_documents.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
-  const tasks = useQuery(
+  const localTasks = useQuery(
     api.flux_tasks.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
+  const coreTasks = useTasks(coreFlags.tasks ? activeWorkspaceId : null);
+  const tasks = coreFlags.tasks ? coreTasks : localTasks;
   const notifications = useQuery(api.notifications.listMine, { limit: 20 });
   const projects = useQuery(
     api.projects.list,
@@ -51,10 +55,13 @@ export default function HomePage() {
   // Stable 5-minute bucket — raw Date.now() changes every render, which would
   // re-subscribe the events query in a loop ("Too many re-renders").
   const now = Math.floor(Date.now() / 300_000) * 300_000;
-  const events = useQuery(
+  const weekEnd = now + 7 * 24 * 60 * 60 * 1000;
+  const localEvents = useQuery(
     api.flux_events.list,
-    activeWorkspaceId ? { workspaceId: activeWorkspaceId, start: now, end: now + 7 * 24 * 60 * 60 * 1000 } : "skip",
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId, start: now, end: weekEnd } : "skip",
   );
+  const coreEvents = useEvents(coreFlags.events ? activeWorkspaceId : null, { start: now, end: weekEnd });
+  const events = coreFlags.events ? [...(coreEvents ?? []), ...(localEvents ?? [])] : localEvents;
   const createDoc = useMutation(api.flux_documents.create);
 
   const recent = (docs ?? [])

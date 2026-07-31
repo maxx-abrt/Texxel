@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useCoreSearch, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale, useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -67,7 +69,9 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
   const router = useRouter();
   const locale = useLocale();
   const { activeWorkspaceId } = useWorkspace();
+  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
   const [q, setQ] = useState("");
+  const coreSearch = useCoreSearch(coreFlags.search && open ? coreWsId : null, q);
   const t = useTranslations("commandPalette");
   const tn = useTranslations("nav");
   const tc = useTranslations("common");
@@ -288,6 +292,72 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
                     <Profile2User variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
                     <span className="truncate flex-1">{m.name ?? m.email}</span>
                     <span className="shrink-0 text-xs capitalize text-muted-foreground">{m.role}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {/* Core (suite-wide) search results */}
+            {coreFlags.search && coreSearch.results.files.length > 0 && (
+              <CommandGroup heading={`${t("suite")} — ${tn("documents")}`}>
+                {coreSearch.results.files.map((f) => (
+                  <CommandItem
+                    key={`core-file-${f.id}`}
+                    value={`core-file-${f.id}`}
+                    onSelect={() => f.href && go(f.href)}
+                    className="gap-2"
+                  >
+                    <DocumentText variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate flex-1">{f.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">suite</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {coreFlags.search && coreSearch.results.tasks.length > 0 && (
+              <CommandGroup heading={`${t("suite")} — ${tn("tasks")}`}>
+                {coreSearch.results.tasks.map((tk) => (
+                  <CommandItem
+                    key={`core-task-${tk.id}`}
+                    value={`core-task-${tk.id}`}
+                    onSelect={() => tk.href && go(tk.href)}
+                    className="gap-2"
+                  >
+                    <TaskSquare variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate flex-1">{tk.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">suite</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {coreFlags.search && coreSearch.results.events.length > 0 && (
+              <CommandGroup heading={`${t("suite")} — ${tn("events")}`}>
+                {coreSearch.results.events.map((e) => (
+                  <CommandItem
+                    key={`core-event-${e.id}`}
+                    value={`core-event-${e.id}`}
+                    onSelect={() => e.href && go(e.href)}
+                    className="gap-2"
+                  >
+                    <Calendar variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate flex-1">{e.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">suite</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+            {coreFlags.search && coreSearch.results.contacts.length > 0 && (
+              <CommandGroup heading={`${t("suite")} — ${ttm("membersTitle")}`}>
+                {coreSearch.results.contacts.map((c) => (
+                  <CommandItem
+                    key={`core-contact-${c.id}`}
+                    value={`core-contact-${c.id}`}
+                    onSelect={() => c.href && go(c.href)}
+                    className="gap-2"
+                  >
+                    <Profile2User variant="Bulk" size={16} className="shrink-0 text-muted-foreground" />
+                    <span className="truncate flex-1">{c.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">suite</span>
                   </CommandItem>
                 ))}
               </CommandGroup>

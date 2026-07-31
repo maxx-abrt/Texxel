@@ -2,6 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useActivities, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { coreFlags } from "@/lib/core-flags";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslations } from "next-intl";
@@ -32,11 +34,19 @@ const ACTION_ICONS: Record<string, string> = {
 
 export function ActivityFeed({ limit = 100 }: { limit?: number }) {
   const { activeWorkspaceId } = useWorkspace();
+  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
   const t = useTranslations("activity");
-  const activities = useQuery(
+  const localActivities = useQuery(
     api.activities.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId, limit } : "skip",
   );
+  const coreActivities = useActivities(coreFlags.activities ? coreWsId : null, limit);
+
+  // Merge local + core activities, sorted by createdAt (newest first).
+  // Core activities include a sourceApp badge to distinguish which app produced them.
+  const activities = coreFlags.activities
+    ? [...(localActivities ?? []), ...(coreActivities ?? [])].sort((a: any, b: any) => b.createdAt - a.createdAt).slice(0, limit)
+    : localActivities;
 
   const ACTION_MAP: Record<string, string> = {
     "task.created": t("actions.task.created" as any),
@@ -82,6 +92,9 @@ export function ActivityFeed({ limit = 100 }: { limit?: number }) {
               <p className="text-sm">
                 <span className="font-semibold">{item.actor?.name ?? item.actor?.email ?? "Someone"}</span>{" "}
                 <span className="text-muted-foreground">{actionLabel(item.action, item.metadata)}</span>
+                {coreFlags.activities && item.sourceApp && item.sourceApp !== "bureau" && (
+                  <span className="ml-1.5 inline-block rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground capitalize">{item.sourceApp}</span>
+                )}
               </p>
               <time className="text-xs text-muted-foreground">{timeAgo(item.createdAt)}</time>
             </div>

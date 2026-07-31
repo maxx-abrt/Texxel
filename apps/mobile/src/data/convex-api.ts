@@ -13,6 +13,8 @@ const q = <A extends Record<string, any> = Record<string, any>, R = unknown>(nam
   makeFunctionReference<"query", A, R>(name);
 const m = <A extends Record<string, any> = Record<string, any>, R = unknown>(name: string) =>
   makeFunctionReference<"mutation", A, R>(name);
+const a = <A extends Record<string, any> = Record<string, any>, R = unknown>(name: string) =>
+  makeFunctionReference<"action", A, R>(name);
 
 export type Id = string;
 
@@ -25,6 +27,16 @@ export const convexApi = {
   workspaces: {
     listMine: q<Record<string, never>, ConvexWorkspace[]>("workspaces:listMine"),
     listMembers: q<{ workspaceId: Id }, ConvexMember[]>("workspaces:listMembers"),
+  },
+  coreSync: {
+    syncFromCore: a<Record<string, never>, { synced: number }>("coreSync:syncFromCore"),
+    stampCoreId: m<{ localWorkspaceId: Id; coreId: string }, { coreId: string }>(
+      "coreSync:stampCoreId",
+    ),
+    importLocalMembers: a<
+      { localWorkspaceId: Id },
+      { imported: number; skipped: number; coreId: string | null }
+    >("coreSync:importLocalMembers"),
   },
   projects: {
     list: q<{ workspaceId: Id }, ConvexProject[]>("projects:list"),
@@ -142,6 +154,7 @@ export type ConvexWorkspace = {
   description?: string;
   role: string;
   memberCount: number;
+  coreId?: string;
 };
 
 export type ConvexMember = { _id?: string; userId?: string; name?: string | null; email?: string | null; image?: string | null; role?: string };

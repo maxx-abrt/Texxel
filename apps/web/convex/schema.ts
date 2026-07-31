@@ -41,9 +41,12 @@ export default defineSchema({
     ),
     createdAt: v.number(),
     updatedAt: v.number(),
+    /** A2E Core workspace id this local workspace is linked to (Pattern B). */
+    coreId: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
-    .index("by_owner", ["ownerId"]),
+    .index("by_owner", ["ownerId"])
+    .index("by_coreId", ["coreId"]),
 
   memberships: defineTable({
     userId: v.id("users"),
@@ -514,6 +517,7 @@ export default defineSchema({
     family: v.string(),
     sourceType: v.string(), // upload | google
     storageId: v.optional(v.id("_storage")),
+    coreFileId: v.optional(v.string()),
     cssUrl: v.optional(v.string()),
     fileName: v.optional(v.string()),
     format: v.string(),
@@ -810,7 +814,8 @@ export default defineSchema({
     attachments: v.optional(
       v.array(
         v.object({
-          storageId: v.id("_storage"),
+          storageId: v.optional(v.id("_storage")),
+          coreFileId: v.optional(v.string()),
           name: v.string(),
           size: v.number(),
           contentType: v.optional(v.string()),

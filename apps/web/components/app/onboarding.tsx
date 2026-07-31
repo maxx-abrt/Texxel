@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useCoreWorkspaceLink } from "@/hooks/use-core-workspace-link";
 import { toast } from "sonner";
 import { Flash, ArrowRight2, Logout } from "iconsax-reactjs";
 import { useTranslations } from "next-intl";
@@ -16,6 +17,7 @@ const TYPES = [
 
 export function Onboarding() {
   const create = useMutation(api.workspaces.create);
+  const { linkNewWorkspace } = useCoreWorkspaceLink();
   const router = useRouter();
   const [name, setName] = useState("");
   const [type, setType] = useState<(typeof TYPES)[number]["id"]>("individual");
@@ -28,7 +30,10 @@ export function Onboarding() {
     if (!name.trim()) return toast.error(t("nameRequired"));
     setBusy(true);
     try {
-      await create({ name: name.trim(), type });
+      const localId = await create({ name: name.trim(), type });
+      // Dual-write: create the shared A2E Core workspace too (best-effort —
+      // the link bridge heals any failure on next login).
+      await linkNewWorkspace(localId, { name: name.trim(), type });
       toast.success(t("workspaceReady"));
       router.refresh();
     } catch {

@@ -11,6 +11,7 @@ import {
   BlockNoteSchema,
   defaultInlineContentSpecs,
   defaultBlockSpecs,
+  defaultStyleSpecs,
   type PartialBlock,
 } from "@blocknote/core";
 import { CommentsExtension } from "@blocknote/core/comments";
@@ -19,6 +20,9 @@ import * as locales from "@blocknote/core/locales";
 import {
   BlockNoteViewEditor,
   FloatingComposerController,
+  FormattingToolbar,
+  FormattingToolbarController,
+  getFormattingToolbarItems,
   ThreadsSidebar,
   useCreateBlockNote,
   createReactInlineContentSpec,
@@ -30,6 +34,7 @@ import { ConvexThreadStore } from "@/lib/convex-thread-store";
 import { cn } from "@/lib/utils";
 import { MessageText1 } from "iconsax-reactjs";
 import { ChartBlock, buildChartSlashMenuItems } from "./chart-block";
+import { FontFamilySelect, FontFamilyStyle, type FontOption } from "./font-style";
 import { suggestionMenuFloatingUIOptions } from "@/lib/suggestion-menu-options";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
@@ -74,7 +79,17 @@ const Mention = createReactInlineContentSpec(
 export const fluxEditorSchema = BlockNoteSchema.create({
   blockSpecs: { ...defaultBlockSpecs, chart: ChartBlock() },
   inlineContentSpecs: { ...defaultInlineContentSpecs, mention: Mention },
+  styleSpecs: { ...defaultStyleSpecs, font: FontFamilyStyle },
 });
+
+const INLINE_SYSTEM_FONTS: FontOption[] = [
+  { family: "Plus Jakarta Sans" },
+  { family: "Inter" },
+  { family: "Georgia" },
+  { family: "Arial" },
+  { family: "Times New Roman" },
+  { family: "Courier New" },
+];
 
 export function extractMentionUserIds(doc: any[]): string[] {
   const ids: string[] = [];
@@ -179,6 +194,7 @@ interface FluxEditorProps {
   onEditorReady?: (editor: any) => void;
   documentStyle?: any;
   selectedFont?: any;
+  availableFonts?: FontOption[];
 }
 
 export function FluxEditor({
@@ -196,6 +212,7 @@ export function FluxEditor({
   onEditorReady,
   documentStyle,
   selectedFont,
+  availableFonts,
 }: FluxEditorProps) {
   const { resolvedTheme } = useTheme();
   const { locale } = useLocale();
@@ -335,6 +352,11 @@ export function FluxEditor({
     }
   }, [editor, onChange, onMentions, documentId, threadStore, syncAnchors]);
 
+  const inlineFonts = useMemo<FontOption[]>(
+    () => [...INLINE_SYSTEM_FONTS, ...(availableFonts ?? [])],
+    [availableFonts],
+  );
+
   const fontFamily = documentStyle?.fontFamily || selectedFont?.family || "Plus Jakarta Sans";
   const fontSize = documentStyle?.fontSize ?? 16;
   const lineHeight = documentStyle?.lineHeight ?? 1.65;
@@ -355,8 +377,19 @@ export function FluxEditor({
         renderEditor={false}
         comments={false}
         slashMenu={false}
+        formattingToolbar={false}
       >
         <BlockNoteViewEditor />
+        {editable && (
+          <FormattingToolbarController
+            formattingToolbar={() => (
+              <FormattingToolbar>
+                {getFormattingToolbarItems()}
+                <FontFamilySelect fonts={inlineFonts} />
+              </FormattingToolbar>
+            )}
+          />
+        )}
         {editable && (
           <SuggestionMenuController
             triggerCharacter="@"

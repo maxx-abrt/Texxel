@@ -46,7 +46,8 @@ export const list = query({
 export const createUploaded = mutation({
   args: {
     workspaceId: v.id("workspaces"),
-    storageId: v.id("_storage"),
+    storageId: v.optional(v.id("_storage")),
+    coreFileId: v.optional(v.string()),
     family: v.string(),
     fileName: v.string(),
     format: v.string(),
@@ -59,6 +60,7 @@ export const createUploaded = mutation({
     const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
     const format = args.format.toLowerCase();
     if (!ALLOWED_FORMATS.has(format)) throw new Error("Unsupported font format");
+    if (!args.storageId && !args.coreFileId) throw new Error("A font file is required");
     if (args.size <= 0 || args.size > MAX_FONT_SIZE) throw new Error("Font file must be 10 MB or smaller");
     const family = cleanFamily(args.family);
     const fileName = args.fileName.replace(/[<>\\/]/g, "").slice(0, 120);
@@ -68,6 +70,7 @@ export const createUploaded = mutation({
       family,
       sourceType: "upload",
       storageId: args.storageId,
+      coreFileId: args.coreFileId,
       fileName,
       format,
       mimeType: args.mimeType.slice(0, 100),

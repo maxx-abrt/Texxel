@@ -1,5 +1,6 @@
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithAuth } from "convex/react";
+import { CoreProvider, WorkspaceProvider as CoreWorkspaceProvider, type CoreTokenFetcher } from "@a2e/core";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -10,8 +11,10 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthProvider, useConvexAuthBridge } from "@/src/auth/auth-provider";
+import { getAccessToken } from "@/src/auth/session-store";
 import { ToastProvider } from "@/src/components/ui/toast";
-import { CONVEX_URL } from "@/src/config";
+import { CONVEX_CORE_URL, CONVEX_URL } from "@/src/config";
+import { WorkspaceLinkBridge } from "@/src/data/use-workspace-link";
 import { WorkspaceProvider } from "@/src/data/workspace-provider";
 import { useAppFonts } from "@/src/hooks/use-app-fonts";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
@@ -29,6 +32,10 @@ LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
 
 const convex = new ConvexReactClient(CONVEX_URL, { unsavedChangesWarning: false });
+
+// Token fetcher for the A2E Core client (second Convex deployment) — reuses
+// the same WorkOS session as the main client; core trusts this app's issuer.
+const coreFetchToken: CoreTokenFetcher = () => getAccessToken(false);
 
 export default function RootLayout() {
   const [iconsLoaded, iconsError] = useIconFonts();
@@ -51,11 +58,18 @@ export default function RootLayout() {
             <I18nProvider>
             <AuthProvider>
               <ConvexProviderWithAuth client={convex} useAuth={useConvexAuthBridge}>
-                <WorkspaceProvider>
-                  <ToastProvider>
-                    <ThemedShell />
-                  </ToastProvider>
-                </WorkspaceProvider>
+                {/* Shared A2E core client (second Convex deployment) — same WorkOS token. */}
+                <CoreProvider url={CONVEX_CORE_URL} fetchToken={coreFetchToken}>
+                  <CoreWorkspaceProvider>
+                    <WorkspaceProvider>
+                      {/* Reconcile local ↔ core workspaces on login (idempotent). */}
+                      <WorkspaceLinkBridge />
+                      <ToastProvider>
+                        <ThemedShell />
+                      </ToastProvider>
+                    </WorkspaceProvider>
+                  </CoreWorkspaceProvider>
+                </CoreProvider>
               </ConvexProviderWithAuth>
             </AuthProvider>
             </I18nProvider>

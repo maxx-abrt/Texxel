@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useCoreWorkspaceLink } from "@/hooks/use-core-workspace-link";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/switch";
@@ -330,6 +331,7 @@ export default function SettingsPage() {
   const updateWorkspace = useMutation(api.workspaces.update);
   const createWorkspace = useMutation(api.workspaces.create);
   const deleteWorkspace = useMutation(api.workspaces.remove);
+  const { linkNewWorkspace, pushRename } = useCoreWorkspaceLink();
 
   const [name, setName] = useState("");
   const [wsName, setWsName] = useState("");
@@ -405,7 +407,7 @@ export default function SettingsPage() {
           <label className="mb-1.5 block text-sm font-medium">{t("workspaceName")}</label>
           <div className="flex gap-2">
             <input value={wsName} onChange={(e) => setWsName(e.target.value)} disabled={!canManageWs} className={cn(inputBase, !canManageWs && "opacity-60")} data-testid="settings-ws-name" />
-            {canManageWs && <button onClick={() => updateWorkspace({ workspaceId: activeWorkspaceId!, name: wsName.trim() }).then(() => toast.success(t("workspaceUpdated")))} className={btnPrimary}>{t("profile.saveChanges")}</button>}
+            {canManageWs && <button onClick={() => updateWorkspace({ workspaceId: activeWorkspaceId!, name: wsName.trim() }).then(() => { toast.success(t("workspaceUpdated")); pushRename(activeWorkspace?.coreId, wsName.trim()); })} className={btnPrimary}>{t("profile.saveChanges")}</button>}
           </div>
           <p className="mt-2 text-xs text-muted-foreground">{t("yourRole", { role: activeWorkspace?.role ?? "" })}</p>
           {isOwner && (
@@ -439,7 +441,7 @@ export default function SettingsPage() {
           <div id="create-workspace" className="space-y-3">
             <input value={newWsName} onChange={(e) => setNewWsName(e.target.value)} placeholder={t("newWorkspaceNamePlaceholder")} className={inputBase} data-testid="settings-new-ws-name" />
             <Select value={newWsType} onValueChange={setNewWsType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="individual">{t("workspaceTypes.individual")}</SelectItem><SelectItem value="business">{t("workspaceTypes.business")}</SelectItem><SelectItem value="association">{t("workspaceTypes.association")}</SelectItem></SelectContent></Select>
-            <button onClick={async () => { if (!newWsName.trim()) return toast.error(t("workspaceNameRequired")); const id = await createWorkspace({ name: newWsName.trim(), type: newWsType as any }); setActive(id); setNewWsName(""); toast.success(t("workspaceCreated")); router.push("/app"); }} className={btnPrimary} data-testid="settings-create-ws"><Add variant="Bulk" size={18} /> {t("createNewWorkspace")}</button>
+            <button onClick={async () => { if (!newWsName.trim()) return toast.error(t("workspaceNameRequired")); const id = await createWorkspace({ name: newWsName.trim(), type: newWsType as any }); await linkNewWorkspace(id, { name: newWsName.trim(), type: newWsType }); setActive(id); setNewWsName(""); toast.success(t("workspaceCreated")); router.push("/app"); }} className={btnPrimary} data-testid="settings-create-ws"><Add variant="Bulk" size={18} /> {t("createNewWorkspace")}</button>
           </div>
         </Section>
 
@@ -451,6 +453,11 @@ export default function SettingsPage() {
           <DialogHeader><DialogTitle className="text-destructive">{t("deleteWorkspace")}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">{t("deleteWorkspaceConfirm", { name: activeWorkspace?.name })}</p>
+            {activeWorkspace?.coreId && (
+              <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground" data-testid="delete-workspace-shared-hint">
+                {t("deleteWorkspaceSharedHint")}
+              </p>
+            )}
             <input
               value={deleteConfirm}
               onChange={(e) => setDeleteConfirm(e.target.value)}

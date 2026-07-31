@@ -12,6 +12,7 @@ import { Onboarding } from "@/components/app/onboarding";
 import { DockedBubbles } from "@/components/app/docked-bubbles";
 import { ShortcutsHelp } from "@/components/app/shortcuts-help";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
+import { WorkspaceLinkBridge } from "@/components/app/workspace-link-bridge";
 import { AccentProvider } from "@/components/providers/accent-provider";
 import { usePersistedState } from "@/hooks/use-sidebar-prefs";
 import { useTranslations } from "next-intl";
@@ -121,7 +122,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <UserStoreSync>
       <WorkspaceProvider>
-        <Shell>{children}</Shell>
+        {/* Reconcile local workspaces with A2E Core before the shell (and its
+            onboarding gate) renders, so mirrored workspaces are already there. */}
+        <WorkspaceLinkBridge fallback={<Loader stage="workspace-sync" />}>
+          <Shell>{children}</Shell>
+        </WorkspaceLinkBridge>
       </WorkspaceProvider>
     </UserStoreSync>
   );

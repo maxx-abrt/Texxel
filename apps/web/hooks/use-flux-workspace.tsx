@@ -19,6 +19,7 @@ type WorkspaceSummary = {
   memberCount: number;
   type?: string;
   avatar?: string;
+  coreId?: string;
 };
 
 type Ctx = {

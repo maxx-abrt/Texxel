@@ -36,6 +36,7 @@ export const listMine = query({
       type?: string;
       ownerId: Id<"users">;
       memberCount: number;
+      coreId?: string;
     }>;
     for (const m of memberships) {
       const w = await ctx.db.get(m.workspaceId);
@@ -59,6 +60,7 @@ export const listMine = query({
         type: w.type,
         ownerId: w.ownerId,
         memberCount,
+        coreId: w.coreId,
       });
     }
     return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -173,7 +175,19 @@ export const remove = mutation({
     const userId = await requireUserId(ctx);
     const w = await ctx.db.get(args.workspaceId);
     if (!w) throw new Error("Workspace not found");
-    if (w.ownerId !== userId) {
+    if (w.coreId) {
+      // Linked/mirrored workspace: the `ownerId` field may just be the local
+      // steward who first synced — authorize on the real membership role.
+      const membership = await ctx.db
+        .query("memberships")
+        .withIndex("by_user_workspace", (q) =>
+          q.eq("userId", userId).eq("workspaceId", args.workspaceId),
+        )
+        .unique();
+      if (!membership || membership.role !== "owner") {
+        throw new Error("Forbidden: only the workspace owner can delete a workspace");
+      }
+    } else if (w.ownerId !== userId) {
       throw new Error("Forbidden: only the owner can delete a workspace");
     }
     // Cleanup: memberships, invitations, projects, tasks, activities, a2e_* per workspace

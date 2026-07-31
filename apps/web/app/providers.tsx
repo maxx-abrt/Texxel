@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvexReactClient, ConvexProviderWithAuth } from "convex/react";
+import { CoreProvider, WorkspaceProvider, type CoreTokenFetcher } from "@a2e/core";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
@@ -109,20 +110,30 @@ function useWorkosAuth() {
   );
 }
 
+// Stable token fetcher for the A2E Core client — reuses the same WorkOS
+// session bridge (/next-api/auth/token); the endpoint always returns a fresh
+// token server-side, so forceRefresh needs no special handling.
+const coreFetchToken: CoreTokenFetcher = async () => requestToken();
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ConvexProviderWithAuth client={convex} useAuth={useWorkosAuth}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="light"
-        enableSystem={false}
-        disableTransitionOnChange
-      >
-        <LocaleProvider>
-          {children}
-          <ToasterProvider />
-        </LocaleProvider>
-      </ThemeProvider>
+      {/* Shared A2E core client (second Convex deployment) — same WorkOS token. */}
+      <CoreProvider fetchToken={coreFetchToken}>
+        <WorkspaceProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+          >
+            <LocaleProvider>
+              {children}
+              <ToasterProvider />
+            </LocaleProvider>
+          </ThemeProvider>
+        </WorkspaceProvider>
+      </CoreProvider>
     </ConvexProviderWithAuth>
   );
 }

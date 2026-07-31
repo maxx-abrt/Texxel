@@ -31,6 +31,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      '@a2e/core':
+        specifier: link:../../../A2E Core/packages/core
+        version: link:../../../A2E Core/packages/core
       '@expo/metro-runtime':
         specifier: ^55.0.0
         version: 55.0.12(@expo/dom-webview@55.0.6)(expo@55.0.28)(react-dom@19.2.7(react@19.2.7))(react-native@0.83.6(@babel/core@7.29.7)(@types/react@19.2.17)(react@19.2.7))(react@19.2.7)
@@ -170,6 +173,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@a2e/core':
+        specifier: link:../../../A2E Core/packages/core
+        version: link:../../../A2E Core/packages/core
       '@auth/core':
         specifier: 0.37.4
         version: 0.37.4

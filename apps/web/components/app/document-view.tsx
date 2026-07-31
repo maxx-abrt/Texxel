@@ -9,6 +9,7 @@ import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useResolvedFonts } from "@/hooks/use-resolved-fonts";
 import { IconPicker } from "@/components/icon-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -107,7 +108,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const duplicateFn = useMutation(api.flux_documents.duplicate);
   const setDocumentStyle = useMutation(api.flux_fonts.setDocumentStyle);
   const documentStyle = useQuery(api.flux_fonts.getDocumentStyle, { documentId });
-  const workspaceFonts = useQuery(api.flux_fonts.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const workspaceFonts = useResolvedFonts(activeWorkspaceId);
   const openCommentCount = useQuery(api.flux_commentThreads.countOpen, { documentId });
 
   // Toolbar customization + breadcrumb + word count.
@@ -745,6 +746,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
               mentionables={mentionables}
               documentStyle={documentStyle}
               selectedFont={selectedFont}
+              availableFonts={workspaceFonts ?? []}
               onEditorReady={(ed: any) => { editorRef.current = ed; setEditorInstance(ed); }}
               onMentions={(ids: string[]) => {
                 if (!ids.length) return;

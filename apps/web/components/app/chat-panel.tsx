@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useUpload, useFileUrl, useWorkspace as useCoreWorkspace } from "@a2e/core";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,10 @@ import {
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
+// Phase A: when enabled, new chat attachments go to the shared A2E Core drive
+// (visible across the suite). Legacy flux_files attachments keep rendering.
+const USE_CORE_DRIVE = process.env.NEXT_PUBLIC_A2E_DRIVE === "1";
+
 const EMOJIS = [
   "👍",
   "❤️",
@@ -61,7 +66,8 @@ const EMOJIS = [
 ];
 
 interface ChatAttachment {
-  storageId: string;
+  storageId?: string;
+  coreFileId?: string;
   name: string;
   size: number;
   contentType?: string;
@@ -95,6 +101,8 @@ interface ChatPanelProps {
 
 export function ChatPanel({ projectId, channelId, className, onClose }: ChatPanelProps) {
   const { activeWorkspaceId, me } = useWorkspace();
+  const { activeWorkspace: coreWorkspace } = useCoreWorkspace();
+  const coreUpload = useUpload();
   const t = useTranslations("chat");
   const workspaceId = activeWorkspaceId;
 
@@ -228,7 +236,6 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
         continue;
       }
       const local: ChatAttachment = {
-        storageId: "",
         name: file.name,
         size: file.size,
         contentType: file.type,
@@ -237,6 +244,22 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
       };
       setAttachments((prev) => [...prev, local]);
       try {
+        if (USE_CORE_DRIVE && coreWorkspace?._id) {
+          const { fileId } = await coreUpload.upload({
+            workspaceId: coreWorkspace._id as any,
+            file,
+            sourceApp: "bureau",
+            linkedTo: channelId
+              ? { app: "bureau", type: "chat_channel", id: channelId }
+              : undefined,
+          });
+          setAttachments((prev) =>
+            prev.map((a) =>
+              a === local ? { ...a, coreFileId: fileId as string, uploading: false } : a,
+            ),
+          );
+          continue;
+        }
         const postUrl = await generateUploadUrl();
         const res = await fetch(postUrl, {
           method: "POST",
@@ -262,9 +285,10 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
     if (!activeChannel?._id) return;
     if (!text && !attachments.length) return;
     const readyAttachments = attachments
-      .filter((a) => !a.uploading && a.storageId)
+      .filter((a) => !a.uploading && (a.storageId || a.coreFileId))
       .map((a) => ({
         storageId: a.storageId as any,
+        coreFileId: a.coreFileId,
         name: a.name,
         size: a.size,
         contentType: a.contentType,
@@ -747,10 +771,12 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
 }
 
 function ChatAttachmentItem({ attachment }: { attachment: ChatAttachment }) {
-  const url = useQuery(
+  const legacyUrl = useQuery(
     api.flux_files.getUrl,
     attachment.storageId ? { storageId: attachment.storageId as any } : "skip",
   );
+  const coreUrl = useFileUrl((attachment.coreFileId ?? null) as any, "view");
+  const url = attachment.coreFileId ? coreUrl : legacyUrl;
   const isImage = (attachment.contentType ?? "").startsWith("image/");
 
   if (isImage && url) {

@@ -829,6 +829,7 @@
     "activitySubtitle": "Activité récente de cet espace",
     "deleteWorkspace": "Supprimer l'espace",
     "deleteWorkspaceHint": "Supprimez définitivement cet espace et toutes ses données. Seul le propriétaire peut le faire.",
+    "deleteWorkspaceSharedHint": "Cet espace est partagé dans la suite A2E. Le supprimer ici ne retire que la copie Bureau — l'espace partagé et ses données restent disponibles dans les autres applications (ex. Bilan).",
     "deleteWorkspaceConfirm": "Tapez \"{name}\" pour confirmer la suppression. Cette action est irréversible.",
     "deleteWorkspaceConfirmError": "Le nom ne correspond pas. Veuillez réessayer.",
     "workspaceDeleted": "Espace supprimé",

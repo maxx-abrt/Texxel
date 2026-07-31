@@ -543,7 +543,8 @@ export const sendMessage = mutation({
     attachments: v.optional(
       v.array(
         v.object({
-          storageId: v.id("_storage"),
+          storageId: v.optional(v.id("_storage")),
+          coreFileId: v.optional(v.string()),
           name: v.string(),
           size: v.number(),
           contentType: v.optional(v.string()),

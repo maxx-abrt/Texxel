@@ -723,6 +723,7 @@
     "activitySubtitle": "Recent activity in this workspace",
     "deleteWorkspace": "Delete workspace",
     "deleteWorkspaceHint": "Permanently delete this workspace and all its data. Only the owner can do this.",
+    "deleteWorkspaceSharedHint": "This workspace is shared across the A2E suite. Deleting it here only removes the Bureau copy — the shared workspace and its data stay available in the other apps (e.g. Bilan).",
     "deleteWorkspaceConfirm": "Type \"{name}\" to confirm deletion. This cannot be undone.",
     "deleteWorkspaceConfirmError": "The name does not match. Please try again.",
     "workspaceDeleted": "Workspace deleted",

@@ -22,6 +22,10 @@ export const API_PREFIX = process.env.EXPO_PUBLIC_API_PREFIX ?? "/api";
 export const CONVEX_URL =
   process.env.EXPO_PUBLIC_CONVEX_URL ?? "https://veracious-reindeer-573.eu-west-1.convex.cloud";
 
+/** A2E Core deployment (shared workspaces/drive across the suite). */
+export const CONVEX_CORE_URL =
+  process.env.EXPO_PUBLIC_CONVEX_CORE_URL ?? "https://superb-grasshopper-152.eu-west-1.convex.cloud";
+
 export const TRPC_URL = `${API_URL}${API_PREFIX}/trpc`;
 
 /** WorkOS Client ID (public — safe to embed in the mobile app). */

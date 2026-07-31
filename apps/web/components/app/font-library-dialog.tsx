@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useResolvedFonts } from "@/hooks/use-resolved-fonts";
+import { useUpload, useWorkspace as useCoreWorkspace } from "@a2e/core";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -18,6 +20,9 @@ const SYSTEM_FONTS = [
 ];
 
 const MAX_FONT_BYTES = 10 * 1024 * 1024;
+
+// Phase A: when enabled, new font uploads go to the shared A2E Core drive.
+const USE_CORE_DRIVE = process.env.NEXT_PUBLIC_A2E_DRIVE === "1";
 const FORMAT_MIME: Record<string, string[]> = {
   woff: ["font/woff", "application/font-woff", "application/octet-stream"],
   woff2: ["font/woff2", "application/font-woff2", "application/octet-stream"],
@@ -60,7 +65,9 @@ export function FontLibraryDialog({
   documentStyle?: any;
 }) {
   const t = useTranslations("docsExperience.fonts");
-  const fonts = useQuery(api.flux_fonts.list, { workspaceId });
+  const fonts = useResolvedFonts(workspaceId);
+  const { activeWorkspace: coreWorkspace } = useCoreWorkspace();
+  const coreUpload = useUpload();
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
   const createUploaded = useMutation(api.flux_fonts.createUploaded);
   const createGoogle = useMutation(api.flux_fonts.createGoogle);
@@ -114,13 +121,26 @@ export function FontLibraryDialog({
 
     setBusy(true);
     try {
-      const uploadUrl = await generateUploadUrl();
-      const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type || `font/${format}` }, body: file });
-      if (!response.ok) throw new Error("Font upload failed");
-      const { storageId } = await response.json();
+      let storageId: Id<"_storage"> | undefined;
+      let coreFileId: string | undefined;
+      if (USE_CORE_DRIVE && coreWorkspace?._id) {
+        const uploaded = await coreUpload.upload({
+          workspaceId: coreWorkspace._id as any,
+          file,
+          sourceApp: "bureau",
+          linkedTo: { app: "bureau", type: "font", id: workspaceId as string },
+        });
+        coreFileId = uploaded.fileId as string;
+      } else {
+        const uploadUrl = await generateUploadUrl();
+        const response = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": file.type || `font/${format}` }, body: file });
+        if (!response.ok) throw new Error("Font upload failed");
+        storageId = (await response.json()).storageId;
+      }
       const fontId = await createUploaded({
         workspaceId,
         storageId,
+        coreFileId,
         family,
         fileName: file.name,
         format,

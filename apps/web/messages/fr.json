@@ -870,6 +870,30 @@
       "title": "Recadrer l'image",
       "zoom": "Zoom",
       "reset": "Réinitialiser"
+    },
+    "coreStatus": {
+      "title": "Espace partagé A2E",
+      "hint": "Vos espaces de travail, membres, fichiers, agenda, tâches et notifications sont partagés avec les autres applications A2E (Bilan, Drive…). Cet encart montre l'état de la liaison.",
+      "deployment": "Déploiement core",
+      "fallbackUrl": "valeur par défaut",
+      "session": "Session partagée",
+      "checking": "Vérification…",
+      "connected": "Connectée",
+      "notConnected": "Non connectée",
+      "sharedWorkspace": "Espace partagé lié",
+      "notLinked": "Non lié",
+      "membership": "Accès vérifié",
+      "verified": "Vérifié",
+      "pending": "En attente de synchronisation",
+      "unavailable": "Indisponible",
+      "modules": "Modules sur le core",
+      "degraded": "Mode local (core indisponible)",
+      "allLocal": "Aucun — tout est local",
+      "linkNow": "Lier cet espace au core",
+      "linking": "Liaison…",
+      "linkSuccess": "Espace lié à la suite A2E",
+      "linkFailed": "Liaison impossible — nouvelle tentative à la prochaine connexion",
+      "retry": "Réessayer le core"
     }
   },
   "roles": {

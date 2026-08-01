@@ -764,6 +764,30 @@
       "title": "Crop image",
       "zoom": "Zoom",
       "reset": "Reset"
+    },
+    "coreStatus": {
+      "title": "A2E shared workspace",
+      "hint": "Your workspaces, members, files, calendar, tasks and notifications are shared with the other A2E apps (Bilan, Drive…). This panel shows the state of that link.",
+      "deployment": "Core deployment",
+      "fallbackUrl": "default value",
+      "session": "Shared session",
+      "checking": "Checking…",
+      "connected": "Connected",
+      "notConnected": "Not connected",
+      "sharedWorkspace": "Linked shared workspace",
+      "notLinked": "Not linked",
+      "membership": "Access verified",
+      "verified": "Verified",
+      "pending": "Waiting for sync",
+      "unavailable": "Unavailable",
+      "modules": "Modules on core",
+      "degraded": "Local mode (core unavailable)",
+      "allLocal": "None — everything is local",
+      "linkNow": "Link this workspace to core",
+      "linking": "Linking…",
+      "linkSuccess": "Workspace linked to the A2E suite",
+      "linkFailed": "Link failed — will retry on next sign-in",
+      "retry": "Retry core"
     }
   },
   "roles": {

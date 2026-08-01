@@ -19,9 +19,10 @@ import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity, Edit2 } from "iconsax-reactjs";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity, Edit2, Global } from "iconsax-reactjs";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, normalizeAccent, applyAccent, cacheAccent, applyDensity, cacheDensity, applyEasyRead, cacheEasyRead, type Density } from "@/components/providers/accent-provider";
 import { ActivityFeed } from "@/components/app/activity-feed";
+import { CoreStatusCard } from "@/components/app/core-status-card";
 import { ImageCropperModal } from "@/components/app/image-cropper-modal";
 
 function EasyReadToggle() {
@@ -337,6 +338,7 @@ export default function SettingsPage() {
   const tc = useTranslations("common");
   const ta = useTranslations("auth");
   const myPermissions = useQuery(api.flux_roles.myPermissions, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const ta2e = useTranslations("settings.coreStatus");
   const coreWsId = useCoreWorkspaceId();
   const coreMyPermissions = useMyPermissions(coreFlags.roles ? (coreWsId as never) : null);
   const effectivePermissions = coreFlags.roles ? (coreMyPermissions ?? []) : (myPermissions ?? []);
@@ -435,6 +437,10 @@ export default function SettingsPage() {
               </button>
             </div>
           )}
+        </Section>
+
+        <Section title={ta2e("title")} icon={Global}>
+          <CoreStatusCard />
         </Section>
 
         <Section title={t("activityTitle")} icon={Activity}>

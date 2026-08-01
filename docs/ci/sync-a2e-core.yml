@@ -1,0 +1,78 @@
+name: Sync @a2e/core
+
+# HOW TO ENABLE (once per app repo):
+#   mkdir -p .github/workflows && cp docs/ci/sync-a2e-core.yml .github/workflows/
+#   then add the repo secret A2E_CORE_TOKEN (read access to maxx-abrt/A2E-Core).
+# It lives under docs/ci/ because a PAT without the `workflow` scope cannot push
+# files into .github/workflows/.
+#
+# Keeps `packages/a2e-core` (the vendored shared client package) in sync with the
+# A2E-Core repo. Triggered manually, weekly, or by A2E-Core on release:
+#
+#   curl -X POST -H "Authorization: Bearer $TOKEN" \
+#     -H "Accept: application/vnd.github+json" \
+#     https://api.github.com/repos/maxx-abrt/Texxel/dispatches \
+#     -d '{"event_type":"a2e-core-release","client_payload":{"ref":"v0.3.0"}}'
+#
+# Requires the repo secret A2E_CORE_TOKEN (read access to maxx-abrt/A2E-Core).
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "A2E-Core git ref (tag or branch)"
+        required: false
+        default: "main"
+  repository_dispatch:
+    types: [a2e-core-release]
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Resolve ref
+        id: ref
+        run: |
+          REF="${{ github.event.inputs.ref || github.event.client_payload.ref || 'main' }}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Sync vendored @a2e/core
+        env:
+          GITHUB_TOKEN: ${{ secrets.A2E_CORE_TOKEN }}
+        run: node scripts/sync-a2e-core.mjs --ref "${{ steps.ref.outputs.ref }}"
+
+      - name: Install & typecheck
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm --filter @a2e/core typecheck
+
+      - name: Open PR if the vendored copy drifted
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/sync-a2e-core
+          title: "chore(core): sync @a2e/core from A2E-Core@${{ steps.ref.outputs.ref }}"
+          commit-message: "chore(core): sync @a2e/core from A2E-Core@${{ steps.ref.outputs.ref }}"
+          body: |
+            Automated sync of the vendored shared package `packages/a2e-core`
+            from `maxx-abrt/A2E-Core@${{ steps.ref.outputs.ref }}`.
+
+            - [ ] read `packages/a2e-core/CHANGELOG.md`
+            - [ ] `pnpm typecheck` / `pnpm build`
+            - [ ] smoke: login → workspace switch → one core read → one core write → one upload
+          add-paths: |
+            packages/a2e-core/**
+            pnpm-lock.yaml

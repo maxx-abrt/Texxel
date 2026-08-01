@@ -2,7 +2,7 @@
   "name": "bureau",
   "private": true,
   "version": "1.0.0",
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=20"
   },
@@ -13,7 +13,8 @@
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "sync:core": "node scripts/sync-a2e-core.mjs"
   },
   "devDependencies": {
     "convex": "1.32.0",
@@ -29,6 +30,13 @@
     "shell-quote": "1.9.0"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "esbuild",
+      "sharp",
+      "unrs-resolver"
+    ],
     "overrides": {
       "@eslint/eslintrc>js-yaml": "4.3.0",
       "@expo/xcpretty>js-yaml": "4.3.0",

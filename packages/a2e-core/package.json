@@ -1,0 +1,34 @@
+{
+  "name": "@a2e/core",
+  "version": "0.2.0",
+  "description": "React provider + typed hooks for the A2E suite core Convex deployment (vendored from the A2E-Core repo — see VENDORED.md).",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": false,
+  "a2e": {
+    "upstreamRepo": "https://github.com/maxx-abrt/A2E-Core",
+    "upstreamPath": "packages/core",
+    "upstreamVersion": "0.2.0",
+    "upstreamCommit": "b0c6ecc7ef7ffd7d1ee327595d962701340e6e68"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "convex": ">=1.30.0",
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5.9.3"
+  }
+}

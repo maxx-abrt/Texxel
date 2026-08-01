@@ -12,14 +12,15 @@ config.cacheStores = [
 ];
 
 
-// `@a2e/core` is a `link:` dependency outside the app root (sibling repo).
-// Watch it and make its imports (react, convex) resolve from THIS app's
-// node_modules so the bundle keeps single copies of both.
-const a2eCorePkg = path.resolve(__dirname, "../../../A2E Core/packages/core");
-config.watchFolders = [...(config.watchFolders ?? []), a2eCorePkg];
+// `@a2e/core` is a workspace package (packages/a2e-core) shipping raw TypeScript.
+// Watch the monorepo root so Metro sees it, and make its imports (react, convex)
+// resolve from THIS app's node_modules so the bundle keeps single copies of both.
+const monorepoRoot = path.resolve(__dirname, "../..");
+config.watchFolders = [...(config.watchFolders ?? []), path.join(monorepoRoot, "packages")];
 config.resolver.nodeModulesPaths = [
   ...(config.resolver.nodeModulesPaths ?? []),
   path.resolve(__dirname, "node_modules"),
+  path.join(monorepoRoot, "node_modules"),
 ];
 
 // // Exclude unnecessary directories from file watching

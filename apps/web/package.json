@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@a2e/core": "link:../../../A2E Core/packages/core",
+    "@a2e/core": "workspace:*",
     "@auth/core": "0.37.4",
     "@bureau/api": "workspace:*",
     "@bureau/ui": "workspace:*",

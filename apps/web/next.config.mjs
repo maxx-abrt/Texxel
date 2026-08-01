@@ -10,7 +10,7 @@ const nextConfig = {
   reactStrictMode: false,
   typescript: { ignoreBuildErrors: true },
   // Workspace packages ship raw TypeScript — Next must compile them.
-  transpilePackages: ["@bureau/api", "@bureau/ui"],
+  transpilePackages: ["@bureau/api", "@bureau/ui", "@a2e/core"],
   ...(isEmergentDev ? { outputFileTracingRoot: "/app/texxel" } : {}),
   // Allow the Emergent preview proxy origins during `next dev`. The browser is
   // served from *.preview.emergentcf.cloud (the real CDN origin) which proxies

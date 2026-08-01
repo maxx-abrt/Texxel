@@ -13,7 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@a2e/core": "link:../../../A2E Core/packages/core",
+    "@a2e/core": "workspace:*",
     "@expo/metro-runtime": "^55.0.0",
     "@expo/vector-icons": "15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",

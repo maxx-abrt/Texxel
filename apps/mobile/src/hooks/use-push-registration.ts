@@ -4,19 +4,35 @@ import { usePushTokenMutations, useWorkspace } from "@a2e/core";
 import { coreFlags } from "@/src/core-flags";
 
 /**
- * Registers the device for push notifications with the A2E Core deployment.
+ * Registers the device with A2E Core's shared `pushTokens` table so the suite
+ * can fan notifications out to this device (guide §8).
  *
- * Requires `expo-notifications` to be installed. If the package is not
- * available, this hook is a no-op.
+ * STATUS: inert until `expo-notifications` is installed — the package is not in
+ * `apps/mobile/package.json` yet, and a static import of a missing module is a
+ * Metro build error, so the token acquisition is behind `getExpoPushToken()`
+ * which returns `null` today.
  *
- * Usage: mount once near the root of the authenticated app.
- *   usePushRegistration();
+ * To activate:
+ *   1. npx expo install expo-notifications
+ *   2. add "expo-notifications" to app.json → plugins
+ *   3. replace the body of `getExpoPushToken()` with:
+ *        const Notifications = require("expo-notifications");
+ *        if (Platform.OS === "ios") {
+ *          const granted = await Notifications.requestPermissionsAsync();
+ *          if (!granted.granted) return null;
+ *        }
+ *        const token = await Notifications.getExpoPushTokenAsync({
+ *          projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+ *        });
+ *        return token?.data ?? null;
  *
- * Setup:
- *   npx expo install expo-notifications
- *   Add the push notifications plugin to app.json:
- *     "plugins": ["expo-notifications"]
+ * Everything else (core registration, dedupe, unregister on logout/switch) is
+ * already wired.
  */
+async function getExpoPushToken(): Promise<string | null> {
+  return null;
+}
+
 export function usePushRegistration() {
   const { activeWorkspaceId } = useWorkspace();
   const { register, unregister } = usePushTokenMutations();
@@ -25,42 +41,28 @@ export function usePushRegistration() {
   useEffect(() => {
     if (!coreFlags.notifications || !activeWorkspaceId) return;
 
-    // Dynamically import expo-notifications so the hook doesn't crash
-    // if the package isn't installed yet.
     let cancelled = false;
-    import("expo-notifications")
-      .then(async (Notifications) => {
-        if (cancelled || !Notifications?.getExpoPushTokenAsync) return;
 
-        // Request permissions (iOS only — Android grants on install).
-        if (Platform.OS === "ios") {
-          const granted = await Notifications.requestPermissionsAsync();
-          if (!granted.granted) return;
-        }
+    void (async () => {
+      const token = await getExpoPushToken().catch(() => null);
+      if (cancelled || !token) return;
 
-        const token = await Notifications.getExpoPushTokenAsync({
-          projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-        });
-        if (cancelled || !token?.data) return;
+      // Avoid re-registering the same token.
+      if (registeredToken.current === token) return;
+      registeredToken.current = token;
 
-        // Avoid re-registering the same token.
-        if (registeredToken.current === token.data) return;
-        registeredToken.current = token.data;
-
-        await register({
-          workspaceId: activeWorkspaceId as any,
-          token: token.data,
-          platform: Platform.OS as "ios" | "android",
-          appKey: "bureau",
-        }).catch(() => {});
-      })
-      .catch(() => {
-        // expo-notifications not installed — push is a no-op until added.
-      });
+      // `pushTokens.register` is per device+user (not per workspace) — see the
+      // @a2e/core contract; core fans out to every workspace the user is in.
+      await register({
+        token,
+        platform: Platform.OS as "ios" | "android",
+        appKey: "bureau",
+      }).catch(() => {});
+    })();
 
     return () => {
       cancelled = true;
-      // Unregister on logout/workspace switch.
+      // Unregister on logout / workspace switch.
       if (registeredToken.current) {
         unregister({ token: registeredToken.current }).catch(() => {});
         registeredToken.current = null;

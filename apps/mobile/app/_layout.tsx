@@ -1,15 +1,14 @@
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithAuth } from "convex/react";
-import { CoreProvider, WorkspaceProvider as CoreWorkspaceProvider, type CoreTokenFetcher, type WorkspaceStorageAdapter } from "@a2e/core";
+import { CoreProvider, WorkspaceProvider as CoreWorkspaceProvider, type CoreTokenFetcher } from "@a2e/core";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { AuthProvider, useConvexAuthBridge } from "@/src/auth/auth-provider";
 import { getAccessToken } from "@/src/auth/session-store";
@@ -21,6 +20,7 @@ import { useAppFonts } from "@/src/hooks/use-app-fonts";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { usePushRegistration } from "@/src/hooks/use-push-registration";
 import { I18nProvider } from "@/src/i18n/i18n-provider";
+import { hydrateCoreStorage } from "@/src/lib/core-storage";
 import { ThemeProvider, useTheme } from "@/src/theme/theme-provider";
 
 // Disable logbox errors etc so that users can see the app
@@ -40,17 +40,27 @@ const convex = new ConvexReactClient(CONVEX_URL, { unsavedChangesWarning: false 
 const coreFetchToken: CoreTokenFetcher = () => getAccessToken(false);
 
 // AsyncStorage adapter for the core WorkspaceProvider (persist active workspace
-// selection across app restarts on React Native).
-const coreWorkspaceStorage: WorkspaceStorageAdapter = {
-  getItem: (key) => AsyncStorage.getItem(key),
-  setItem: (key, value) => AsyncStorage.setItem(key, value),
-  removeItem: (key) => AsyncStorage.removeItem(key),
-};
+// selection across app restarts on React Native) — see src/lib/core-storage.ts.
+
+// AsyncStorage-backed `localStorage` shim so the core WorkspaceProvider keeps
+// the active-workspace selection across app restarts (same key as the web app).
+const coreStorageReady = hydrateCoreStorage();
 
 export default function RootLayout() {
   const [iconsLoaded, iconsError] = useIconFonts();
   const [fontsLoaded, fontsError] = useAppFonts();
-  const ready = (iconsLoaded || iconsError) && (fontsLoaded || fontsError);
+  const [storageReady, setStorageReady] = useState(false);
+  const ready = (iconsLoaded || iconsError) && (fontsLoaded || fontsError) && storageReady;
+
+  useEffect(() => {
+    let active = true;
+    void coreStorageReady.then(() => {
+      if (active) setStorageReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -80,17 +90,12 @@ export default function RootLayout() {
                     member: (id) => `/members?member=${id}`,
                   }}
                 >
-                  <CoreWorkspaceProvider storage={coreWorkspaceStorage}>
+                  <CoreWorkspaceProvider>
                     <WorkspaceProvider>
                       {/* Reconcile local ↔ core workspaces on login (idempotent). */}
                       <WorkspaceLinkBridge />
                       {/* Register device for push notifications (no-op if expo-notifications not installed). */}
                       <PushRegistrationMount />
-                      <ToastProvider>
-                        <ThemedShell />
-                      </ToastProvider>
-                    </WorkspaceProvider>
-                  </CoreWorkspaceProvider>
                       <ToastProvider>
                         <ThemedShell />
                       </ToastProvider>

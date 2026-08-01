@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConvexReactClient, ConvexProviderWithAuth } from "convex/react";
 import { CoreProvider, WorkspaceProvider, type CoreTokenFetcher } from "@a2e/core";
+import { A2E_CORE_URL } from "@/lib/core-config";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { LocaleProvider } from "@/components/providers/locale-provider";
 import { ToasterProvider } from "@/components/providers/toaster-provider";
@@ -120,6 +121,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ConvexProviderWithAuth client={convex} useAuth={useWorkosAuth}>
       {/* Shared A2E core client (second Convex deployment) — same WorkOS token. */}
       <CoreProvider
+        url={A2E_CORE_URL}
         fetchToken={coreFetchToken}
         routes={{
           drive: () => "/app/documents",

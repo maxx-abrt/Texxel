@@ -18,7 +18,8 @@
     "upstreamRepo": "https://github.com/maxx-abrt/A2E-Core",
     "upstreamPath": "packages/core",
     "upstreamVersion": "0.2.0",
-    "upstreamCommit": "b0c6ecc7ef7ffd7d1ee327595d962701340e6e68"
+    "upstreamCommit": "b0c6ecc7ef7ffd7d1ee327595d962701340e6e68",
+    "syncedAt": "2026-08-01T08:21:27.688Z"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit"

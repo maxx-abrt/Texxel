@@ -9,12 +9,25 @@ bureau/
 │   ├── web/          Next.js 16 app (App Router) + Convex functions  → texxel.app
 │   └── mobile/       Expo SDK 54 app (Expo Router)                   → Bureau (iOS / Android)
 ├── packages/
+│   ├── a2e-core/     `@a2e/core` — shared A2E suite client (vendored, see VENDORED.md)
 │   ├── api/          tRPC router shared by web + mobile (WorkOS session bridge, runtime config)
 │   ├── ui/           Design tokens — the "Warm Paper" palette, spacing, radii, colour helpers
 │   └── config/       Shared TypeScript base config
 ├── turbo.json        Task pipeline
 └── pnpm-workspace.yaml
 ```
+
+## Shared data layer (A2E suite)
+
+Identity, workspaces, members/roles, drive, calendar, tasks, contacts,
+notifications, activities, comments, presence, prefs and federated search live in
+the **shared A2E Core Convex deployment**, consumed through `@a2e/core`
+(`packages/a2e-core`). Everything Bureau-specific (documents, chat, projects,
+databases, accounting) stays in this app's own Convex deployment.
+
+Read **[`docs/A2E-CORE.md`](./docs/A2E-CORE.md)** before touching anything shared:
+what lives where, how to evolve the shared DB once for every suite app, the env
+matrix, and `pnpm sync:core`.
 
 ## Getting started
 

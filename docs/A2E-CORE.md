@@ -111,7 +111,48 @@ files into `.github/workflows/` — copy it with your own account once.)
 Do that in every suite app and “change core once → every app gets a PR” becomes
 the default.
 
-## 5. Should *all* data of *all* apps live in the core deployment?
+## 5. Troubleshooting the shared layer
+
+**Symptom: `Uncaught Error: [CONVEX Q(<module>:<fn>)] Server Error` + “This page
+couldn't load”.**
+A core function rejected the call. 9 times out of 10 it is an **id from the wrong
+deployment**: core validates `v.id("workspaces")` against ITS database and
+asserts membership, so passing this app's local workspace id (or a core id to a
+local `v.id("flux_*")` arg) is a server error. Rules:
+
+- every core call takes the id from `useCoreWorkspaceId()` (the local
+  workspace's `coreId`, membership-verified) — never `useWorkspace()` from
+  `@/hooks/use-flux-workspace`;
+- core-sourced rows are tagged `_isCore` in the UI; anything keyed on them
+  (comments, subtasks, time entries…) must use core, not the local sidecar;
+- members/assignees must come from the same backend as the entity (core member
+  ids ≠ local member ids).
+
+**Where to look, in order:**
+
+1. **Settings → “Espace partagé A2E”** (`components/app/core-status-card.tsx`):
+   core host, shared session, linked workspace id, membership verified, modules
+   running on core. That panel answers “is the link healthy?” instantly.
+2. **Convex dashboard → core deployment → Logs**: the real error message
+   (`Forbidden: you are not a member of this workspace`, `Not authenticated`,
+   `User not provisioned yet`, `ArgumentValidationError`…).
+3. **Token trust**: core must accept this app's WorkOS issuer. Core's
+   `auth.config.ts` trusts `WORKOS_ISSUER_CLIENT_ID` (defaults to the
+   environment's User Management client), `WORKOS_CLIENT_ID` and every id in
+   `WORKOS_SUITE_CLIENT_IDS`. Symptom when untrusted: *all* core reads fail
+   (`Not authenticated`), including `workspaces.listMine` → the status panel
+   shows “session: not connected”.
+4. **Link state**: a workspace created before core adoption gets its `coreId`
+   from the `WorkspaceLinkBridge` on login; the status panel's “link this
+   workspace to core” button forces it for an owner.
+
+**Guaranteed non-regression**: `CoreErrorBoundary` (mounted in
+`app/app/layout.tsx`) catches any core failure, calls `disableCoreModules()` and
+re-renders — the page keeps working on local data with a banner + retry instead of
+dying. Every `coreFlags.*` read is a live getter, which is what makes that
+runtime degradation possible without a refactor.
+
+## 6. Should *all* data of *all* apps live in the core deployment?
 
 Short answer: **all _shared_ data — yes, and that is already the design. All data
 of every app in a single Convex deployment — no.** Reasons, in order of weight:
@@ -139,7 +180,7 @@ Practical rule to grow it: the day a *second* app needs a table, promote it to
 core (guide §6) instead of copying it. Anything duplicated in two app repos is a
 bug. Anything only one app will ever read stays local and is linked.
 
-## 6. Env matrix
+## 7. Env matrix
 
 | Var | Where | Value |
 |---|---|---|

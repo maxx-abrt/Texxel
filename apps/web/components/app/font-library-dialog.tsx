@@ -6,7 +6,8 @@ import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useResolvedFonts } from "@/hooks/use-resolved-fonts";
-import { useUpload, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { useUpload } from "@a2e/core";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { coreFlags } from "@/lib/core-flags";
 import { useQuotaGuard } from "@/hooks/use-quota-guard";
 import { UpgradeDialog } from "@/components/app/upgrade-dialog";
@@ -69,7 +70,7 @@ export function FontLibraryDialog({
 }) {
   const t = useTranslations("docsExperience.fonts");
   const fonts = useResolvedFonts(workspaceId);
-  const { activeWorkspace: coreWorkspace } = useCoreWorkspace();
+  const coreWorkspaceId = useCoreWorkspaceId();
   const coreUpload = useUpload();
   const storageQuota = useQuotaGuard("storageBytes");
   const fileSizeQuota = useQuotaGuard("maxFileUploadBytes");
@@ -130,13 +131,13 @@ export function FontLibraryDialog({
     try {
       let storageId: Id<"_storage"> | undefined;
       let coreFileId: string | undefined;
-      if (USE_CORE_DRIVE && coreWorkspace?._id) {
+      if (USE_CORE_DRIVE && coreWorkspaceId) {
         if (coreFlags.quotas) {
           if (!fileSizeQuota.guard()) { setBusy(false); return; }
           if (!storageQuota.guard()) { setBusy(false); return; }
         }
         const uploadFn = () => coreUpload.upload({
-          workspaceId: coreWorkspace._id as any,
+          workspaceId: coreWorkspaceId as any,
           file,
           sourceApp: "bureau",
           linkedTo: { app: "bureau", type: "font", id: workspaceId as string },

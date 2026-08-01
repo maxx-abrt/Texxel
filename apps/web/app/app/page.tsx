@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEvents, useTasks } from "@a2e/core";
 import { coreFlags } from "@/lib/core-flags";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useLocale, useTranslations } from "next-intl";
 import { PageContainer, timeAgo, btnPrimary } from "@/components/app/common";
@@ -45,8 +46,10 @@ export default function HomePage() {
     api.flux_tasks.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
   );
-  const coreTasks = useTasks(coreFlags.tasks ? activeWorkspaceId : null);
-  const tasks = coreFlags.tasks ? coreTasks : localTasks;
+  const coreWs = useCoreWorkspaceId();
+  const useCoreTasks = coreFlags.tasks && !!coreWs;
+  const coreTasks = useTasks(useCoreTasks ? (coreWs as never) : null);
+  const tasks = useCoreTasks ? coreTasks : localTasks;
   const notifications = useQuery(api.notifications.listMine, { limit: 20 });
   const projects = useQuery(
     api.projects.list,
@@ -60,8 +63,9 @@ export default function HomePage() {
     api.flux_events.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId, start: now, end: weekEnd } : "skip",
   );
-  const coreEvents = useEvents(coreFlags.events ? activeWorkspaceId : null, { start: now, end: weekEnd });
-  const events = coreFlags.events ? [...(coreEvents ?? []), ...(localEvents ?? [])] : localEvents;
+  const useCoreEvents = coreFlags.events && !!coreWs;
+  const coreEvents = useEvents(useCoreEvents ? (coreWs as never) : null, { start: now, end: weekEnd });
+  const events = useCoreEvents ? [...(coreEvents ?? []), ...(localEvents ?? [])] : localEvents;
   const createDoc = useMutation(api.flux_documents.create);
 
   const recent = (docs ?? [])

@@ -7,7 +7,8 @@ import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useCoreWorkspaceLink } from "@/hooks/use-core-workspace-link";
-import { useUserPrefs, useUpdatePrefs, useMyPermissions, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { useUserPrefs, useUpdatePrefs, useMyPermissions } from "@a2e/core";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { coreFlags } from "@/lib/core-flags";
 import { useLocale } from "@/components/providers/locale-provider";
 import { useTranslations } from "next-intl";
@@ -336,8 +337,8 @@ export default function SettingsPage() {
   const tc = useTranslations("common");
   const ta = useTranslations("auth");
   const myPermissions = useQuery(api.flux_roles.myPermissions, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
-  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
-  const coreMyPermissions = useMyPermissions(coreFlags.roles ? coreWsId : null);
+  const coreWsId = useCoreWorkspaceId();
+  const coreMyPermissions = useMyPermissions(coreFlags.roles ? (coreWsId as never) : null);
   const effectivePermissions = coreFlags.roles ? (coreMyPermissions ?? []) : (myPermissions ?? []);
 
   const updateProfile = useMutation(api.users.updateProfile);

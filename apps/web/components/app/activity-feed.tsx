@@ -2,7 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useActivities, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { useActivities } from "@a2e/core";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { coreFlags } from "@/lib/core-flags";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -34,13 +35,13 @@ const ACTION_ICONS: Record<string, string> = {
 
 export function ActivityFeed({ limit = 100 }: { limit?: number }) {
   const { activeWorkspaceId } = useWorkspace();
-  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
+  const coreWsId = useCoreWorkspaceId();
   const t = useTranslations("activity");
   const localActivities = useQuery(
     api.activities.list,
     activeWorkspaceId ? { workspaceId: activeWorkspaceId, limit } : "skip",
   );
-  const coreActivities = useActivities(coreFlags.activities ? coreWsId : null, limit);
+  const coreActivities = useActivities(coreFlags.activities ? (coreWsId as never) : null, limit);
 
   // Merge local + core activities, sorted by createdAt (newest first).
   // Core activities include a sourceApp badge to distinguish which app produced them.

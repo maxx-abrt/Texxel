@@ -4,7 +4,8 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { usePresence as useCorePresence, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { usePresence as useCorePresence } from "@a2e/core";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { coreFlags } from "@/lib/core-flags";
 
 export type PresenceUser = {
@@ -27,7 +28,7 @@ export function usePresence(
   documentId: Id<"flux_documents"> | undefined,
   editing: boolean,
 ): PresenceUser[] {
-  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
+  const coreWsId = useCoreWorkspaceId();
   const useCore = coreFlags.presence;
 
   // Local path
@@ -40,7 +41,7 @@ export function usePresence(
 
   // Core path
   const corePresence = useCorePresence(
-    useCore && coreWsId ? coreWsId : null,
+    useCore && coreWsId ? (coreWsId as never) : null,
     useCore && documentId ? { type: "document", id: String(documentId) } : null,
     editing ? "editing" : "viewing",
   );

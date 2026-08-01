@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useEvents, useEventMutations } from "@a2e/core";
 import { coreFlags } from "@/lib/core-flags";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { useQuotaGuard } from "@/hooks/use-quota-guard";
 import { UpgradeDialog } from "@/components/app/upgrade-dialog";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
@@ -49,9 +50,12 @@ export function CalendarView() {
   // Dual-path: when the core flag is ON, merge core + local events.
   // Core events are tagged with _isCore so recurring operations can route
   // to the correct mutation (core vs local).
-  const useCore = coreFlags.events;
+  // Core mode requires the flag AND a verified core workspace link — core
+  // validates ids against ITS deployment, so a local id is a server error.
+  const coreWs = useCoreWorkspaceId();
+  const useCore = coreFlags.events && !!coreWs;
   const localEvents = useQuery(api.flux_events.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
-  const coreEvents = useEvents(useCore ? activeWorkspaceId : null);
+  const coreEvents = useEvents(useCore ? (coreWs as never) : null);
   const events = useCore
     ? [...(coreEvents ?? []).map((e) => ({ ...e, _isCore: true })), ...(localEvents ?? [])]
     : localEvents;
@@ -159,11 +163,11 @@ export function CalendarView() {
             }
             toast.success(t("eventUpdated"));
           } else {
-            if (!activeWorkspaceId) return;
+            if (!activeWorkspaceId && !coreWs) return;
             if (useCore && !guardEventQuota()) return;
             if (useCore) {
               await catchEventQuota(() => coreMutations.create({
-                workspaceId: activeWorkspaceId as any,
+                workspaceId: coreWs as any,
                 title: data.title,
                 description: data.description,
                 start: data.start,
@@ -209,7 +213,7 @@ export function CalendarView() {
               if (recurOpts._isCore) {
                 // Core: create standalone event + add exception to series
                 coreMutations.create({
-                  workspaceId: activeWorkspaceId as any,
+                  workspaceId: coreWs as any,
                   title: recurOpts.title,
                   description: recurOpts.description,
                   start: recurOpts._occurrenceStart,

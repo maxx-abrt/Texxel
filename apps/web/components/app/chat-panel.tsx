@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
-import { useUpload, useFileUrl, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { useUpload, useFileUrl } from "@a2e/core";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { coreFlags } from "@/lib/core-flags";
 import { useQuotaGuard } from "@/hooks/use-quota-guard";
 import { UpgradeDialog } from "@/components/app/upgrade-dialog";
@@ -104,7 +105,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ projectId, channelId, className, onClose }: ChatPanelProps) {
   const { activeWorkspaceId, me } = useWorkspace();
-  const { activeWorkspace: coreWorkspace } = useCoreWorkspace();
+  const coreWorkspaceId = useCoreWorkspaceId();
   const coreUpload = useUpload();
   const t = useTranslations("chat");
   const workspaceId = activeWorkspaceId;
@@ -256,9 +257,9 @@ export function ChatPanel({ projectId, channelId, className, onClose }: ChatPane
       };
       setAttachments((prev) => [...prev, local]);
       try {
-        if (USE_CORE_DRIVE && coreWorkspace?._id) {
+        if (USE_CORE_DRIVE && coreWorkspaceId) {
           const uploadFn = () => coreUpload.upload({
-            workspaceId: coreWorkspace._id as any,
+            workspaceId: coreWorkspaceId as any,
             file,
             sourceApp: "bureau",
             linkedTo: channelId

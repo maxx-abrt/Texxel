@@ -13,6 +13,8 @@ import { DockedBubbles } from "@/components/app/docked-bubbles";
 import { ShortcutsHelp } from "@/components/app/shortcuts-help";
 import { TrashDndProvider } from "@/components/providers/dnd-trash-provider";
 import { WorkspaceLinkBridge } from "@/components/app/workspace-link-bridge";
+import { CoreErrorBoundary } from "@/components/app/core-error-boundary";
+import { CoreWorkspaceSync } from "@/components/app/core-workspace-sync";
 import { AccentProvider } from "@/components/providers/accent-provider";
 import { usePersistedState } from "@/hooks/use-sidebar-prefs";
 import { useTranslations } from "next-intl";
@@ -125,7 +127,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Reconcile local workspaces with A2E Core before the shell (and its
             onboarding gate) renders, so mirrored workspaces are already there. */}
         <WorkspaceLinkBridge fallback={<Loader stage="workspace-sync" />}>
-          <Shell>{children}</Shell>
+          {/* Any A2E Core failure degrades to local data + a banner instead of
+              taking the page down (Convex useQuery throws during render). */}
+          <CoreErrorBoundary>
+            {/* Align core's active workspace with the local one (suite-wide). */}
+            <CoreWorkspaceSync />
+            <Shell>{children}</Shell>
+          </CoreErrorBoundary>
         </WorkspaceLinkBridge>
       </WorkspaceProvider>
     </UserStoreSync>

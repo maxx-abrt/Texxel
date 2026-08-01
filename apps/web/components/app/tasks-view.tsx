@@ -8,8 +8,9 @@ import { useQuery, useMutation } from "convex/react";
 import { FolderKanban } from "lucide-react";
 import { Virtuoso } from "react-virtuoso";
 import { api } from "@/convex/_generated/api";
-import { useTasks, useTaskStatuses, useTaskMutations, useWorkspace as useCoreWorkspace } from "@a2e/core";
+import { useTasks, useTaskStatuses, useTaskMutations, useMembers, useMe, useComments, useCommentMutations } from "@a2e/core";
 import { coreFlags } from "@/lib/core-flags";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { useQuotaGuard } from "@/hooks/use-quota-guard";
 import { UpgradeDialog } from "@/components/app/upgrade-dialog";
 import { Id } from "@/convex/_generated/dataModel";
@@ -91,29 +92,40 @@ export function TasksView() {
   const t = useTranslations("tasks");
   const search = useSearchParams();
   const { activeWorkspaceId, me } = useWorkspace();
-  const useCore = coreFlags.tasks;
-  const { activeWorkspaceId: coreWsId } = useCoreWorkspace();
+  const coreWs = useCoreWorkspaceId();
+  // Core mode requires BOTH the flag and a verified core workspace link,
+  // otherwise we stay on local data (never send a local id to core).
+  const useCore = coreFlags.tasks && !!coreWs;
+  // Workspace id for the routed (core-or-local) reads & writes.
+  const wsId = useCore ? coreWs : activeWorkspaceId;
   const taskQuota = useQuotaGuard("maxTasks");
   const { guard: guardTaskQuota, catchQuota: catchTaskQuota, dialogState: taskQuotaDialog, setDialogState: setTaskQuotaDialog } = taskQuota;
 
   // Local (Bureau) queries — always loaded (sidecar data + legacy rows)
   const localTasks = useQuery(api.flux_tasks.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const localStatuses = useQuery(api.flux_taskStatuses.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip") as Status[] | undefined;
-  const members = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
+  const localMembers = useQuery(api.workspaces.listMembers, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const projects = useQuery(api.projects.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
   const labels = useQuery(api.flux_labels.list, activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip");
 
-  // Core queries — loaded when the flag is ON
-  const coreTasks = useTasks(useCore ? activeWorkspaceId : null);
-  const coreStatuses = useTaskStatuses(useCore ? activeWorkspaceId : null);
+  // Core queries — loaded when the flag is ON and the workspace is linked
+  const coreTasks = useTasks(useCore ? (coreWs as never) : null);
+  const coreStatuses = useTaskStatuses(useCore ? (coreWs as never) : null);
 
-  // Merge: when the core flag is ON, use core tasks + core statuses.
-  // Local tasks remain for the projectId sidecar join (via coreTaskId).
-  // For now, during transition, we display core tasks when the flag is ON.
-  const tasks = useCore ? coreTasks : localTasks;
+  // Merge: when core is active, display core tasks + core statuses (tagged
+  // `_isCore` so the detail sheet knows not to hit local sidecar queries with a
+  // core id). Local tasks stay available for the legacy/offline path.
+  const tasks = useCore ? coreTasks?.map((t) => ({ ...t, _isCore: true })) : localTasks;
   const statuses: Status[] | undefined = useCore
     ? (coreStatuses as Status[] | undefined)
     : localStatuses;
+
+  // Members & identity must come from the SAME backend as the tasks, otherwise
+  // assignee ids don't match (core user ids vs local user ids).
+  const coreMembers = useMembers(useCore ? (coreWs as never) : null);
+  const coreMe = useMe();
+  const members = useCore ? coreMembers?.map((m: any) => ({ ...m, userId: m._id })) : localMembers;
+  const meId = (useCore ? coreMe?._id : me?._id) ?? null;
 
   const localCreate = useMutation(api.flux_tasks.create);
   const localUpdate = useMutation(api.flux_tasks.update);
@@ -164,8 +176,8 @@ export function TasksView() {
     return m;
   }, [labels]);
 
-  const showAssigneeFilter = (members?.length ?? 0) > 0 || !!me?._id;
-  const otherMembers = useMemo(() => (members ?? []).filter((m: any) => m.userId !== me?._id), [members, me]);
+  const showAssigneeFilter = (members?.length ?? 0) > 0 || !!meId;
+  const otherMembers = useMemo(() => (members ?? []).filter((m: any) => m.userId !== meId), [members, meId]);
 
   return (
     <PageContainer>
@@ -218,12 +230,12 @@ export function TasksView() {
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-xs font-medium text-muted-foreground">{t("filterByAssignee")}:</span>
             <button onClick={() => setAssigneeFilter(null)} className={cn("rounded-full px-2.5 py-1 text-xs font-medium", !assigneeFilter ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70")}>{t("allAssignees")}</button>
-            {me?._id && (
+            {meId && (
               <button
-                onClick={() => setAssigneeFilter(assigneeFilter === me._id ? null : me._id)}
+                onClick={() => setAssigneeFilter(assigneeFilter === meId ? null : meId)}
                 className={cn(
                   "flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition",
-                  assigneeFilter === me._id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+                  assigneeFilter === meId ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
                 )}
                 data-testid="tasks-filter-me"
               >
@@ -324,11 +336,11 @@ export function TasksView() {
         defaultStatus={createStatus}
         workspaceId={activeWorkspaceId}
         onCreate={async (data: any) => {
-          if (!activeWorkspaceId) return;
+          if (!wsId) return;
           if (useCore && !guardTaskQuota()) return;
           if (useCore) {
             await catchTaskQuota(async () => { await create({
-              workspaceId: activeWorkspaceId as any,
+              workspaceId: wsId as any,
               title: data.title,
               description: data.description,
               status: data.status,
@@ -340,7 +352,7 @@ export function TasksView() {
               linkedTo: data.projectId ? { app: "bureau", type: "project", id: data.projectId } : undefined,
             } as any); });
           } else {
-            await create({ workspaceId: activeWorkspaceId, ...data });
+            await create({ workspaceId: wsId, ...data });
           }
           toast.success(t("created"));
           setCreateOpen(false);
@@ -355,6 +367,7 @@ export function TasksView() {
         labels={labels ?? []}
         labelColor={labelColor}
         workspaceId={activeWorkspaceId}
+        coreWorkspaceId={coreWs}
         onUpdate={async (patch: any) => { if (selected) await update({ taskId: selected._id, ...patch }); }}
         onDelete={async () => { if (selected) { await remove({ taskId: selected._id }); setSelected(null); toast.success(t("deleted")); } }}
       />
@@ -374,7 +387,7 @@ export function TasksView() {
         }}
       />
 
-      <StatusManagerDialog open={statusMgrOpen} onOpenChange={setStatusMgrOpen} statuses={cols} workspaceId={activeWorkspaceId} />
+      <StatusManagerDialog open={statusMgrOpen} onOpenChange={setStatusMgrOpen} statuses={cols} workspaceId={wsId} localWorkspaceId={activeWorkspaceId} coreMode={useCore} />
 
       {coreFlags.quotas && <UpgradeDialog state={taskQuotaDialog} onOpenChange={(o) => setTaskQuotaDialog((s) => ({ ...s, open: o }))} />}
     </PageContainer>
@@ -1056,13 +1069,42 @@ function TaskTimeTracking({ task, workspaceId, onUpdate }: any) {
 
 /* ───────────────────────── Detail sheet ───────────────────────── */
 
-function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor, workspaceId, onUpdate, onDelete }: any) {
+function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor, workspaceId, coreWorkspaceId, onUpdate, onDelete }: any) {
   const t = useTranslations("tasks");
-  const comments = useQuery(api.flux_tasks.listComments, task ? { taskId: task._id } : "skip");
-  const subtasks = useQuery(api.flux_tasks.listChildren, task ? { parentId: task._id } : "skip");
-  const addComment = useMutation(api.flux_tasks.addComment);
-  const createTask = useMutation(api.flux_tasks.create);
-  const setStatus = useMutation(api.flux_tasks.setStatus);
+  // A core-sourced task carries `_isCore`: its id belongs to the CORE deployment,
+  // so the local sidecar queries (comments / subtasks / time) must be skipped —
+  // passing a core id to a local `v.id("flux_tasks")` arg is a server error.
+  const isCore = !!task?._isCore;
+  const coreWs = isCore ? coreWorkspaceId ?? null : null;
+
+  const localComments = useQuery(api.flux_tasks.listComments, task && !isCore ? { taskId: task._id } : "skip");
+  const localSubtasks = useQuery(api.flux_tasks.listChildren, task && !isCore ? { parentId: task._id } : "skip");
+  const coreComments = useComments(coreWs as never, task && isCore ? { app: "bureau", type: "task", id: task._id } : null);
+  const coreSubtasks = useTasks(coreWs as never, task && isCore ? task._id : undefined);
+  const coreCommentMutations = useCommentMutations();
+  const coreTaskMutations = useTaskMutations();
+
+  const comments = isCore ? coreComments?.map((c: any) => ({ ...c, user: c.author })) : localComments;
+  const subtasks = isCore ? coreSubtasks : localSubtasks;
+
+  const localAddComment = useMutation(api.flux_tasks.addComment);
+  const localCreateTask = useMutation(api.flux_tasks.create);
+  const localSetStatus = useMutation(api.flux_tasks.setStatus);
+
+  const addComment = isCore
+    ? async (args: { taskId: string; content: string }) =>
+        coreCommentMutations.add({
+          workspaceId: coreWs as never,
+          target: { app: "bureau", type: "task", id: args.taskId },
+          content: args.content,
+          sourceApp: "bureau",
+        } as never)
+    : localAddComment;
+  const createTask = isCore
+    ? async (args: any) =>
+        coreTaskMutations.create({ ...args, workspaceId: coreWs as never, sourceApp: "bureau" } as never)
+    : localCreateTask;
+  const setStatus = isCore ? coreTaskMutations.setStatus : localSetStatus;
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
   const [subtaskInput, setSubtaskInput] = useState("");
@@ -1143,16 +1185,16 @@ function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor,
                     placeholder={t("subtaskPlaceholder")}
                     className={cn(inputBase, "h-8 text-sm")}
                     onKeyDown={async (e) => {
-                      if (e.key === "Enter" && subtaskInput.trim() && workspaceId) {
-                        await createTask({ workspaceId, title: subtaskInput.trim(), parentId: task._id, status: "todo" });
+                      if (e.key === "Enter" && subtaskInput.trim() && (isCore ? coreWs : workspaceId)) {
+                        await createTask({ workspaceId: isCore ? coreWs : workspaceId, title: subtaskInput.trim(), parentId: task._id, status: "todo" } as any);
                         setSubtaskInput("");
                       }
                     }}
                   />
                   <button
                     onClick={async () => {
-                      if (subtaskInput.trim() && workspaceId) {
-                        await createTask({ workspaceId, title: subtaskInput.trim(), parentId: task._id, status: "todo" });
+                      if (subtaskInput.trim() && (isCore ? coreWs : workspaceId)) {
+                        await createTask({ workspaceId: isCore ? coreWs : workspaceId, title: subtaskInput.trim(), parentId: task._id, status: "todo" } as any);
                         setSubtaskInput("");
                       }
                     }}
@@ -1165,7 +1207,8 @@ function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor,
             )}
           </div>
 
-          <TaskTimeTracking task={task} workspaceId={workspaceId} onUpdate={onUpdate} />
+          {/* Time entries are a Bureau-local sidecar keyed on a local task id. */}
+          {!isCore && <TaskTimeTracking task={task} workspaceId={workspaceId} onUpdate={onUpdate} />}
 
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">{t("comments")}</label>
@@ -1255,9 +1298,9 @@ function AssigneeLanesView({ tasks, members, cols, labelColor, onOpen }: any) {
 
 /* ───────────────────────── Status manager ───────────────────────── */
 
-function StatusManagerDialog({ open, onOpenChange, statuses, workspaceId }: any) {
+function StatusManagerDialog({ open, onOpenChange, statuses, workspaceId, coreMode }: any) {
   const t = useTranslations("tasks");
-  const useCore = coreFlags.tasks;
+  const useCore = !!coreMode;
   const localCreateStatus = useMutation(api.flux_taskStatuses.create);
   const localUpdateStatus = useMutation(api.flux_taskStatuses.update);
   const localRemoveStatus = useMutation(api.flux_taskStatuses.remove);

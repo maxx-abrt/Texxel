@@ -787,7 +787,14 @@
       "linking": "Linking…",
       "linkSuccess": "Workspace linked to the A2E suite",
       "linkFailed": "Link failed — will retry on next sign-in",
-      "retry": "Retry core"
+      "retry": "Retry core",
+      "migrationTitle": "Legacy data migration",
+      "migrationCounts": "{tasks} task(s) and {events} event(s) still only in this app's local database.",
+      "migrationDone": "Everything is migrated to the shared workspace.",
+      "migrationRun": "Migrate to the shared workspace",
+      "migrationRunning": "Migrating…",
+      "migrationProgress": "{done}/{total} items migrated",
+      "migrationBatched": "Migrated in batches of 100 — press again until the counter reaches zero."
     }
   },
   "roles": {

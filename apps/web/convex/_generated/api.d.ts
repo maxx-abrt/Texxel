@@ -18,6 +18,7 @@ import type * as a2e_grantReports from "../a2e_grantReports.js";
 import type * as a2e_invoices from "../a2e_invoices.js";
 import type * as activities from "../activities.js";
 import type * as auth from "../auth.js";
+import type * as coreMigration from "../coreMigration.js";
 import type * as coreSync from "../coreSync.js";
 import type * as crons from "../crons.js";
 import type * as flux_chat from "../flux_chat.js";
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   a2e_invoices: typeof a2e_invoices;
   activities: typeof activities;
   auth: typeof auth;
+  coreMigration: typeof coreMigration;
   coreSync: typeof coreSync;
   crons: typeof crons;
   flux_chat: typeof flux_chat;

@@ -7,11 +7,12 @@ import { toast } from "sonner";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
 import { useCoreWorkspaceLink } from "@/hooks/use-core-workspace-link";
+import { useCoreMigration } from "@/hooks/use-core-migration";
 import { A2E_CORE_URL, A2E_CORE_URL_FROM_ENV } from "@/lib/core-config";
 import { coreFlags, isCoreDegraded, resetCoreModules } from "@/lib/core-flags";
 import { btnOutline } from "@/components/app/common";
 import { cn } from "@/lib/utils";
-import { TickCircle, CloseCircle, Refresh2, Link21 } from "iconsax-reactjs";
+import { TickCircle, CloseCircle, Refresh2, Link21, ImportSquare } from "iconsax-reactjs";
 
 /**
  * Observability for the shared A2E Core layer.
@@ -28,6 +29,7 @@ export function CoreStatusCard() {
   const { isAuthenticated, isLoading: isAuthLoading } = useCoreAuthState();
   const coreWsId = useCoreWorkspaceId();
   const { linkNewWorkspace } = useCoreWorkspaceLink();
+  const migration = useCoreMigration();
   const [linking, setLinking] = React.useState(false);
 
   const linkedId = activeWorkspace?.coreId ?? null;
@@ -104,6 +106,56 @@ export function CoreStatusCard() {
           </span>
         </Row>
       </dl>
+
+      {coreWsId && migration.ready && (migration.remaining > 0 || migration.progress.step === "finished") && (
+        <div className="rounded-2xl border border-border bg-card/40 p-3" data-testid="core-migration-block">
+          <p className="text-sm font-medium">{t("migrationTitle")}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground" data-testid="core-migration-counts">
+            {migration.remaining > 0
+              ? t("migrationCounts", { tasks: migration.counts.tasks, events: migration.counts.events })
+              : t("migrationDone")}
+          </p>
+
+          {migration.progress.running && (
+            <div className="mt-2">
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.round((migration.progress.done / Math.max(migration.progress.total, 1)) * 100)}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {t("migrationProgress", { done: migration.progress.done, total: migration.progress.total })}
+              </p>
+            </div>
+          )}
+
+          {migration.progress.errors.length > 0 && (
+            <ul className="mt-2 max-h-24 space-y-0.5 overflow-y-auto text-[11px] text-destructive" data-testid="core-migration-errors">
+              {migration.progress.errors.slice(0, 6).map((e, i) => (
+                <li key={i}>{e}</li>
+              ))}
+            </ul>
+          )}
+
+          {migration.remaining > 0 && (
+            <button
+              onClick={migration.run}
+              disabled={!migration.canRun}
+              className={cn(btnOutline, "mt-3 h-9 text-xs")}
+              data-testid="core-migration-run"
+            >
+              <ImportSquare variant="Bulk" size={15} />
+              {migration.progress.running ? t("migrationRunning") : t("migrationRun")}
+            </button>
+          )}
+          {migration.batched && !migration.progress.running && (
+            <p className="mt-1 text-[11px] text-muted-foreground">{t("migrationBatched")}</p>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {!linkedId && isOwner && (

@@ -1318,7 +1318,20 @@ function StatusManagerDialog({ open, onOpenChange, statuses, workspaceId, coreMo
     if ((statuses ?? []).every((s: Status) => s._id == null)) {
       await ensureDefaults({ workspaceId });
     }
-    await createStatus({ workspaceId, label: newLabel.trim(), color: newColor } as any);
+    // Core's `createStatus` requires an explicit key + order (local one derives
+    // them server-side), so build them here when routing to the shared backend.
+    if (useCore) {
+      const key = newLabel.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || `status_${Date.now()}`;
+      await createStatus({
+        workspaceId,
+        key,
+        label: newLabel.trim(),
+        color: newColor,
+        order: (statuses ?? []).length,
+      } as any);
+    } else {
+      await createStatus({ workspaceId, label: newLabel.trim(), color: newColor } as any);
+    }
     setNewLabel("");
     setNewColor(STATUS_PALETTE[Math.floor(Math.random() * STATUS_PALETTE.length)]);
     toast.success(t("statusAdded"));

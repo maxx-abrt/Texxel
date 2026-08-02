@@ -893,7 +893,14 @@
       "linking": "Liaison…",
       "linkSuccess": "Espace lié à la suite A2E",
       "linkFailed": "Liaison impossible — nouvelle tentative à la prochaine connexion",
-      "retry": "Réessayer le core"
+      "retry": "Réessayer le core",
+      "migrationTitle": "Migration des données locales",
+      "migrationCounts": "{tasks} tâche(s) et {events} événement(s) encore uniquement dans la base locale de cette app.",
+      "migrationDone": "Tout est migré vers l'espace partagé.",
+      "migrationRun": "Migrer vers l'espace partagé",
+      "migrationRunning": "Migration en cours…",
+      "migrationProgress": "{done}/{total} éléments migrés",
+      "migrationBatched": "Migration par lots de 100 — relance le bouton jusqu'à ce que le compteur tombe à zéro."
     }
   },
   "roles": {

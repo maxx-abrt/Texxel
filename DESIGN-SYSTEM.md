@@ -44,8 +44,8 @@ single most defining aesthetic choice.
 | `--secondary` | `#f1eae3` (sand) | `#44423f` | Secondary surfaces |
 | `--muted` | `#f2ece5` | `#413f3c` | Muted backgrounds |
 | `--muted-foreground` | `#7a746d` | `#b3ada6` | Secondary text |
-| `--accent` | `#f9e3dc` (coral soft) | `#4c3a33` | Hover/accent backgrounds |
-| `--accent-foreground` | `#8a3524` | `#f4c4b8` | Accent text |
+| `--accent` | `#f7ded9` (coral soft) | `#4a3430` | Hover/accent backgrounds |
+| `--accent-foreground` | `#803c35` | `#f2c3bb` | Accent text |
 | `--border` | `#e9e1d8` | `#4a4844` | All borders |
 | `--input` | `#e9e1d8` | `#4f4d49` | Input borders |
 | `--destructive` | `#c93c2a` | `#e05741` | Destructive actions |
@@ -54,12 +54,12 @@ single most defining aesthetic choice.
 
 | Token | Light | Dark | Usage |
 |---|---|---|---|
-| `--primary` | `#e55a42` | `#e55a42` | Buttons, links, focus, active states |
+| `--primary` | `#E14B3D` | `#E14B3D` | Buttons, links, focus, active states |
 | `--primary-foreground` | `#faf6f2` | `#faf6f2` | Text on primary |
-| `--ring` | `#e55a42` | `#e55a42` | Focus rings |
-| `--flux-coral` | `#e55a42` | `#e55a42` | Brand constant |
-| `--flux-coral-600` | `#d14b33` | — | Hover/pressed |
-| `--flux-coral-soft` | `#f9e3dc` | `#4c342d` | Tinted backgrounds |
+| `--ring` | `#E14B3D` | `#E14B3D` | Focus rings |
+| `--flux-coral` | `#E14B3D` | `#E14B3D` | Brand constant |
+| `--flux-coral-600` | `#c7473b` | — | Hover/pressed |
+| `--flux-coral-soft` | `#f7ded9` | `#4a3430` | Tinted backgrounds |
 
 ### 2.3 Accent Presets (User-selectable)
 
@@ -67,7 +67,7 @@ The app lets users override the coral accent at runtime. 6 presets:
 
 | Name | Hex |
 |---|---|
-| Coral | `#e65a41` |
+| Coral | `#E14B3D` |
 | Ocean | `#2f7ea6` |
 | Mint | `#1f9d76` |
 | Amber | `#d98324` |
@@ -90,7 +90,7 @@ luma threshold (168).
 
 ### 2.5 Chart Palette
 ```
---chart-1: #e55a42  (coral)
+--chart-1: #E14B3D  (coral)
 --chart-2: #d98324  (amber)
 --chart-3: #2f7ea6  (ocean)
 --chart-4: #1f9d76  (mint)
@@ -461,10 +461,10 @@ Multi-radial-gradient coral panel with animated drift + SVG noise overlay:
 ```css
 .tx-grain-panel {
   background:
-    radial-gradient(120% 120% at 15% 20%, #f2a58f 0%, transparent 55%),
-    radial-gradient(120% 120% at 85% 30%, #e55a42 0%, transparent 60%),
-    radial-gradient(140% 140% at 50% 100%, #b93d28 0%, transparent 65%),
-    #d14b33;
+    radial-gradient(120% 120% at 15% 20%, #f0b2aa 0%, transparent 55%),
+    radial-gradient(120% 120% at 85% 30%, #E14B3D 0%, transparent 60%),
+    radial-gradient(140% 140% at 50% 100%, #a34238 0%, transparent 65%),
+    #c7473b;
   animation: tx-gradient-drift 26s ease-in-out infinite;
 }
 ```

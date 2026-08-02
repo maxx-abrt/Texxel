@@ -34,7 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const PRIORITY_COLOR: Record<string, string> = {
-  none: "var(--muted-foreground)", low: "#2f7ea6", medium: "#d98324", high: "#e5484d", urgent: "#e65a41",
+  none: "var(--muted-foreground)", low: "#2f7ea6", medium: "#d98324", high: "#e5484d", urgent: "#E14B3D",
 };
 
 function fmtMinutes(m: number, t: any) {

@@ -30,7 +30,7 @@ import {
 
 const PRIORITY_META: Record<string, { label: string; color: string }> = {
   urgent: { label: "Urgent", color: "#c93c2a" },
-  high: { label: "Haute", color: "#e55a42" },
+  high: { label: "Haute", color: "#E14B3D" },
   medium: { label: "Moyenne", color: "#d98324" },
   low: { label: "Faible", color: "#2f7ea6" },
   none: { label: "Aucune", color: "#9aa0a6" },
@@ -182,7 +182,7 @@ export function AnalyticsView() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard Icon={TaskSquare} label="Tâches totales" value={data.total} tint="#2f7ea6" />
         <KpiCard Icon={TickCircle} label="Terminées" value={data.completed} sub={`${data.rate}%`} tint="#1f9d76" />
-        <KpiCard Icon={DocumentText} label="Documents" value={data.docCount} tint="#e55a42" />
+        <KpiCard Icon={DocumentText} label="Documents" value={data.docCount} tint="#E14B3D" />
         <KpiCard Icon={Briefcase} label="Projets actifs" value={data.projectCount} tint="#d98324" />
       </div>
 
@@ -249,8 +249,8 @@ export function AnalyticsView() {
               <AreaChart data={data.weeks} margin={{ left: -18, right: 6, top: 6 }}>
                 <defs>
                   <linearGradient id="gCreated" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#e55a42" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#e55a42" stopOpacity={0} />
+                    <stop offset="0%" stopColor="#E14B3D" stopOpacity={0.4} />
+                    <stop offset="100%" stopColor="#E14B3D" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gDone" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#1f9d76" stopOpacity={0.35} />
@@ -261,7 +261,7 @@ export function AnalyticsView() {
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="created" name="Créées" stroke="#e55a42" strokeWidth={2} fill="url(#gCreated)" />
+                <Area type="monotone" dataKey="created" name="Créées" stroke="#E14B3D" strokeWidth={2} fill="url(#gCreated)" />
                 <Area type="monotone" dataKey="done" name="Terminées" stroke="#1f9d76" strokeWidth={2} fill="url(#gDone)" />
               </AreaChart>
             </ResponsiveContainer>

@@ -15,8 +15,8 @@ export const palette = {
     secondary: "#f1eae3",
     muted: "#f2ece5",
     mutedForeground: "#7a746d",
-    accentSoft: "#f9e3dc",
-    accentSoftForeground: "#8a3524",
+    accentSoft: "#f7ded9",
+    accentSoftForeground: "#803c35",
     border: "#e9e1d8",
     borderStrong: "#d8cec3",
     destructive: "#c93c2a",
@@ -32,8 +32,8 @@ export const palette = {
     secondary: "#3a3936",
     muted: "#413f3c",
     mutedForeground: "#b3ada6",
-    accentSoft: "#4c3a33",
-    accentSoftForeground: "#f4c4b8",
+    accentSoft: "#4a3430",
+    accentSoftForeground: "#f2c3bb",
     border: "#4a4844",
     borderStrong: "#5c5a56",
     destructive: "#e05741",
@@ -44,7 +44,7 @@ export const palette = {
 
 /** Semantic tone colours (status pills, project tints, charts). */
 export const tones = {
-  coral: "#e55a42",
+  coral: "#E14B3D",
   ocean: "#2f7ea6",
   mint: "#1f9d76",
   amber: "#d98324",
@@ -57,7 +57,7 @@ export type ToneName = keyof typeof tones;
 
 /** Runtime-selectable brand accents (mirrors the web app's accent presets). */
 export const accentPresets = [
-  { id: "coral", name: "Coral", hex: "#e55a42" },
+  { id: "coral", name: "Coral", hex: "#E14B3D" },
   { id: "ocean", name: "Ocean", hex: "#2f7ea6" },
   { id: "mint", name: "Mint", hex: "#1f9d76" },
   { id: "amber", name: "Amber", hex: "#d98324" },

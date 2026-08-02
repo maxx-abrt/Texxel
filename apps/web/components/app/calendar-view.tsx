@@ -22,7 +22,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Calendar as CalIcon, ArrowLeft2, ArrowRight2, Add, Trash, Repeat, TaskSquare } from "iconsax-reactjs";
 import { expandEvents } from "@/lib/recurrence";
 
-const EVENT_COLORS = ["#e65a41", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
+const EVENT_COLORS = ["#E14B3D", "#2f7ea6", "#2fbf9b", "#d98324", "#7c5cff"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const DAY_MS = 86_400_000;
 
@@ -331,7 +331,7 @@ function MonthView({ cursor, events, onDay, onEvent, onTaskCreate, weekdays, t, 
               <div className="mt-1 space-y-1">
                 {dayEvents.slice(0, 3).map((e: any) => (
                   <span key={e._occId ?? e._id} onClick={() => onEvent(e)}
-                    className="flex cursor-pointer items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `color-mix(in oklch, ${e.color ?? "#e55a42"} 15%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#e55a42"}`, color: `color-mix(in oklch, ${e.color ?? "#e55a42"} 80%, var(--foreground))` }} data-testid="calendar-event">
+                    className="flex cursor-pointer items-center gap-1 truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `color-mix(in oklch, ${e.color ?? "#E14B3D"} 15%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#E14B3D"}`, color: `color-mix(in oklch, ${e.color ?? "#E14B3D"} 80%, var(--foreground))` }} data-testid="calendar-event">
                     {e._recurring && <Repeat size={9} />}{!e.allDay && <span className="opacity-70">{fmtTime(e.start)}</span>} {e.title}
                   </span>
                 ))}
@@ -414,7 +414,7 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
         {dayList.map((d, i) => (
           <div key={i} className="min-h-[28px] space-y-0.5 border-r border-border p-1 last:border-r-0">
             {allDayByDay(d).map((e: any) => (
-              <span key={e._occId ?? e._id} onClick={() => onEvent(e)} className="flex cursor-pointer items-center gap-1 truncate rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `color-mix(in oklch, ${e.color ?? "#e55a42"} 15%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#e55a42"}`, color: `color-mix(in oklch, ${e.color ?? "#e55a42"} 80%, var(--foreground))` }} data-testid="calendar-event">
+              <span key={e._occId ?? e._id} onClick={() => onEvent(e)} className="flex cursor-pointer items-center gap-1 truncate rounded px-1.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: `color-mix(in oklch, ${e.color ?? "#E14B3D"} 15%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#E14B3D"}`, color: `color-mix(in oklch, ${e.color ?? "#E14B3D"} 80%, var(--foreground))` }} data-testid="calendar-event">
                 {e._recurring && <Repeat size={9} />}{e.title}
               </span>
             ))}
@@ -455,7 +455,7 @@ function WeekTimeGrid({ days, startDate, events, onSlot, onEvent, locale, t }: a
               const dur = Math.max(0.5, ((e.end ?? e.start + 30 * 60000) - e.start) / 3600000);
               const height = Math.max(20, dur * HOUR_H - 2);
               return (
-                <div key={e._occId ?? e._id} onClick={() => onEvent(e)} className="absolute left-1 right-1 cursor-pointer overflow-hidden rounded-md px-2 py-1 text-[11px] font-semibold shadow-[var(--elev-1)]" style={{ top, height, backgroundColor: `color-mix(in oklch, ${e.color ?? "#e55a42"} 16%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#e55a42"}`, color: `color-mix(in oklch, ${e.color ?? "#e55a42"} 82%, var(--foreground))` }} data-testid="calendar-event">
+                <div key={e._occId ?? e._id} onClick={() => onEvent(e)} className="absolute left-1 right-1 cursor-pointer overflow-hidden rounded-md px-2 py-1 text-[11px] font-semibold shadow-[var(--elev-1)]" style={{ top, height, backgroundColor: `color-mix(in oklch, ${e.color ?? "#E14B3D"} 16%, var(--card))`, borderLeft: `3px solid ${e.color ?? "#E14B3D"}`, color: `color-mix(in oklch, ${e.color ?? "#E14B3D"} 82%, var(--foreground))` }} data-testid="calendar-event">
                   <div className="flex items-center gap-1 truncate">{e._recurring && <Repeat size={9} />}{e.title}</div>
                   <div className="truncate opacity-70">{fmtTime(e.start)}{e.end ? ` – ${fmtTime(e.end)}` : ""}</div>
                 </div>
@@ -725,7 +725,7 @@ function EventDialog({ open, onOpenChange, event, seedDate, seedEnd, recurLabel,
               >
                 <span
                   className="h-4.5 w-4.5 rounded-full border border-border"
-                  style={{ background: EVENT_COLORS.includes(color) ? "conic-gradient(#e65a41,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#e65a41)" : color }}
+                  style={{ background: EVENT_COLORS.includes(color) ? "conic-gradient(#E14B3D,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#E14B3D)" : color }}
                 />
                 <span className="text-xs font-medium">{t("customColor")}</span>
                 <input

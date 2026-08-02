@@ -269,7 +269,7 @@ export function AiPanel({
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { Icon: IxFolder, label: t("suggestionPlanProject"), prompt: t("promptPlanProject"), color: "#e55a42" },
+                    { Icon: IxFolder, label: t("suggestionPlanProject"), prompt: t("promptPlanProject"), color: "#E14B3D" },
                     { Icon: IxTask, label: t("suggestionBreakDownWork"), prompt: t("promptBreakDownWork"), color: "#2f7ea6" },
                     { Icon: IxDoc, label: t("suggestionDraftDoc"), prompt: t("promptDraftDoc"), color: "#1f9d76" },
                     { Icon: IxFlash, label: t("suggestionWhatsOnMyPlate"), prompt: t("promptWhatsOnMyPlate"), color: "#d98324" },

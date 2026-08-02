@@ -155,7 +155,7 @@ export default function AuthPage() {
         </div>
 
         {/* ── Right: animated grain gradient panel ───────────────────── */}
-        <div className="relative hidden overflow-hidden rounded-2xl bg-[#d14b33] p-10 text-white lg:flex">
+        <div className="relative hidden overflow-hidden rounded-2xl bg-[#c7473b] p-10 text-white lg:flex">
           {/* CSS fallback layer (always present) */}
           <div className="tx-grain-panel absolute inset-0" />
           <div className="tx-grain-noise absolute inset-0 opacity-40" />
@@ -170,7 +170,7 @@ export default function AuthPage() {
               intensity={0.5}
               noise={0.28}
               shape="corners"
-              colors={["#FAF6F2", "#F2A58F", "#E55A42", "#FAF6F2"]}
+              colors={["#FAF6F2", "#F0B2AA", "#E14B3D", "#FAF6F2"]}
               colorBack="#00000000"
             />
           </div>

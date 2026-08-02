@@ -47,7 +47,7 @@ const PRIORITIES: Record<string, { label: string; color: string }> = {
   low: { label: "Low", color: "#2f7ea6" },
   medium: { label: "Medium", color: "#d98324" },
   high: { label: "High", color: "#e5484d" },
-  urgent: { label: "Urgent", color: "#e65a41" },
+  urgent: { label: "Urgent", color: "#E14B3D" },
 };
 
 const STATUS_PALETTE = ["#2f7ea6", "#d98324", "#2fbf9b", "#8b5cf6", "#ec4899", "#e5484d", "#0ea5e9", "#f59e0b"];

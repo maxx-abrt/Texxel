@@ -121,7 +121,7 @@ export function ExportDialog({
       ...pdfDefaultSchemaMappings,
       inlineContentMapping: {
         ...pdfDefaultSchemaMappings.inlineContentMapping,
-        mention: (content: any) => React.createElement(ReactPDF.Text, { style: { color: "#E65A41", fontWeight: 700 } }, `${content.props.kind === "task" ? "#" : "@"}${content.props.label}`),
+        mention: (content: any) => React.createElement(ReactPDF.Text, { style: { color: "#E14B3D", fontWeight: 700 } }, `${content.props.kind === "task" ? "#" : "@"}${content.props.label}`),
       },
     };
     const exporter: any = new PDFExporter(editor.schema, mappings, { resolveFileUrl: resolveAsset });
@@ -163,7 +163,7 @@ export function ExportDialog({
       ...docxDefaultSchemaMappings,
       inlineContentMapping: {
         ...docxDefaultSchemaMappings.inlineContentMapping,
-        mention: (content: any) => new Docx.TextRun({ text: `${content.props.kind === "task" ? "#" : "@"}${content.props.label}`, color: "E65A41", bold: true }),
+        mention: (content: any) => new Docx.TextRun({ text: `${content.props.kind === "task" ? "#" : "@"}${content.props.label}`, color: "E14B3D", bold: true }),
       },
     };
     const exporter: any = new DOCXExporter(editor.schema, mappings, { resolveFileUrl: resolveAsset });

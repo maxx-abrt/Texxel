@@ -138,7 +138,7 @@ function AccentPicker() {
         >
           <span
             className="h-4.5 w-4.5 rounded-full border border-border"
-            style={{ background: ACCENT_PRESETS.some((p) => p.color.toLowerCase() === current.toLowerCase()) ? "conic-gradient(#e65a41,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#e65a41)" : current }}
+            style={{ background: ACCENT_PRESETS.some((p) => p.color.toLowerCase() === current.toLowerCase()) ? "conic-gradient(#E14B3D,#d98324,#2fbf9b,#2f7ea6,#7c5cff,#E14B3D)" : current }}
           />
           <span className="text-xs font-medium">{t("accent.custom")}</span>
           <input type="color" value={current} onChange={(e) => pick(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" data-testid="accent-custom-input" />

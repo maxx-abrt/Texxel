@@ -36,7 +36,7 @@ export default function LandingPage() {
   }, []);
 
   const FEATURES = [
-    { Icon: DocumentText, title: t("documents"), desc: t("documentsDesc"), color: "#e55a42", testId: "documents" },
+    { Icon: DocumentText, title: t("documents"), desc: t("documentsDesc"), color: "#E14B3D", testId: "documents" },
     { Icon: TaskSquare, title: t("tasksBoards"), desc: t("tasksBoardsDesc"), color: "#2f7ea6", testId: "tasks" },
     { Icon: Calendar, title: t("calendar"), desc: t("calendarDesc"), color: "#1f9d76", testId: "calendar" },
     { Icon: Data2, title: t("databases"), desc: t("databasesDesc"), color: "#d98324", testId: "databases" },
@@ -121,7 +121,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl px-5 pb-16 sm:px-6 md:pb-24">
           <div className="tx-card overflow-hidden !rounded-[22px] elev-3">
             <div className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-4 py-3">
-              <span className="h-3 w-3 rounded-full bg-[#e55a42]" />
+              <span className="h-3 w-3 rounded-full bg-[#E14B3D]" />
               <span className="h-3 w-3 rounded-full bg-[#d98324]" />
               <span className="h-3 w-3 rounded-full bg-[#1f9d76]" />
               <div className="ml-4 flex h-7 flex-1 max-w-sm items-center gap-2 rounded-lg border border-border bg-background px-3 text-xs text-muted-foreground">
@@ -163,7 +163,7 @@ export default function LandingPage() {
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <span className="tx-pill tx-status-progress"><span className="tx-dot" /> In progress</span>
                     <span className="tx-pill tx-prio-high"><span className="tx-dot" /> High</span>
-                    <span className="tx-pill" style={{ background: "color-mix(in oklch, #e55a42 12%, var(--card))", color: "#b93d28" }}>#focus</span>
+                    <span className="tx-pill" style={{ background: "color-mix(in oklch, #E14B3D 12%, var(--card))", color: "color-mix(in oklch, #E14B3D 80%, var(--foreground))" }}>#focus</span>
                   </div>
                   <p className="mt-5 leading-relaxed text-muted-foreground">
                     A single, calm surface where your notes, tasks and plans finally live together.
@@ -234,7 +234,7 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { Icon: DocumentText, label: "Docs", tint: "#e55a42", lines: 3 },
+              { Icon: DocumentText, label: "Docs", tint: "#E14B3D", lines: 3 },
               { Icon: Chart2, label: "Analytics", tint: "#2f7ea6", lines: 0, chart: true },
               { Icon: TaskSquare, label: "Tasks", tint: "#d98324", lines: 0, pills: true },
               { Icon: Calendar, label: "Calendar", tint: "#1f9d76", lines: 2 },
@@ -274,7 +274,7 @@ export default function LandingPage() {
       <section id="connected" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_oklch,#e55a42_12%,transparent)] px-3 py-1 text-sm font-medium text-primary">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[color-mix(in_oklch,#E14B3D_12%,transparent)] px-3 py-1 text-sm font-medium text-primary">
               <Star1 variant="Bulk" size={15} /> {t("connectedByDesign")}
             </div>
             <h2 className="mt-4 font-display text-4xl font-bold tracking-tight">{t("workspaceThinks")}</h2>
@@ -316,7 +316,7 @@ export default function LandingPage() {
           <Link
             href={appHref}
             data-testid="landing-cta-bottom"
-            className="relative mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-[#b93d28] shadow-[var(--elev-2)] transition-transform hover:-translate-y-0.5"
+            className="relative mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-base font-semibold text-[#a34238] shadow-[var(--elev-2)] transition-transform hover:-translate-y-0.5"
           >
             {isAuthenticated ? t("openApp") : t("getStartedFree")} <ArrowRight variant="Bulk" size={18} />
           </Link>

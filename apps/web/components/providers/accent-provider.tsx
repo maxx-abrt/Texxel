@@ -8,7 +8,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 export const ACCENT_PRESETS: { name: string; color: string }[] = [
-  { name: "coral", color: "#e65a41" },
+  { name: "coral", color: "#E14B3D" },
   { name: "ocean", color: "#2f7ea6" },
   { name: "mint", color: "#1f9d76" },
   { name: "amber", color: "#d98324" },
@@ -18,7 +18,7 @@ export const ACCENT_PRESETS: { name: string; color: string }[] = [
 
 export const DEFAULT_ACCENT = ACCENT_PRESETS[0].color;
 /** Old brand colors that should silently map to the current default. */
-export const LEGACY_ACCENTS = ["#fb5648", "#ef4836"];
+export const LEGACY_ACCENTS = ["#fb5648", "#ef4836", "#e55a42", "#e65a41"];
 export function normalizeAccent(color: string | null | undefined): string | null {
   if (!color) return null;
   const c = color.toLowerCase();

@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================ FLUX DESIGN TOKENS ============================ */
-/* Palette: accent #E55A42 · warm white #FAF6F2 · warm black #31302E */
+/* Palette: accent #E14B3D · warm white #FAF6F2 · warm black #31302E */
 :root {
   --radius: 0.85rem;
 
@@ -18,22 +18,22 @@
   --popover-foreground: #31302e;
 
   /* Brand accent */
-  --primary: #e55a42;
+  --primary: #E14B3D;
   --primary-foreground: #faf6f2;
 
   --secondary: #f1eae3;
   --secondary-foreground: #31302e;
   --muted: #f2ece5;
   --muted-foreground: #7a746d;
-  --accent: #f9e3dc;
-  --accent-foreground: #8a3524;
+  --accent: color-mix(in oklch, #E14B3D 14%, var(--background));
+  --accent-foreground: color-mix(in oklch, #E14B3D 45%, var(--foreground));
   --destructive: #c93c2a;
 
   --border: #e9e1d8;
   --input: #e9e1d8;
-  --ring: #e55a42;
+  --ring: #E14B3D;
 
-  --chart-1: #e55a42;
+  --chart-1: #E14B3D;
   --chart-2: #d98324;
   --chart-3: #2f7ea6;
   --chart-4: #1f9d76;
@@ -42,17 +42,17 @@
   /* Sidebar (warm light) */
   --sidebar: #f5efe9;
   --sidebar-foreground: #31302e;
-  --sidebar-primary: #e55a42;
+  --sidebar-primary: #E14B3D;
   --sidebar-primary-foreground: #faf6f2;
   --sidebar-accent: #f0e5dd;
-  --sidebar-accent-foreground: #8a3524;
+  --sidebar-accent-foreground: color-mix(in oklch, #E14B3D 45%, var(--foreground));
   --sidebar-border: #e9e1d8;
-  --sidebar-ring: #e55a42;
+  --sidebar-ring: #E14B3D;
 
   /* Flux brand scale */
-  --flux-coral: #e55a42;
-  --flux-coral-600: #d14b33;
-  --flux-coral-soft: #f9e3dc;
+  --flux-coral: #E14B3D;
+  --flux-coral-600: #c7473b;
+  --flux-coral-soft: color-mix(in oklch, #E14B3D 14%, var(--background));
   --flux-ink: #31302e;
   --accent-ocean: #2f7ea6;
   --accent-mint: #2fbf9b;
@@ -70,28 +70,28 @@
   --card-foreground: #faf6f2;
   --popover: #3a3936;
   --popover-foreground: #faf6f2;
-  --primary: #e55a42;
+  --primary: #E14B3D;
   --primary-foreground: #faf6f2;
   --secondary: #44423f;
   --secondary-foreground: #faf6f2;
   --muted: #413f3c;
   --muted-foreground: #b3ada6;
-  --accent: #4c3a33;
-  --accent-foreground: #f4c4b8;
+  --accent: color-mix(in oklch, #E14B3D 14%, var(--background));
+  --accent-foreground: color-mix(in oklch, #E14B3D 45%, var(--foreground));
   --destructive: #e05741;
   --border: #4a4844;
   --input: #4f4d49;
-  --ring: #e55a42;
+  --ring: #E14B3D;
   --sidebar: #2b2a28;
   --sidebar-foreground: #f2ede8;
-  --sidebar-primary: #e55a42;
+  --sidebar-primary: #E14B3D;
   --sidebar-primary-foreground: #faf6f2;
   --sidebar-accent: #453832;
-  --sidebar-accent-foreground: #f4c4b8;
+  --sidebar-accent-foreground: color-mix(in oklch, #E14B3D 45%, var(--foreground));
   --sidebar-border: #45433f;
-  --sidebar-ring: #e55a42;
-  --flux-coral: #e55a42;
-  --flux-coral-soft: #4c342d;
+  --sidebar-ring: #E14B3D;
+  --flux-coral: #E14B3D;
+  --flux-coral-soft: color-mix(in oklch, #E14B3D 14%, var(--background));
   --accent-ocean: #5fb6d6;
   --accent-mint: #55d6b6;
   --accent-sand: #3e3c38;
@@ -468,7 +468,7 @@ html[data-easyread="true"] .ProseMirror {
 .tx-status-review     { background: color-mix(in oklch, #7c5cff 15%, var(--card)); color: color-mix(in oklch, #7c5cff 78%, var(--foreground)); }
 
 .tx-prio-urgent  { background: color-mix(in oklch, #c93c2a 16%, var(--card)); color: color-mix(in oklch, #c93c2a 82%, var(--foreground)); }
-.tx-prio-high    { background: color-mix(in oklch, #e55a42 16%, var(--card)); color: color-mix(in oklch, #e55a42 80%, var(--foreground)); }
+.tx-prio-high    { background: color-mix(in oklch, #E14B3D 16%, var(--card)); color: color-mix(in oklch, #E14B3D 80%, var(--foreground)); }
 .tx-prio-medium  { background: color-mix(in oklch, #d98324 16%, var(--card)); color: color-mix(in oklch, #d98324 80%, var(--foreground)); }
 .tx-prio-low     { background: color-mix(in oklch, #2f7ea6 14%, var(--card)); color: color-mix(in oklch, #2f7ea6 80%, var(--foreground)); }
 
@@ -537,10 +537,10 @@ html[data-easyread="true"] .ProseMirror {
 }
 .tx-grain-panel {
   background:
-    radial-gradient(120% 120% at 15% 20%, #f2a58f 0%, transparent 55%),
-    radial-gradient(120% 120% at 85% 30%, #e55a42 0%, transparent 60%),
-    radial-gradient(140% 140% at 50% 100%, #b93d28 0%, transparent 65%),
-    #d14b33;
+    radial-gradient(120% 120% at 15% 20%, #f0b2aa 0%, transparent 55%),
+    radial-gradient(120% 120% at 85% 30%, #E14B3D 0%, transparent 60%),
+    radial-gradient(140% 140% at 50% 100%, #a34238 0%, transparent 65%),
+    #c7473b;
   background-size: 200% 200%, 200% 200%, 200% 200%, 100% 100%;
   animation: tx-gradient-drift 26s ease-in-out infinite;
 }

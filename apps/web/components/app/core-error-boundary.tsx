@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import { disableCoreModules, resetCoreModules } from "@/lib/core-flags";
 import { btnOutline } from "@/components/app/common";
 import { CloseCircle, Refresh2 } from "iconsax-reactjs";
@@ -47,6 +48,7 @@ export class CoreErrorBoundary extends React.Component<{ children: React.ReactNo
 }
 
 function DegradedBanner({ onRetry }: { onRetry: () => void }) {
+  const t = useTranslations("core");
   const [hidden, setHidden] = React.useState(false);
   if (hidden) return null;
   return (
@@ -56,15 +58,15 @@ function DegradedBanner({ onRetry }: { onRetry: () => void }) {
       role="status"
     >
       <span className="flex-1">
-        Espace partagé A2E indisponible — affichage des données locales de cet espace de travail.
+        {t("degradedTitle")}
       </span>
       <button onClick={onRetry} className={btnOutline} data-testid="core-degraded-retry">
-        <Refresh2 variant="Bulk" size={14} /> Réessayer
+        <Refresh2 variant="Bulk" size={14} /> {t("retry")}
       </button>
       <button
         onClick={() => setHidden(true)}
         className="text-amber-900/60 hover:text-amber-900 dark:text-amber-100/60 dark:hover:text-amber-100"
-        aria-label="Fermer"
+        aria-label={t("close")}
         data-testid="core-degraded-dismiss"
       >
         <CloseCircle variant="Bulk" size={16} />

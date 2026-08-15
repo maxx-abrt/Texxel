@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { requireUserId } from "./lib/auth";
 
-/** Convex Storage: get a short-lived upload URL (Flux file storage). */
+/** Convex Storage: get a short-lived upload URL (Bureau file storage). */
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {

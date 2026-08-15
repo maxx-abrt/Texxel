@@ -10,7 +10,7 @@ import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
  *  - every component that reads core's `useWorkspace()` gets the workspace the
  *    user is actually looking at here;
  *  - the shared `a2e_active_workspace` key is updated, so switching workspace in
- *    Texxel switches it in Bilan / Drive / the other suite apps too.
+ *    Bureau switches it in Bilan / Drive / the other suite apps too.
  */
 export function CoreWorkspaceSync() {
   useCoreWorkspaceId();

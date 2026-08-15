@@ -170,7 +170,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
   providers: [
     Google,
     resendEmailProvider(),
-    // Email + password — works on any domain (no redirect), used by Flux for
+    // Email + password — works on any domain (no redirect), used by Bureau for
     // direct sign-up/sign-in and for automated testing. Additive: A2EMoney is
     // unaffected.
     Password({ id: "password" }),

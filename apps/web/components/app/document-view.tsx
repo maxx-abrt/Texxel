@@ -178,7 +178,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const [customWidth, setCustomWidth] = useState(900);
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(`texxel:page:${documentId}`);
+      const raw = localStorage.getItem(`bureau:page:${documentId}`);
       if (raw) {
         const p = JSON.parse(raw);
         if (p.format) setPageFormat(p.format);
@@ -190,7 +190,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   }, [documentId]);
   useEffect(() => {
     try {
-      localStorage.setItem(`texxel:page:${documentId}`, JSON.stringify({ format: pageFormat, width: customWidth }));
+      localStorage.setItem(`bureau:page:${documentId}`, JSON.stringify({ format: pageFormat, width: customWidth }));
     } catch {}
   }, [documentId, pageFormat, customWidth]);
   const PAGE_WIDTHS: Record<string, number> = { a4: 794, a3: 1123, pageless: 1280, custom: customWidth };
@@ -208,9 +208,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       loadedId.current = doc._id;
       // Track recently opened docs for the command palette.
       try {
-        const raw: string[] = JSON.parse(localStorage.getItem("texxel-recent-docs") ?? "[]");
+        const raw: string[] = JSON.parse(localStorage.getItem("bureau-recent-docs") ?? "[]");
         const next = [String(doc._id), ...raw.filter((x) => x !== String(doc._id))].slice(0, 8);
-        localStorage.setItem("texxel-recent-docs", JSON.stringify(next));
+        localStorage.setItem("bureau-recent-docs", JSON.stringify(next));
       } catch {
         /* storage unavailable */
       }
@@ -218,11 +218,11 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   }, [doc]);
 
   useEffect(() => {
-    setFocusMode(sessionStorage.getItem("texxel-doc-focus-mode") === "true");
+    setFocusMode(sessionStorage.getItem("bureau-doc-focus-mode") === "true");
   }, []);
 
   useEffect(() => {
-    sessionStorage.setItem("texxel-doc-focus-mode", String(focusMode));
+    sessionStorage.setItem("bureau-doc-focus-mode", String(focusMode));
     document.documentElement.toggleAttribute("data-doc-focus", focusMode);
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && focusMode) setFocusMode(false);
@@ -285,9 +285,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       const { storageId } = await res.json();
       const url = await convex.query(api.flux_files.getUrl, { storageId });
       await update({ documentId, coverImage: url as string });
-      toast.success("Cover updated");
+      toast.success(te("coverUpdated"));
     } catch {
-      toast.error("Could not upload cover");
+      toast.error(te("coverUploadFailed"));
     }
   };
 
@@ -302,18 +302,18 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
   const exportMarkdown = async () => {
     try {
       const ed = editorRef.current;
-      if (!ed) return toast.error("Editor not ready");
+      if (!ed) return toast.error(te("editorNotReady"));
       const md = await ed.blocksToMarkdownLossy(ed.document);
       const front = `# ${title || te("untitled")}\n\n`;
       downloadBlob(front + md, `${(title || "document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.md`, "text/markdown");
-      toast.success("Exported Markdown");
+      toast.success(te("exportedMarkdown"));
     } catch {
-      toast.error("Export failed");
+      toast.error(te("exportFailed"));
     }
   };
 
   const openExport = () => {
-    if (!editorRef.current) return toast.error("Editor is still loading");
+    if (!editorRef.current) return toast.error(te("editorLoading"));
     setExportOpen(true);
   };
 
@@ -327,12 +327,12 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       icon: doc?.icon,
       category: "custom",
     });
-    toast.success("Saved as template");
+    toast.success(te("savedTemplate"));
   };
 
   const onArchive = async () => {
     await archive({ documentId });
-    toast.success("Moved to trash");
+    toast.success(te("movedToTrash"));
     router.push("/app/documents");
   };
 
@@ -343,12 +343,12 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       const url = `${window.location.origin}/share/${token}`;
       try {
         await navigator.clipboard.writeText(url);
-        toast.success("Published \u2014 share link copied");
+        toast.success(te("publishedShareCopied"));
       } catch {
-        toast.success("Published");
+        toast.success(te("publishedToast"));
       }
     } else {
-      toast.success("Made private");
+      toast.success(te("madePrivate"));
     }
   };
 
@@ -356,7 +356,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
     if (!doc?.shareToken) return;
     const url = `${window.location.origin}/share/${doc.shareToken}`;
     await navigator.clipboard.writeText(url);
-    toast.success("Link copied");
+    toast.success(te("linkCopied"));
   };
 
   if (doc === undefined) {
@@ -373,11 +373,11 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
       <div className="mx-auto max-w-[860px] px-6 py-20">
         <EmptyState
           icon={DocumentText}
-          title="Document not found"
-          description="It may have been deleted or moved to trash."
+          title={te("documentNotFound")}
+          description={te("documentNotFoundDesc")}
           action={
             <button onClick={() => router.push("/app/documents")} className={btnGhost}>
-              <ArrowLeft2 variant="Bulk" size={16} /> Back to documents
+              <ArrowLeft2 variant="Bulk" size={16} /> {te("backToDocuments")}
             </button>
           }
         />
@@ -490,20 +490,20 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                 type="button"
                 className="hidden h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-xs font-semibold text-foreground hover:bg-muted sm:flex"
                 data-testid="doc-page-format"
-                aria-label="Page format"
+                aria-label={te("pageFormat")}
               >
                 <Notepad2 variant="Bulk" size={15} />
-                <span className="uppercase">{pageFormat === "pageless" ? "Pageless" : pageFormat === "custom" ? `${customWidth}px` : pageFormat}</span>
+                <span className="uppercase">{pageFormat === "pageless" ? te("pageless") : pageFormat === "custom" ? `${customWidth}px` : pageFormat}</span>
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-60 p-2">
-              <div className="px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Page format</div>
+              <div className="px-2 pb-1.5 pt-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{te("pageFormat")}</div>
               <div className="grid grid-cols-2 gap-1.5">
                 {([
-                  { key: "pageless", label: "Pageless", hint: "Fluid" },
+                  { key: "pageless", label: te("pageless"), hint: te("pagelessHint") },
                   { key: "a4", label: "A4", hint: "210mm" },
                   { key: "a3", label: "A3", hint: "297mm" },
-                  { key: "custom", label: "Custom", hint: "Width" },
+                  { key: "custom", label: te("custom"), hint: te("customHint") },
                 ] as const).map((opt) => (
                   <button
                     key={opt.key}
@@ -636,8 +636,8 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={doc.coverImage} alt="cover" className="h-full w-full object-cover" />
           <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-            <button onClick={() => fileRef.current?.click()} className="rounded-lg bg-background/90 px-2.5 py-1 text-xs font-medium backdrop-blur hover:bg-background">Change</button>
-            <button onClick={() => removeCover({ documentId })} className="rounded-lg bg-background/90 px-2.5 py-1 text-xs font-medium backdrop-blur hover:bg-background">Remove</button>
+            <button onClick={() => fileRef.current?.click()} className="rounded-lg bg-background/90 px-2.5 py-1 text-xs font-medium backdrop-blur hover:bg-background">{te("changeCover")}</button>
+            <button onClick={() => removeCover({ documentId })} className="rounded-lg bg-background/90 px-2.5 py-1 text-xs font-medium backdrop-blur hover:bg-background">{te("removeCover")}</button>
           </div>
         </div>
       )}
@@ -677,9 +677,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         {doc.isLocked && unlockedContent === null ? (
           <div className="mt-8 flex flex-col items-center rounded-2xl border border-border bg-card px-6 py-12 text-center" data-testid="doc-locked-overlay">
             <Lock1 variant="Bulk" size={36} className="text-primary" />
-            <h3 className="mt-3 text-lg font-semibold">This document is locked</h3>
+            <h3 className="mt-3 text-lg font-semibold">{te("thisDocLocked")}</h3>
             {doc.passphraseHint && (
-              <p className="mt-1 text-sm text-muted-foreground">Hint: {doc.passphraseHint}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{te("hintPrefix")} {doc.passphraseHint}</p>
             )}
             <div className="mt-6 flex w-full max-w-sm flex-col gap-3">
               <input
@@ -696,12 +696,12 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                     setCurrentPassphrase(unlockInput);
                     setUnlockInput("");
                   } catch {
-                    setLockError("Wrong passphrase.");
+                    setLockError(te("wrongPassphrase"));
                   } finally {
                     setLockLoading(false);
                   }
                 }}
-                placeholder="Enter passphrase…"
+                placeholder={te("enterPassphrase")}
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                 data-testid="unlock-input"
                 autoFocus
@@ -718,7 +718,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                     setCurrentPassphrase(unlockInput);
                     setUnlockInput("");
                   } catch {
-                    setLockError("Wrong passphrase.");
+                    setLockError(te("wrongPassphrase"));
                   } finally {
                     setLockLoading(false);
                   }
@@ -726,7 +726,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                 className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
                 data-testid="unlock-btn"
               >
-                {lockLoading ? <><Spinner className="h-4 w-4" /> Unlocking…</> : <><Lock1 variant="Bulk" size={16} /> Unlock</>}
+                {lockLoading ? <><Spinner className="h-4 w-4" /> {te("unlocking")}</> : <><Lock1 variant="Bulk" size={16} /> {te("unlock")}</>}
               </button>
             </div>
           </div>
@@ -799,10 +799,10 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
           <div className="mx-4 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
             <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold">
               <Lock1 variant="Bulk" size={20} className="text-primary" />
-              {doc.isLocked ? "Manage lock" : "Secure document"}
+              {doc.isLocked ? te("manageLock") : te("secureDocument")}
             </h2>
             <p className="mb-5 text-sm text-muted-foreground">
-              {doc.isLocked ? "The document content is encrypted. Remove the lock or keep it secured." : "Content is encrypted client-side with AES-256-GCM. The passphrase never leaves your browser."}
+              {doc.isLocked ? te("lockDescLocked") : te("lockDescUnlocked")}
             </p>
 
             {!doc.isLocked && (
@@ -811,7 +811,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   type="password"
                   value={passphraseInput}
                   onChange={(e) => setPassphraseInput(e.target.value)}
-                  placeholder="Choose a passphrase…"
+                  placeholder={te("choosePassphrase")}
                   className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                   data-testid="lock-passphrase-input"
                   autoFocus
@@ -820,7 +820,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   type="text"
                   value={passphraseHintInput}
                   onChange={(e) => setPassphraseHintInput(e.target.value)}
-                  placeholder="Hint (optional, stored in plaintext)…"
+                  placeholder={te("hintOptional")}
                   className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring"
                   data-testid="lock-hint-input"
                 />
@@ -829,7 +829,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   <button
                     onClick={() => setLockDialogOpen(false)}
                     className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted"
-                  >Cancel</button>
+                  >{te("cancel")}</button>
                   <button
                     disabled={lockLoading || !passphraseInput.trim()}
                     onClick={async () => {
@@ -844,9 +844,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                         setCurrentPassphrase(passphraseInput);
                         setUnlockedContent(plainContent);
                         setLockDialogOpen(false);
-                        toast.success("Document locked");
+                        toast.success(te("documentLocked"));
                       } catch {
-                        setLockError("Encryption failed. Please try again.");
+                        setLockError(te("encryptionFailed"));
                       } finally {
                         setLockLoading(false);
                       }
@@ -854,7 +854,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-50"
                     data-testid="confirm-lock-btn"
                   >
-                    {lockLoading ? <Spinner className="h-4 w-4" /> : <Lock1 variant="Bulk" size={16} />} Lock document
+                    {lockLoading ? <Spinner className="h-4 w-4" /> : <Lock1 variant="Bulk" size={16} />} {te("lockDocument")}
                   </button>
                 </div>
               </div>
@@ -867,7 +867,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   <button
                     onClick={() => setLockDialogOpen(false)}
                     className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium hover:bg-muted"
-                  >Close</button>
+                  >{te("close")}</button>
                   <button
                     disabled={lockLoading || !currentPassphrase}
                     onClick={async () => {
@@ -880,9 +880,9 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                         setUnlockedContent(null);
                         setCurrentPassphrase(null);
                         setLockDialogOpen(false);
-                        toast.success("Lock removed");
+                        toast.success(te("lockRemoved"));
                       } catch {
-                        setLockError("Could not remove lock.");
+                        setLockError(te("couldNotRemoveLock"));
                       } finally {
                         setLockLoading(false);
                       }
@@ -890,7 +890,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
                     data-testid="remove-lock-btn"
                   >
-                    {lockLoading ? <Spinner className="h-4 w-4" /> : <Lock1 variant="Bulk" size={16} />} Remove lock
+                    {lockLoading ? <Spinner className="h-4 w-4" /> : <Lock1 variant="Bulk" size={16} />} {te("removeLock")}
                   </button>
                 </div>
               </div>
@@ -903,12 +903,12 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
         <SheetContent side="right" className="w-[360px] sm:w-[420px] overflow-y-auto" data-testid="doc-history-panel">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
-              <Clock variant="Bulk" size={18} className="text-primary" /> History
+              <Clock variant="Bulk" size={18} className="text-primary" /> {te("history")}
             </SheetTitle>
           </SheetHeader>
           <div className="mt-3 flex rounded-full border border-border bg-muted/40 p-0.5">
-            <button onClick={() => setHistoryTab("versions")} className={cn("flex-1 rounded-full py-1 text-xs font-medium transition", historyTab === "versions" ? "bg-card shadow-sm" : "text-muted-foreground")}>Versions</button>
-            <button onClick={() => setHistoryTab("activity")} className={cn("flex-1 rounded-full py-1 text-xs font-medium transition", historyTab === "activity" ? "bg-card shadow-sm" : "text-muted-foreground")}>Activity</button>
+            <button onClick={() => setHistoryTab("versions")} className={cn("flex-1 rounded-full py-1 text-xs font-medium transition", historyTab === "versions" ? "bg-card shadow-sm" : "text-muted-foreground")}>{te("versions")}</button>
+            <button onClick={() => setHistoryTab("activity")} className={cn("flex-1 rounded-full py-1 text-xs font-medium transition", historyTab === "activity" ? "bg-card shadow-sm" : "text-muted-foreground")}>{te("activity")}</button>
           </div>
           {historyTab === "versions" ? (
             <div className="mt-4 space-y-2">
@@ -917,24 +917,24 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
                   <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
                 ))
               ) : versions.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">No saved versions yet.<br />Use "Save version" to snapshot the current state.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">{te("noVersions")}<br />{te("noVersionsHint")}</p>
               ) : (
                 versions.map((ver: any) => (
                   <div key={ver._id} className="flex items-start justify-between rounded-xl border border-border bg-card p-3 gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{ver.title || "Untitled"}</p>
+                      <p className="truncate text-sm font-medium">{ver.title || te("untitled")}</p>
                       <p className="text-xs text-muted-foreground">{timeAgo(ver.savedAt)} · {ver.savedByName}</p>
                     </div>
                     <button
                       onClick={async () => {
                         await restoreVersionFn({ versionId: ver._id });
                         setHistoryOpen(false);
-                        toast.success("Version restored");
+                        toast.success(te("versionRestored"));
                       }}
                       className="flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-muted"
                       data-testid="restore-version-btn"
                     >
-                      <Refresh2 variant="Bulk" size={14} /> Restore
+                      <Refresh2 variant="Bulk" size={14} /> {te("restore")}
                     </button>
                   </div>
                 ))
@@ -952,6 +952,7 @@ export function DocumentView({ documentId }: { documentId: Id<"flux_documents"> 
 }
 
 function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_documents"> }) {
+  const te = useTranslations("editor");
   const router = useRouter();
   const { activeWorkspaceId } = useWorkspace();
   const children = useQuery(
@@ -966,10 +967,10 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
   const onAddPage = async () => {
     if (!activeWorkspaceId) return;
     try {
-      const id = await createDoc({ workspaceId: activeWorkspaceId, title: "Untitled", parentId: documentId });
+      const id = await createDoc({ workspaceId: activeWorkspaceId, title: te("untitled"), parentId: documentId });
       router.push(`/app/documents/${id}`);
     } catch {
-      toast.error("Could not create document");
+      toast.error(te("couldNotCreateDoc"));
     }
   };
 
@@ -980,7 +981,7 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
       try {
         await update({ documentId, title: value });
       } catch {
-        toast.error("Could not save title");
+        toast.error(te("couldNotSaveTitle"));
       }
     }, 500);
   };
@@ -996,16 +997,16 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
         <TextareaAutosize
           value={title}
           onChange={(e) => saveTitle(e.target.value)}
-          placeholder="Untitled"
+          placeholder={te("untitled")}
           data-testid="folder-title"
           className="mt-2 w-full resize-none bg-transparent font-display text-4xl font-bold tracking-tight outline-none placeholder:text-muted-foreground/50"
         />
 
         <div className="mt-8">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Contents</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{te("contents")}</h3>
             <button onClick={onAddPage} className={cn(btnGhost, "text-xs")} data-testid="folder-add-page">
-              <Add variant="Bulk" size={14} /> New page
+              <Add variant="Bulk" size={14} /> {te("newPage")}
             </button>
           </div>
           {children === undefined ? (
@@ -1017,11 +1018,11 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
           ) : children.length === 0 ? (
             <EmptyState
               icon={DocumentText}
-              title="Empty folder"
-              description="Add pages to this folder to keep them organized."
+              title={te("emptyFolder")}
+              description={te("emptyFolderDesc")}
               action={
                 <button onClick={onAddPage} className={cn(btnGhost, "text-xs")} data-testid="folder-empty-add">
-                  <Add variant="Bulk" size={14} /> New page
+                  <Add variant="Bulk" size={14} /> {te("newPage")}
                 </button>
               }
             />
@@ -1035,7 +1036,7 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
                   data-testid="folder-child-card"
                 >
                   <span className="text-2xl">{child.icon ?? (child.isFolder ? "📁" : "📄")}</span>
-                  <span className="min-w-0 flex-1 truncate font-medium group-hover:text-primary">{child.title || "Untitled"}</span>
+                  <span className="min-w-0 flex-1 truncate font-medium group-hover:text-primary">{child.title || te("untitled")}</span>
                 </Link>
               ))}
             </div>
@@ -1047,6 +1048,7 @@ function FolderView({ doc, documentId }: { doc: any; documentId: Id<"flux_docume
 }
 
 function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
+  const te = useTranslations("editor");
   const { activeWorkspaceId } = useWorkspace();
   const docTags = useQuery(api.flux_tags.getForDocument, { documentId });
   const allTags = useQuery(
@@ -1087,7 +1089,7 @@ function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
       <Popover>
         <PopoverTrigger asChild>
           <button className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted" data-testid="document-add-tag">
-            <Add variant="Bulk" size={13} /> Tag
+            <Add variant="Bulk" size={13} /> {te("tag")}
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-2">
@@ -1096,7 +1098,7 @@ function TagRow({ documentId }: { documentId: Id<"flux_documents"> }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && onCreate()}
-              placeholder="Create or find a tag…"
+              placeholder={te("createOrFindTag")}
               className="w-full rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-ring"
               data-testid="tag-input"
             />

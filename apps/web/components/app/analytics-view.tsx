@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useTranslations } from "next-intl";
 import {
   ResponsiveContainer,
   PieChart,
@@ -28,12 +29,12 @@ import {
   TrendUp,
 } from "iconsax-reactjs";
 
-const PRIORITY_META: Record<string, { label: string; color: string }> = {
-  urgent: { label: "Urgent", color: "#c93c2a" },
-  high: { label: "Haute", color: "#E14B3D" },
-  medium: { label: "Moyenne", color: "#d98324" },
-  low: { label: "Faible", color: "#2f7ea6" },
-  none: { label: "Aucune", color: "#9aa0a6" },
+const PRIORITY_COLORS: Record<string, string> = {
+  urgent: "#c93c2a",
+  high: "#E14B3D",
+  medium: "#d98324",
+  low: "#2f7ea6",
+  none: "#9aa0a6",
 };
 
 function KpiCard({ Icon, label, value, sub, tint }: any) {
@@ -80,6 +81,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export function AnalyticsView() {
   const { activeWorkspaceId } = useWorkspace();
+  const t = useTranslations("analytics");
   const skip = activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip";
   const tasks = useQuery(api.flux_tasks.list, skip as any);
   const statuses = useQuery(api.flux_taskStatuses.list, skip as any);
@@ -104,9 +106,9 @@ export function AnalyticsView() {
 
     const prioOrder = ["urgent", "high", "medium", "low", "none"];
     const byPriority = prioOrder.map((k) => ({
-      name: PRIORITY_META[k].label,
+      name: t(`priority.${k}`),
       value: ts.filter((t: any) => (t.priority ?? "none") === k).length,
-      color: PRIORITY_META[k].color,
+      color: PRIORITY_COLORS[k],
     })).filter((d) => d.value > 0);
 
     // weekly created (last 8 weeks)
@@ -169,38 +171,38 @@ export function AnalyticsView() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-            <Chart2 variant="Bulk" size={24} className="text-primary" /> Analytics
+            <Chart2 variant="Bulk" size={24} className="text-primary" /> {t("title")}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">Live overview of your workspace activity.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d76]" /> Temps réel
+          <span className="h-1.5 w-1.5 rounded-full bg-[#1f9d76]" /> {t("realTime")}
         </span>
       </div>
 
       {/* KPIs */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard Icon={TaskSquare} label="Tâches totales" value={data.total} tint="#2f7ea6" />
-        <KpiCard Icon={TickCircle} label="Terminées" value={data.completed} sub={`${data.rate}%`} tint="#1f9d76" />
-        <KpiCard Icon={DocumentText} label="Documents" value={data.docCount} tint="#E14B3D" />
-        <KpiCard Icon={Briefcase} label="Projets actifs" value={data.projectCount} tint="#d98324" />
+        <KpiCard Icon={TaskSquare} label={t("totalTasks")} value={data.total} tint="#2f7ea6" />
+        <KpiCard Icon={TickCircle} label={t("completed")} value={data.completed} sub={`${data.rate}%`} tint="#1f9d76" />
+        <KpiCard Icon={DocumentText} label={t("documents")} value={data.docCount} tint="#E14B3D" />
+        <KpiCard Icon={Briefcase} label={t("activeProjects")} value={data.projectCount} tint="#d98324" />
       </div>
 
       {/* Completion progress bar */}
       <div className="tx-card mt-4 p-5">
         <div className="flex items-center justify-between text-sm font-semibold">
-          <span className="flex items-center gap-2"><Flash variant="Bulk" size={17} className="text-primary" /> Taux d'achèvement</span>
+          <span className="flex items-center gap-2"><Flash variant="Bulk" size={17} className="text-primary" /> {t("completionRate")}</span>
           <span className="tabular text-muted-foreground">{data.completed}/{data.total}</span>
         </div>
         <div className="mt-3 h-3 overflow-hidden rounded-full bg-muted">
           <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${data.rate}%` }} />
         </div>
-        <div className="mt-1.5 text-xs text-muted-foreground">{data.rate}% des tâches sont terminées · {data.inProgress} en cours</div>
+        <div className="mt-1.5 text-xs text-muted-foreground">{t("completionDesc", { rate: data.rate, inProgress: data.inProgress })}</div>
       </div>
 
       {/* Charts row */}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Tâches par statut" icon={Chart2}>
+        <ChartCard title={t("tasksByStatus")} icon={Chart2}>
           {data.byStatus.some((d) => d.value > 0) ? (
             <>
               <div className="h-52">
@@ -223,10 +225,10 @@ export function AnalyticsView() {
                 ))}
               </div>
             </>
-          ) : <EmptyChart />}
+          ) : <EmptyChart label={t("noData")} />}
         </ChartCard>
 
-        <ChartCard title="Par priorité" icon={TrendUp}>
+        <ChartCard title={t("byPriority")} icon={TrendUp}>
           {data.byPriority.length ? (
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -240,10 +242,10 @@ export function AnalyticsView() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          ) : <EmptyChart />}
+          ) : <EmptyChart label={t("noData")} />}
         </ChartCard>
 
-        <ChartCard title="Débit hebdomadaire" icon={TrendUp}>
+        <ChartCard title={t("weeklyThroughput")} icon={TrendUp}>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data.weeks} margin={{ left: -18, right: 6, top: 6 }}>
@@ -261,8 +263,8 @@ export function AnalyticsView() {
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} allowDecimals={false} width={28} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="created" name="Créées" stroke="#E14B3D" strokeWidth={2} fill="url(#gCreated)" />
-                <Area type="monotone" dataKey="done" name="Terminées" stroke="#1f9d76" strokeWidth={2} fill="url(#gDone)" />
+                <Area type="monotone" dataKey="created" name={t("created")} stroke="#E14B3D" strokeWidth={2} fill="url(#gCreated)" />
+                <Area type="monotone" dataKey="done" name={t("done")} stroke="#1f9d76" strokeWidth={2} fill="url(#gDone)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -272,7 +274,7 @@ export function AnalyticsView() {
       {/* Contribution heatmap */}
       <div className="tx-card mt-4 p-5">
         <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <Flash variant="Bulk" size={17} className="text-primary" /> Activité (18 dernières semaines)
+          <Flash variant="Bulk" size={17} className="text-primary" /> {t("activity18weeks")}
         </div>
         <div className="overflow-x-auto">
           <div className="grid grid-flow-col grid-rows-7 gap-[3px]" style={{ width: "max-content" }} data-testid="analytics-heatmap">
@@ -282,18 +284,18 @@ export function AnalyticsView() {
           </div>
         </div>
         <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-          Moins {[0, 1, 2, 3, 4].map((l) => <span key={l} className={`h-3 w-3 rounded-[3px] tx-heat-${l}`} />)} Plus
+          {t("less")} {[0, 1, 2, 3, 4].map((l) => <span key={l} className={`h-3 w-3 rounded-[3px] tx-heat-${l}`} />)} {t("more")}
         </div>
       </div>
     </div>
   );
 }
 
-function EmptyChart() {
+function EmptyChart({ label }: { label: string }) {
   return (
     <div className="flex h-52 flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
       <Chart2 variant="Bulk" size={30} className="opacity-40" />
-      Pas encore de données
+      {label}
     </div>
   );
 }

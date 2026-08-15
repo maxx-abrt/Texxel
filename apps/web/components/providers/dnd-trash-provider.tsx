@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useState } from "react";
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
 import { useMutation } from "convex/react";
+import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { Id } from "@/convex/_generated/dataModel";
@@ -30,6 +31,7 @@ export function useTrashDnd() {
 
 export function TrashDndProvider({ children }: { children: React.ReactNode }) {
   const { activeWorkspaceId } = useWorkspace();
+  const t = useTranslations("workspace");
   const archive = useMutation(api.flux_documents.archive);
   const moveDoc = useMutation(api.flux_documents.move);
   const [trashingIds, setTrashingIds] = useState<Set<string>>(new Set());
@@ -72,9 +74,9 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
       if (overId === "sidebar-private-root" || overId === "sidebar-root-area" || overId.startsWith("sidebar-root-tree")) {
         try {
           await moveDoc({ documentId: activeId as Id<"flux_documents">, parentId: undefined });
-          toast.success("Moved to root");
+          toast.success(t("movedToRoot"));
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Could not move document");
+          toast.error(err instanceof Error ? err.message : t("couldNotMove"));
         }
         return;
       }
@@ -85,9 +87,9 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
         if (!targetId || targetId === activeId) return;
         try {
           await moveDoc({ documentId: activeId as Id<"flux_documents">, parentId: targetId as Id<"flux_documents"> });
-          toast.success("Moved to folder");
+          toast.success(t("movedToFolder"));
         } catch (err) {
-          toast.error(err instanceof Error ? err.message : "Could not move document");
+          toast.error(err instanceof Error ? err.message : t("couldNotMove"));
         }
         return;
       }
@@ -98,9 +100,9 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
       setTrashingIds((prev) => new Set(prev).add(activeId));
       try {
         await archive({ documentId: activeId as Id<"flux_documents"> });
-        toast.success("Document moved to trash");
+        toast.success(t("docMovedTrash"));
       } catch {
-        toast.error("Could not move document to trash");
+        toast.error(t("docMoveTrashFailed"));
       } finally {
         setTimeout(() => {
           setTrashingIds((prev) => {
@@ -111,7 +113,7 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
         }, 300);
       }
     },
-    [activeWorkspaceId, archive, moveDoc],
+    [activeWorkspaceId, archive, moveDoc, t],
   );
 
   return (

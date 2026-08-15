@@ -12,13 +12,14 @@
 //  - Escape closes the most recently opened panel (unless a dialog handled it)
 //
 // Cross-app links: other features (command palette, etc.) can open the panels
-// by dispatching `flux:open-chat` / `flux:open-ai` window events.
+// by dispatching `bureau:open-chat` / `bureau:open-ai` window events.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { ChatBubble } from "./chat-bubble";
 import { AiPanel } from "./ai-panel";
+import { BureauLogo } from "./bureau-logo";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
@@ -243,11 +244,11 @@ export function DockedBubbles() {
       }
       setExpanded(false);
     };
-    window.addEventListener("flux:open-chat", openChat);
-    window.addEventListener("flux:open-ai", openAi);
+    window.addEventListener("bureau:open-chat", openChat);
+    window.addEventListener("bureau:open-ai", openAi);
     return () => {
-      window.removeEventListener("flux:open-chat", openChat);
-      window.removeEventListener("flux:open-ai", openAi);
+      window.removeEventListener("bureau:open-chat", openChat);
+      window.removeEventListener("bureau:open-ai", openAi);
     };
   }, []);
 
@@ -382,7 +383,7 @@ export function DockedBubbles() {
           data-testid="bubble-dot"
           className="relative flex h-14 w-14 items-center justify-center overflow-visible rounded-full border border-border bg-background shadow-xl shadow-black/15 outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <BrandIcon light="/brand/logo-puzzle-light.png" dark="/brand/logo-puzzle-dark.png" size={32} alt="Texxel" />
+          <BureauLogo size={32} />
           {(unread ?? 0) > 0 && (
             <span className="absolute -right-1 -top-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-white shadow-sm">
               {(unread ?? 0) > 99 ? "99+" : unread}

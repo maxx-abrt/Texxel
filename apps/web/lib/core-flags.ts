@@ -1,5 +1,5 @@
 /**
- * Feature flags controlling how much of Texxel/Bureau reads & writes through the
+ * Feature flags controlling how much of Bureau reads & writes through the
  * shared A2E Core deployment instead of this app's local Convex tables.
  *
  * Policy (July 2026): **core-first**. Every flag defaults to ON; set the env var

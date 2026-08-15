@@ -2,14 +2,14 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
- * A2E SUITE SHARED SCHEMA + A2EMoney TABLES + FLUX TABLES
+ * A2E SUITE SHARED SCHEMA + A2EMoney TABLES + BUREAU TABLES
  *
  * - Auth tables come from convex-auth (do not redefine).
  * - Shared tables (workspaces, memberships, invitations, projects, tasks,
  *   activities, notifications) are owned by the A2E foundation and used by every
  *   app in the suite. Left UNCHANGED so A2EMoney keeps working.
  * - A2EMoney tables are prefixed `a2e_` (preserved verbatim, superset deploy).
- * - Flux (this app) adds ONLY `flux_` prefixed tables. Every flux table is
+ * - Bureau (this app) adds ONLY `flux_` prefixed tables. Every flux table is
  *   workspace-scoped with a `by_workspace` index.
  */
 export default defineSchema({
@@ -595,7 +595,7 @@ export default defineSchema({
     .index("by_database", ["databaseId"])
     .index("by_workspace", ["workspaceId"]),
 
-  // Flux-specific task presentation metadata. Sidecar to the shared `tasks`
+  // Bureau-specific task presentation metadata. Sidecar to the shared `tasks`
   // table (keeps the shared table decoupled & cross-app safe).
   flux_taskMeta: defineTable({
     workspaceId: v.id("workspaces"),
@@ -714,7 +714,7 @@ export default defineSchema({
     .index("by_document", ["documentId"])
     .index("by_tag", ["tagId"]),
 
-  // Per-user Flux preferences (app-scoped, not workspace-scoped).
+  // Per-user Bureau preferences (app-scoped, not workspace-scoped).
   flux_userPrefs: defineTable({
     userId: v.id("users"),
     locale: v.optional(v.string()),

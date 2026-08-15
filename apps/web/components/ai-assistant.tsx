@@ -162,6 +162,7 @@ function DiffPreview({
   newBlocks?: any[];
   newPlainText?: string;
 }) {
+  const t = useTranslations("ai");
   const [expanded, setExpanded] = useState(false);
 
   const oldText = oldContent ? extractPlainText(oldContent).slice(0, 600) : "";
@@ -177,17 +178,17 @@ function DiffPreview({
         onClick={() => setExpanded((v) => !v)}
         className="flex w-full items-center justify-between px-2.5 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors"
       >
-        <span className="font-medium text-muted-foreground">Preview changes</span>
+        <span className="font-medium text-muted-foreground">{t("previewChanges")}</span>
         {expanded ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
       </button>
       {expanded && (
         <div className="grid grid-cols-2 divide-x divide-border/50 max-h-40 overflow-y-auto">
           <div className="p-2 bg-red-500/5">
-            <p className="font-semibold text-red-500/70 mb-1 text-[9px] uppercase tracking-wider">Before</p>
+            <p className="font-semibold text-red-500/70 mb-1 text-[9px] uppercase tracking-wider">{t("before")}</p>
             <p className="whitespace-pre-wrap text-muted-foreground/80 leading-relaxed">{oldText || "—"}</p>
           </div>
           <div className="p-2 bg-emerald-500/5">
-            <p className="font-semibold text-emerald-500/70 mb-1 text-[9px] uppercase tracking-wider">After</p>
+            <p className="font-semibold text-emerald-500/70 mb-1 text-[9px] uppercase tracking-wider">{t("after")}</p>
             <p className="whitespace-pre-wrap text-foreground/80 leading-relaxed">{newText || "—"}</p>
           </div>
         </div>
@@ -409,9 +410,9 @@ export function AiAssistantPanel({
   // ── Context summary for header ─────────────────────────────────────────────
   const contextSummary = (() => {
     const parts: string[] = [];
-    if (documentContext) parts.push(`${locale === "fr" ? "Note" : "Note"}: "${documentContext.title}"`);
-    if (taskContext) parts.push(`${locale === "fr" ? "Tâche" : "Task"}: "${taskContext.title}" (${taskContext.status})`);
-    if (activeTasks.length > 0) parts.push(`${activeTasks.length} ${locale === "fr" ? "tâches actives" : "active tasks"}`);
+    if (documentContext) parts.push(`${t("ctxNote")}: "${documentContext.title}"`);
+    if (taskContext) parts.push(`${t("ctxTask")}: "${taskContext.title}" (${taskContext.status})`);
+    if (activeTasks.length > 0) parts.push(`${activeTasks.length} ${t("ctxActiveTasks")}`);
     return parts.join(" · ") || null;
   })();
 
@@ -752,7 +753,7 @@ export function AiAssistantPanel({
         errMsg = t("suiteRequired");
       } else if (err.message?.startsWith("rate_limit:")) {
         const delay = err.message.replace("rate_limit:", "");
-        errMsg = `⏳ ${locale === "fr" ? `Limite de requêtes atteinte. Réessayez dans ${delay}.` : `Rate limit reached. Please retry in ${delay}.`}`;
+        errMsg = `⏳ ${t("rateLimitMsg", { delay })}`;
       } else {
         errMsg = `${t("errorPrefix")}: ${err.message ?? t("unknownError")}`;
       }
@@ -776,9 +777,7 @@ export function AiAssistantPanel({
     }
     // insertTable: send a direct prompt that the AI must respond to with an insert_blocks action
     if (key === "insertTable") {
-      const prompt = locale === "fr"
-        ? "Crée un tableau 3x3 avec des en-têtes et insère-le dans la note active."
-        : "Create a 3x3 table with headers and insert it into the active note.";
+      const prompt = t("insertTablePrompt");
       handleSend(prompt);
       return;
     }
@@ -942,8 +941,8 @@ export function AiAssistantPanel({
           {sessionHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <History className="h-8 w-8 text-muted-foreground/20 mb-3" />
-              <p className="text-xs font-medium text-muted-foreground/60">No history yet</p>
-              <p className="text-[11px] text-muted-foreground/40 mt-1">Past conversations will appear here</p>
+              <p className="text-xs font-medium text-muted-foreground/60">{t("noHistory")}</p>
+              <p className="text-[11px] text-muted-foreground/40 mt-1">{t("pastConversations")}</p>
             </div>
           ) : (
             <div className="divide-y divide-border/40">
@@ -980,7 +979,7 @@ export function AiAssistantPanel({
                         });
                       }}
                       className="shrink-0 mr-2 mt-3 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/30 opacity-0 group-hover:opacity-100 hover:bg-red-500/10 hover:text-red-500 transition-all"
-                      title="Delete"
+                      title={t("delete")}
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -1099,7 +1098,7 @@ export function AiAssistantPanel({
                           if (documentContext.content) try { existing = JSON.parse(documentContext.content); } catch {}
                           onPreviewContent(JSON.stringify([...existing, ...blocks]));
                           // Add visual feedback that conversion happened
-                          toast.success(locale === "fr" ? "Tableau converti — aperçu actif" : "Table converted — preview active");
+                          toast.success(t("tableConverted"));
                         }
                       }}
                       className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/15 transition-colors"

@@ -16,7 +16,7 @@ const PALETTES: Record<string, { light: string; dark: string }> = {
 
 function applyStoredPalette(resolvedTheme?: string) {
   if (typeof window === "undefined") return;
-  const id = localStorage.getItem("texxel-palette") ?? "coral";
+  const id = localStorage.getItem("bureau-palette") ?? "coral";
   const palette = PALETTES[id] ?? PALETTES.coral;
   const isDark = resolvedTheme === "dark" || document.documentElement.classList.contains("dark");
   const value = isDark ? palette.dark : palette.light;

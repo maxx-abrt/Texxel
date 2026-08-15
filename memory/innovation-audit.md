@@ -1,8 +1,8 @@
-# Texxel Product Innovation Audit
+# Bureau Product Innovation Audit
 
 ## Executive view
 
-Texxel already has a broad, unusually coherent base: nested docs, tasks, projects, databases, calendar, discussions, notifications, workspace roles, activity, version history, sharing, encryption, templates, and BlockNote. The largest product opportunity is not adding more disconnected modules; it is turning existing modules into one connected work graph where a decision in a document can become tracked work without copying data.
+Bureau already has a broad, unusually coherent base: nested docs, tasks, projects, databases, calendar, discussions, notifications, workspace roles, activity, version history, sharing, encryption, templates, and BlockNote. The largest product opportunity is not adding more disconnected modules; it is turning existing modules into one connected work graph where a decision in a document can become tracked work without copying data.
 
 Scoring: Impact and Effort are 1–5. Lower effort is easier. **Now** means a practical next release, **Next** means the following 1–2 releases, and **Later** is strategic.
 
@@ -97,4 +97,4 @@ Scoring: Impact and Effort are 1–5. Lower effort is easier. **Now** means a pr
 - Meeting intelligence and recurring reviews.
 - Saved cross-module views and first automation rules.
 
-This sequence makes Texxel meaningfully differentiated without attempting to outbuild Notion, Linear, and Monday independently. The moat is the quality of the connections between writing, decisions, execution, and deliverables.
+This sequence makes Bureau meaningfully differentiated without attempting to outbuild Notion, Linear, and Monday independently. The moat is the quality of the connections between writing, decisions, execution, and deliverables.

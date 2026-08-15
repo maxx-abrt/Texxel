@@ -14,6 +14,6 @@ export const useWorkspace = create<WorkspaceState>()(
       activeWorkspaceId: null,
       setActiveWorkspaceId: (id) => set({ activeWorkspaceId: id }),
     }),
-    { name: "texxel-workspace" },
+    { name: "bureau-workspace" },
   ),
 );

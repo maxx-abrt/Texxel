@@ -18,10 +18,12 @@ const nextConfig = {
   // Workspace packages ship raw TypeScript — Next must compile them.
   transpilePackages: ["@bureau/api", "@bureau/ui", "@a2e/core"],
   ...(isEmergentDev ? { outputFileTracingRoot: monorepoRoot } : {}),
-  // Allow the Emergent preview proxy origins during `next dev`. The browser is
-  // served from *.preview.emergentcf.cloud (the real CDN origin) which proxies
-  // to *.preview.emergentagent.com — both must be allowed or Next blocks the
-  // client JS chunks cross-origin and the app gets stuck on the loader.
+  // Allow the Emergent preview proxy origins and the production A2E Suite domain
+  // during `next dev`. The browser is served from *.preview.emergentcf.cloud
+  // (the real CDN origin) which proxies to *.preview.emergentagent.com — both
+  // must be allowed or Next blocks the client JS chunks cross-origin and the app
+  // gets stuck on the loader. `bureau.a2esuite.com` is included for dev against
+  // the real production domain.
   // (allowedDevOrigins only applies in dev, so it's a no-op in production.)
   allowedDevOrigins: [
     "thread-flow-dev.preview.emergentagent.com",
@@ -29,11 +31,10 @@ const nextConfig = {
     "*.cluster-5.preview.emergentcf.cloud",
     "*.cluster-12.preview.emergentcf.cloud",
     "*.cluster-13.preview.emergentcf.cloud",
-    "texxel-collab.preview.emergentagent.com",
-    "texxel-collab.cluster-12.preview.emergentcf.cloud",
-    "texxel-collab.cluster-13.preview.emergentcf.cloud",
     "workspace-beta.preview.emergentagent.com",
     "workspace-beta.cluster-5.preview.emergentcf.cloud",
+    "bureau.a2esuite.com",
+    "*.bureau.a2esuite.com",
     ".preview.emergentagent.com",
     ".preview.emergentcf.cloud",
     ".emergentcf.cloud",
@@ -48,6 +49,8 @@ const nextConfig = {
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "customer-assets.emergentagent.com" },
+      { protocol: "https", hostname: "bureau.a2esuite.com" },
+      { protocol: "https", hostname: "*.bureau.a2esuite.com" },
     ],
   },
 };

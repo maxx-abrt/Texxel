@@ -1,7 +1,7 @@
 # A2E Core — how the shared data layer is wired in this repo
 
 > One suite, one identity, one shared database for everything cross-app.
-> This document is the contract for Texxel/Bureau. The suite-wide contract lives
+> This document is the contract for Bureau. The suite-wide contract lives
 > in `A2E_APP_INTEGRATION_GUIDE.md` (A2E-Core repo) and wins on any conflict.
 
 ## 1. Two backends, one login
@@ -159,7 +159,7 @@ of every app in a single Convex deployment — no.** Reasons, in order of weight
 
 1. **Blast radius.** One deployment = one function namespace, one schema
    validation pass, one deploy. A bad migration or a hot query in the CRM would
-   take Texxel, Bilan and Drive down together. Today a core deploy is a rare,
+   take Bureau, Bilan and Drive down together. Today a core deploy is a rare,
    reviewed, additive event; app deploys stay independent and frequent.
 2. **No transactional gain.** Convex transactions are per-deployment, and
    cross-app writes are already async by design (`intents`, `links`). Merging

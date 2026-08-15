@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isSameMonth, isSameDay, getYear, getMonth, setYear, setMonth } from "date-fns";
+import { fr as dateFnsFr, enUS as dateFnsEnUS } from "date-fns/locale";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -14,18 +16,24 @@ interface DatePickerProps {
   className?: string;
 }
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
-
 export function DatePicker({
   date,
   onChange,
-  placeholder = "Pick a date",
+  placeholder,
   disabled,
   className,
 }: DatePickerProps) {
+  const t = useTranslations("ui");
+  const locale = useLocale();
+  const dateLocale = locale === "fr" ? dateFnsFr : dateFnsEnUS;
+  const months = React.useMemo(
+    () => Array.from({ length: 12 }, (_, i) => format(new Date(2024, i, 1), "MMM", { locale: dateLocale })),
+    [dateLocale],
+  );
+  const weekdays = React.useMemo(
+    () => Array.from({ length: 7 }, (_, i) => format(new Date(2024, 0, i), "EEEEEE", { locale: dateLocale })),
+    [dateLocale],
+  );
   const [open, setOpen] = React.useState(false);
   const [viewDate, setViewDate] = React.useState(date || new Date());
 
@@ -61,7 +69,7 @@ export function DatePicker({
             className,
           )}
         >
-          <span>{date ? format(date, "PPP") : placeholder}</span>
+          <span>{date ? format(date, "PPP", { locale: dateLocale }) : (placeholder ?? t("pickDate"))}</span>
           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
         </button>
       </PopoverTrigger>
@@ -73,7 +81,7 @@ export function DatePicker({
               type="button"
               onClick={() => setViewDate((d) => setMonth(d, getMonth(d) - 1))}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-              aria-label="Previous month"
+              aria-label={t("previousMonth")}
             >
               ‹
             </button>
@@ -83,7 +91,7 @@ export function DatePicker({
                 onChange={(e) => setViewDate((d) => setMonth(d, Number(e.target.value)))}
                 className="h-7 rounded-md border border-input bg-background px-1.5 text-xs font-medium outline-none focus:ring-1 focus:ring-ring"
               >
-                {MONTHS.map((m, i) => (
+                {months.map((m, i) => (
                   <option key={m} value={i}>{m}</option>
                 ))}
               </select>
@@ -101,7 +109,7 @@ export function DatePicker({
               type="button"
               onClick={() => setViewDate((d) => setMonth(d, getMonth(d) + 1))}
               className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-              aria-label="Next month"
+              aria-label={t("nextMonth")}
             >
               ›
             </button>
@@ -109,7 +117,7 @@ export function DatePicker({
 
           {/* Weekday labels */}
           <div className="grid grid-cols-7 text-center">
-            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+            {weekdays.map((d) => (
               <div key={d} className="py-1 text-[10px] font-medium text-muted-foreground">
                 {d}
               </div>

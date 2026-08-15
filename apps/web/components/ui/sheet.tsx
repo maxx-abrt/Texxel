@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import { XIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 function Sheet({
@@ -52,6 +53,19 @@ const sideClasses: Record<string, string> = {
   right: "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
 };
 
+function SheetCloseLabel() {
+  const t = useTranslations("ui");
+  return (
+    <SheetPrimitive.Close
+      data-slot="sheet-close"
+      className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none"
+    >
+      <XIcon className="size-4" />
+      <span className="sr-only">{t("close")}</span>
+    </SheetPrimitive.Close>
+  );
+}
+
 function SheetContent({
   side = "right",
   className,
@@ -73,13 +87,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close
-          data-slot="sheet-close"
-          className="absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:outline-none disabled:pointer-events-none"
-        >
-          <XIcon className="size-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
+        <SheetCloseLabel />
       </SheetPrimitive.Content>
     </SheetPortal>
   );

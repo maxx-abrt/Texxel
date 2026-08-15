@@ -101,7 +101,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
   useEffect(() => {
     if (!open) return;
     try {
-      setRecentIds(JSON.parse(localStorage.getItem("texxel-recent-docs") ?? "[]"));
+      setRecentIds(JSON.parse(localStorage.getItem("bureau-recent-docs") ?? "[]"));
     } catch {
       setRecentIds([]);
     }
@@ -136,10 +136,10 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
     { key: "newDoc", Icon: AddSquare, run: newDoc, testId: "cmd-new-doc" },
     { key: "newTask", Icon: TaskSquare, run: () => go("/app/tasks"), testId: "cmd-new-task" },
     { key: "newEvent", Icon: CalendarAdd, run: () => go("/app/calendar"), testId: "cmd-new-event" },
-    { key: "openChat", Icon: Message, run: () => fire("flux:open-chat"), testId: "cmd-open-chat" },
-    { key: "askAi", Icon: Magicpen, run: () => fire("flux:open-ai"), testId: "cmd-ask-ai" },
+    { key: "openChat", Icon: Message, run: () => fire("bureau:open-chat"), testId: "cmd-open-chat" },
+    { key: "askAi", Icon: Magicpen, run: () => fire("bureau:open-ai"), testId: "cmd-ask-ai" },
     { key: "toggleTheme", Icon: Moon, run: () => { setTheme(resolvedTheme === "dark" ? "light" : "dark"); setOpen(false); }, testId: "cmd-toggle-theme" },
-    { key: "toggleSidebar", Icon: SidebarLeft, run: () => fire("texxel:toggle-sidebar"), testId: "cmd-toggle-sidebar" },
+    { key: "toggleSidebar", Icon: SidebarLeft, run: () => fire("bureau:toggle-sidebar"), testId: "cmd-toggle-sidebar" },
   ];
   const showActions = q.trim().length < 2;
 

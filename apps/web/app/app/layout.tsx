@@ -18,6 +18,7 @@ import { CoreWorkspaceSync } from "@/components/app/core-workspace-sync";
 import { AccentProvider } from "@/components/providers/accent-provider";
 import { usePersistedState } from "@/hooks/use-sidebar-prefs";
 import { useTranslations } from "next-intl";
+import { BureauLogo } from "@/components/app/bureau-logo";
 
 function UserStoreSync({ children }: { children: React.ReactNode }) {
   const storeUser = useMutation(api.users.store);
@@ -37,7 +38,10 @@ function Loader({ stage = "auth" }: { stage?: string }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background" data-testid="app-loader" data-stage={stage}>
       <div className="flex flex-col items-center gap-3 text-muted-foreground">
-        <span className="text-2xl font-extrabold tracking-tight">{t("tagline")}</span>
+        <span className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
+          <BureauLogo size={32} />
+          {t("tagline")}
+        </span>
         <div className="h-1 w-24 overflow-hidden rounded-full bg-muted">
           <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
         </div>
@@ -50,7 +54,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { isLoading, needsOnboarding } = useWorkspace();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [collapsed, setCollapsed] = usePersistedState<boolean>("texxel-sidebar-collapsed", false);
+  const [collapsed, setCollapsed] = usePersistedState<boolean>("bureau-sidebar-collapsed", false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -72,10 +76,10 @@ function Shell({ children }: { children: React.ReactNode }) {
     };
     const onEvt = () => setCollapsed((c) => !c);
     window.addEventListener("keydown", onKey);
-    window.addEventListener("texxel:toggle-sidebar", onEvt);
+    window.addEventListener("bureau:toggle-sidebar", onEvt);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("texxel:toggle-sidebar", onEvt);
+      window.removeEventListener("bureau:toggle-sidebar", onEvt);
     };
   }, [setCollapsed]);
 

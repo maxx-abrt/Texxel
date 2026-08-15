@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
+import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ const LEVEL_CLASS = [
 ];
 
 export function ContributionGrid({ workspaceId }: { workspaceId: string }) {
+  const t = useTranslations("contribution");
   const data = useQuery(api.activities.heatmap, {
     workspaceId: workspaceId as Id<"workspaces">,
     days: 364,
@@ -70,9 +72,9 @@ export function ContributionGrid({ workspaceId }: { workspaceId: string }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5" data-testid="contribution-grid">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-foreground">Your activity</h3>
+        <h3 className="text-sm font-bold text-foreground">{t("yourActivity")}</h3>
         <span className="text-xs text-muted-foreground">
-          {total} contribution{total === 1 ? "" : "s"} this year
+          {t("contributionsThisYear", { count: total })}
         </span>
       </div>
 
@@ -94,7 +96,7 @@ export function ContributionGrid({ workspaceId }: { workspaceId: string }) {
           <div className="flex gap-[3px]">
             {/* Weekday labels */}
             <div className="mr-1 flex flex-col gap-[3px] text-[9px] text-muted-foreground">
-              {["", "Mon", "", "Wed", "", "Fri", ""].map((d, i) => (
+              {["", t("weekdayMon"), "", t("weekdayWed"), "", t("weekdayFri"), ""].map((d, i) => (
                 <span key={i} className="flex h-[11px] items-center leading-none">{d}</span>
               ))}
             </div>
@@ -106,7 +108,7 @@ export function ContributionGrid({ workspaceId }: { workspaceId: string }) {
                   return (
                     <div
                       key={di}
-                      title={future ? "" : `${cell.count} on ${cell.date}`}
+                      title={future ? "" : t("countOn", { count: cell.count, date: cell.date })}
                       className={cn(
                         "h-[11px] w-[11px] rounded-[2px]",
                         future ? "bg-transparent" : LEVEL_CLASS[level(cell.count)],
@@ -121,11 +123,11 @@ export function ContributionGrid({ workspaceId }: { workspaceId: string }) {
       </div>
 
       <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
-        <span>Less</span>
+        <span>{t("less")}</span>
         {LEVEL_CLASS.map((c, i) => (
           <div key={i} className={cn("h-[11px] w-[11px] rounded-[2px]", c)} />
         ))}
-        <span>More</span>
+        <span>{t("more")}</span>
       </div>
     </div>
   );

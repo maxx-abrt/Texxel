@@ -2,21 +2,10 @@
 
 import * as React from "react";
 import { useWorkspace, useEntitlement, type QuotaDomain } from "@a2e/core";
+import { useTranslations } from "next-intl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { btnPrimary, btnOutline } from "@/components/app/common";
 import { Crown, CloseCircle } from "iconsax-reactjs";
-
-const DOMAIN_LABELS: Record<QuotaDomain, string> = {
-  storageBytes: "Storage",
-  maxMembers: "Members",
-  maxTasks: "Tasks",
-  maxDriveFiles: "Drive files",
-  maxEvents: "Events",
-  maxContacts: "Contacts",
-  maxFileUploadBytes: "File upload size",
-  maxCustomRoles: "Custom roles",
-  maxFormsResponsesPerMonth: "Form responses / month",
-};
 
 export interface UpgradeDialogState {
   open: boolean;
@@ -38,11 +27,13 @@ interface UpgradeDialogProps {
 export function UpgradeDialog({ state, onOpenChange }: UpgradeDialogProps) {
   const { activeWorkspaceId } = useWorkspace();
   const entitlement = useEntitlement(activeWorkspaceId);
+  const t = useTranslations("upgrade");
   const planKey = entitlement?.planKey ?? "free";
   const domain = state.domain;
   const used = state.used ?? 0;
   const limit = state.limit ?? 0;
   const unlimited = limit === -1;
+  const domainLabel = domain ? t(`domain.${domain}` as any) : "";
 
   return (
     <Dialog open={state.open} onOpenChange={onOpenChange}>
@@ -51,31 +42,30 @@ export function UpgradeDialog({ state, onOpenChange }: UpgradeDialogProps) {
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-(--flux-coral-soft) text-primary">
             <Crown variant="Bulk" size={26} />
           </div>
-          <DialogTitle className="text-xl">Upgrade your plan</DialogTitle>
+          <DialogTitle className="text-xl">{t("title")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-sm text-muted-foreground">
           {domain && (
             <p>
-              You&apos;ve reached the <strong className="text-foreground">{DOMAIN_LABELS[domain]}</strong> limit
-              {!unlimited && (
-                <> ({used.toLocaleString()} / {limit.toLocaleString()})</>
-              )} on the <strong className="text-foreground capitalize">{planKey}</strong> plan.
+              {unlimited
+                ? t("limitReachedUnlimited", { domain: domainLabel, plan: planKey })
+                : t("limitReached", { domain: domainLabel, used: used.toLocaleString(), limit: limit.toLocaleString(), plan: planKey })}
             </p>
           )}
-          <p>Upgrade to a higher plan to unlock more capacity and premium features.</p>
+          <p>{t("upgradeDesc")}</p>
         </div>
 
         <DialogFooter className="gap-2">
           <button className={btnOutline} onClick={() => onOpenChange(false)}>
-            <CloseCircle variant="Bulk" size={16} /> Not now
+            <CloseCircle variant="Bulk" size={16} /> {t("notNow")}
           </button>
           <a
             className={btnPrimary}
             href="/app/settings"
             onClick={() => onOpenChange(false)}
           >
-            <Crown variant="Bulk" size={16} /> View plans
+            <Crown variant="Bulk" size={16} /> {t("viewPlans")}
           </a>
         </DialogFooter>
       </DialogContent>

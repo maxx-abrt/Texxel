@@ -198,7 +198,7 @@ export function FontLibraryDialog({
       if (url.protocol !== "https:" || url.hostname !== "fonts.googleapis.com" || !url.pathname.startsWith("/css")) throw new Error();
       const family = (url.searchParams.get("family") ?? "").split(":")[0].replace(/\+/g, " ");
       if (!family) throw new Error();
-      const id = "texxel-font-preview-link";
+      const id = "bureau-font-preview-link";
       document.getElementById(id)?.remove();
       const link = document.createElement("link");
       link.id = id;

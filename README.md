@@ -6,7 +6,7 @@ sharing one real-time Convex backend and one WorkOS identity.
 ```
 bureau/
 ├── apps/
-│   ├── web/          Next.js 16 app (App Router) + Convex functions  → texxel.app
+│   ├── web/          Next.js 16 app (App Router) + Convex functions  → bureau.a2esuite.com
 │   └── mobile/       Expo SDK 54 app (Expo Router)                   → Bureau (iOS / Android)
 ├── packages/
 │   ├── a2e-core/     `@a2e/core` — shared A2E suite client (vendored, see VENDORED.md)

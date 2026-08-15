@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useConvexAuth } from "convex/react";
+import { useTranslations } from "next-intl";
+import { BureauLogo } from "@/components/app/bureau-logo";
 import {
   ArrowRight2,
   Sms,
-  Flash,
   DocumentText,
   TaskSquare,
   Calendar,
@@ -34,6 +35,7 @@ function GoogleGlyph() {
 export default function AuthPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useConvexAuth();
+  const t = useTranslations("auth");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -46,7 +48,7 @@ export default function AuthPage() {
     setSubmitting(true);
     if (email) {
       try {
-        window.localStorage.setItem("texxel:last-email", email);
+        window.localStorage.setItem("bureau:last-email", email);
       } catch {}
     }
     // WorkOS AuthKit owns the credential step; our page is the branded entry.
@@ -63,19 +65,15 @@ export default function AuthPage() {
           <div className="tx-fade-in mx-auto w-full max-w-[440px]">
             {/* Wordmark */}
             <div className="mb-10 flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <Flash variant="Bulk" size={20} />
-              </span>
-              <span className="text-xl font-extrabold tracking-tight">texxel</span>
+              <BureauLogo size={36} />
+              <span className="text-xl font-extrabold tracking-tight">Bureau</span>
             </div>
 
             <h1 className="text-3xl font-bold tracking-[-0.03em] sm:text-4xl">
-              {mode === "signin" ? "Welcome back" : "Create your account"}
+              {mode === "signin" ? t("welcomeBack") : t("signUp")}
             </h1>
             <p className="mt-3 text-base leading-snug text-muted-foreground">
-              {mode === "signin"
-                ? "Sign in to your connected workspace — docs, tasks & plans."
-                : "One calm, connected workspace for everything your team builds."}
+              {mode === "signin" ? t("signInSubtitle2") : t("signUpSubtitle2")}
             </p>
 
             {/* Social */}
@@ -87,12 +85,12 @@ export default function AuthPage() {
                 data-testid="auth-google-button"
                 className="tx-focus flex h-11 items-center justify-center gap-2.5 rounded-xl border border-border bg-background text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-60"
               >
-                <GoogleGlyph /> Continue with Google
+                <GoogleGlyph /> {t("continueGoogle")}
               </button>
             </div>
 
             <div className="my-7 flex items-center gap-4 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+              <span className="h-px flex-1 bg-border" /> {t("or")} <span className="h-px flex-1 bg-border" />
             </div>
 
             {/* Email form — WorkOS handles magic link / password on its hosted page */}
@@ -104,15 +102,15 @@ export default function AuthPage() {
               }}
             >
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">Email</span>
+                <span className="mb-1.5 block text-sm font-medium">{t("email")}</span>
                 <div className="flex h-11 items-center gap-2.5 rounded-xl border border-border bg-background px-3.5 transition-colors focus-within:border-primary/60">
                   <Sms variant="Bulk" size={18} className="shrink-0 text-muted-foreground" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    aria-label="Email"
+                    placeholder={t("emailPlaceholder")}
+                    aria-label={t("email")}
                     data-testid="auth-email-input"
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   />
@@ -125,31 +123,31 @@ export default function AuthPage() {
                 data-testid="auth-submit-button"
                 className="tx-focus mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground shadow-[var(--elev-1)] transition-[filter,box-shadow] hover:shadow-[var(--elev-2)] hover:brightness-[0.98] disabled:opacity-60"
               >
-                {submitting ? "Redirecting…" : mode === "signin" ? "Continue with email" : "Create account"}
+                {submitting ? t("redirecting") : mode === "signin" ? t("continueEmail") : t("createAccount")}
                 {!submitting && <ArrowRight2 variant="Bulk" size={16} />}
               </button>
 
               <p className="text-xs text-muted-foreground">
-                You'll receive a magic link or be asked for a password — secured by WorkOS.
+                {t("magicLinkHint")}
               </p>
             </form>
 
             <p className="mt-6 text-sm text-muted-foreground">
-              {mode === "signin" ? "New to Texxel? " : "Already have an account? "}
+              {mode === "signin" ? t("newToBureau") : t("alreadyHaveAccount")}
               <button
                 type="button"
                 onClick={() => setMode((m) => (m === "signin" ? "signup" : "signin"))}
                 data-testid="auth-toggle-mode"
                 className="font-semibold text-primary hover:underline"
               >
-                {mode === "signin" ? "Create an account" : "Sign in"}
+                {mode === "signin" ? t("createAccount") : t("signIn")}
               </button>
             </p>
 
             <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
-              Secured by WorkOS. By continuing you agree to our{" "}
-              <span className="font-medium underline underline-offset-2">Terms</span> and{" "}
-              <span className="font-medium underline underline-offset-2">Privacy Policy</span>.
+              {t("securedByWorkos")}{" "}
+              <span className="font-medium underline underline-offset-2">{t("termsLink")}</span> {t("and")}{" "}
+              <span className="font-medium underline underline-offset-2">{t("privacyPolicy")}</span>.
             </p>
           </div>
         </div>
@@ -177,27 +175,25 @@ export default function AuthPage() {
 
           <div className="relative z-10 flex h-full w-full flex-col justify-between">
             <div className="flex items-center gap-2 text-white/90">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 backdrop-blur">
-                <Flash variant="Bulk" size={20} />
-              </span>
-              <span className="text-lg font-bold tracking-tight">texxel</span>
+              <BureauLogo forceTheme="dark" size={36} />
+              <span className="text-lg font-bold tracking-tight">Bureau</span>
             </div>
 
             <div>
               <h2 className="max-w-[560px] text-5xl font-semibold leading-[1.0] tracking-[-0.03em] xl:text-6xl">
-                Think together,
+                {t("thinkTogether")}
                 <br />
-                build faster.
+                {t("buildFaster")}
               </h2>
               <p className="mt-5 max-w-md text-lg text-white/85">
-                Docs, tasks, calendar and databases — one durable, real-time workspace.
+                {t("rightPanelDesc")}
               </p>
 
               <div className="mt-9 flex flex-wrap gap-2.5">
                 {[
-                  { Icon: DocumentText, label: "Docs" },
-                  { Icon: TaskSquare, label: "Tasks" },
-                  { Icon: Calendar, label: "Calendar" },
+                  { Icon: DocumentText, label: t("rightDocs") },
+                  { Icon: TaskSquare, label: t("rightTasks") },
+                  { Icon: Calendar, label: t("rightCalendar") },
                 ].map((c) => (
                   <span
                     key={c.label}
@@ -210,7 +206,7 @@ export default function AuthPage() {
             </div>
 
             <div className="flex items-center gap-2 text-sm text-white/80">
-              <TickCircle variant="Bulk" size={18} /> Trusted real-time collaboration
+              <TickCircle variant="Bulk" size={18} /> {t("trustedCollaboration")}
             </div>
           </div>
         </div>

@@ -10,7 +10,7 @@
  */
 
 /** Base URL of the Next.js app that hosts tRPC + the WorkOS hand-off routes. */
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://texxel.app").replace(/\/$/, "");
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://bureau.a2esuite.com").replace(/\/$/, "");
 
 /**
  * Path prefix for the API routes.

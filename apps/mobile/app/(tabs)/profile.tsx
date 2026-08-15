@@ -411,7 +411,7 @@ export default function ProfileScreen() {
               testID="profile-about"
               icon="book"
               label={t("profile.webApp")}
-              hint="texxel.app"
+              hint="bureau.a2esuite.com"
               onPress={() => toast(t("profile.webAppHint"), "info")}
               bordered
             />

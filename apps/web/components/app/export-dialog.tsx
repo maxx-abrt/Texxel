@@ -59,7 +59,7 @@ export function ExportDialog({
   const [headerEnabled, setHeaderEnabled] = useState(documentStyle?.headerEnabled ?? false);
   const [footerEnabled, setFooterEnabled] = useState(documentStyle?.footerEnabled ?? true);
   const [headerText, setHeaderText] = useState(documentStyle?.headerText ?? title);
-  const [footerText, setFooterText] = useState(documentStyle?.footerText ?? "Texxel · {date}");
+  const [footerText, setFooterText] = useState(documentStyle?.footerText ?? "Bureau · {date}");
   const [state, setState] = useState<ExportState>("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
@@ -71,7 +71,7 @@ export function ExportDialog({
     setHeaderEnabled(documentStyle?.headerEnabled ?? false);
     setFooterEnabled(documentStyle?.footerEnabled ?? true);
     setHeaderText(documentStyle?.headerText ?? title);
-    setFooterText(documentStyle?.footerText ?? "Texxel · {date}");
+    setFooterText(documentStyle?.footerText ?? "Bureau · {date}");
     setState("idle");
     setProgress(0);
     setError("");
@@ -102,7 +102,7 @@ export function ExportDialog({
 
   const blocks = () => includeTitle
     ? [{
-        id: "texxel-export-title",
+        id: "bureau-export-title",
         type: "heading",
         props: { level: 1, textColor: "default", backgroundColor: "default", textAlignment: "left" },
         content: [{ type: "text", text: title, styles: {} }],
@@ -169,7 +169,7 @@ export function ExportDialog({
     const exporter: any = new DOCXExporter(editor.schema, mappings, { resolveFileUrl: resolveAsset });
     const family = selectedFont?.family ?? documentStyle?.fontFamily ?? "Inter";
     const documentOptions: any = {
-      creator: "Texxel",
+      creator: "Bureau",
       title,
       description: t("descriptionMetadata"),
       styles: { default: { document: { run: { font: family, size: Math.round((documentStyle?.fontSize ?? 16) * 2) } } } },
@@ -250,7 +250,7 @@ export function ExportDialog({
             {headerEnabled && <input value={headerText} onChange={(event) => setHeaderText(event.target.value)} placeholder="{title}" className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" data-testid="export-header-text" />}
             <div className="border-t border-border" />
             <label className="flex items-center justify-between gap-3 text-sm font-semibold"><span>{t("footer")}</span><input type="checkbox" checked={footerEnabled} onChange={(event) => setFooterEnabled(event.target.checked)} className="accent-[var(--primary)]" data-testid="export-footer-toggle" /></label>
-            {footerEnabled && <input value={footerText} onChange={(event) => setFooterText(event.target.value)} placeholder="Texxel · {date}" className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" data-testid="export-footer-text" />}
+            {footerEnabled && <input value={footerText} onChange={(event) => setFooterText(event.target.value)} placeholder="Bureau · {date}" className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" data-testid="export-footer-text" />}
             <p className="text-[11px] text-muted-foreground">{t("placeholderHint")}</p>
           </section>
           <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground" data-testid="export-font-compatibility">{compatibility}</div>

@@ -21,7 +21,7 @@ import { useWorkspace } from "@/hooks/use-flux-workspace";
  * local data instead of crashing.
  *
  * It also keeps core's active-workspace selection aligned with the local one, so
- * switching workspace in Texxel switches it for the whole suite (shared
+ * switching workspace in Bureau switches it for the whole suite (shared
  * `a2e_active_workspace` key).
  */
 export function useCoreWorkspaceId(): string | null {

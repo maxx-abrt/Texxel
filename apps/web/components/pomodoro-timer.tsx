@@ -83,7 +83,7 @@ export function PomodoroTimer({ onClose }: { onClose?: () => void }) {
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
     if (typeof window !== "undefined") {
       try {
-        const saved = localStorage.getItem("texxel-pomodoro");
+        const saved = localStorage.getItem("bureau-pomodoro");
         if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
       } catch {}
     }
@@ -105,7 +105,7 @@ export function PomodoroTimer({ onClose }: { onClose?: () => void }) {
   const progress = totalTime > 0 ? 1 - timeLeft / totalTime : 0;
 
   useEffect(() => {
-    localStorage.setItem("texxel-pomodoro", JSON.stringify(settings));
+    localStorage.setItem("bureau-pomodoro", JSON.stringify(settings));
   }, [settings]);
 
   useEffect(() => {

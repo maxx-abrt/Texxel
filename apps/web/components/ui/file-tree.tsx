@@ -15,6 +15,7 @@ import {
   DocumentText as FileIcon,
   ArrowRight2 as ChevronIcon,
 } from "iconsax-reactjs"
+import { useTranslations } from "next-intl"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -407,6 +408,8 @@ const File = forwardRef<
   ) => {
     const { direction, selectedId, selectItem } = useTree()
     const isSelected = isSelect ?? selectedId === value
+    const tFile = useTranslations("ui");
+
     return (
       <AccordionPrimitive.Item value={value} className="relative">
         <AccordionPrimitive.Header>
@@ -418,7 +421,7 @@ const File = forwardRef<
               role="button"
               tabIndex={isSelectable ? 0 : -1}
               aria-disabled={!isSelectable}
-              aria-label="File"
+              aria-label={tFile("file")}
               className={cn(
                 "tx-tree-row group flex min-h-7.5 w-full items-center gap-1 rounded-lg pr-1 text-[13.5px] transition-colors duration-150",
                 "hover:bg-sidebar-accent",
@@ -464,6 +467,7 @@ const CollapseButton = forwardRef<
   } & React.HTMLAttributes<HTMLButtonElement>
 >(({ className, elements, expandAll = false, children, ...props }, ref) => {
   const { expandedItems, setExpandedItems } = useTree()
+  const tFile = useTranslations("ui")
 
   const expandAllTree = useCallback(
     (elements: TreeViewElement[]) => {
@@ -503,7 +507,7 @@ const CollapseButton = forwardRef<
       {...props}
     >
       {children}
-      <span className="sr-only">Toggle</span>
+      <span className="sr-only">{tFile("toggle")}</span>
     </Button>
   )
 })

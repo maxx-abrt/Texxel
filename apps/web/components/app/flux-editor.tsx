@@ -160,7 +160,7 @@ function useDocumentFont(font?: any) {
   useEffect(() => {
     if (!font) return;
     if (font.sourceType === "google" && font.cssUrl) {
-      const id = `texxel-google-font-${font._id}`;
+      const id = `bureau-google-font-${font._id}`;
       if (document.getElementById(id)) return;
       const link = document.createElement("link");
       link.id = id;
@@ -315,8 +315,8 @@ export function FluxEditor({
           const mark = el.querySelector(".bn-thread-mark-selected") as HTMLElement | null;
           if (!mark) return;
           mark.scrollIntoView({ behavior: "smooth", block: "center" });
-          mark.classList.add("texxel-anchor-flash");
-          window.setTimeout(() => mark.classList.remove("texxel-anchor-flash"), 1400);
+          mark.classList.add("bureau-anchor-flash");
+          window.setTimeout(() => mark.classList.remove("bureau-anchor-flash"), 1400);
         }, 120);
       }
     };

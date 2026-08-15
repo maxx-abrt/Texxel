@@ -2,13 +2,22 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { HtmlLang } from "./html-lang";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Flux — your second brain",
-  description:
-    "Flux is your second brain — docs, tasks, calendar and projects in one calm, connected workspace.",
-  icons: { icon: "/favicon.svg" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("home");
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    icons: {
+      icon: [
+        { url: "/favicon-32.png" },
+        { url: "/favicon-dark-32.png", media: "(prefers-color-scheme: dark)" },
+      ],
+      apple: "/apple-touch-icon.png",
+    },
+  };
+}
 
 export default function RootLayout({
   children,

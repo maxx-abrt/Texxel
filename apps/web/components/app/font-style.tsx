@@ -40,7 +40,7 @@ const loadedFonts = new Set<string>();
 export function ensureFontLoaded(font: FontOption) {
   if (typeof document === "undefined" || loadedFonts.has(font.family)) return;
   if (font.sourceType === "google" && font.cssUrl) {
-    const id = `texxel-inline-font-${font.family.replace(/\s+/g, "-").toLowerCase()}`;
+    const id = `bureau-inline-font-${font.family.replace(/\s+/g, "-").toLowerCase()}`;
     if (!document.getElementById(id)) {
       const link = document.createElement("link");
       link.id = id;

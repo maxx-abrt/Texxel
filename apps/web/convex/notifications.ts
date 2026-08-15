@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { assertWorkspaceMember, requireUserId, getOptionalUserId } from "./lib/auth";
 
 // Collect the set of userId keys this account may be stored under in the
-// shared `notifications` table. Flux writes Convex `users._id`; some suite
+// shared `notifications` table. Bureau writes Convex `users._id`; some suite
 // apps write the auth subject (or its "userId|session" prefix). We read both.
 async function notifUserKeys(ctx: any): Promise<string[]> {
   const identity = await ctx.auth.getUserIdentity();

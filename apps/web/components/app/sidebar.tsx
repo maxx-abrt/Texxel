@@ -98,10 +98,10 @@ export function Sidebar({
   const NAV = NAV_KEYS.map((n) => ({ ...n, label: t(n.key as any) }));
 
   // ── Persisted layout preferences ──
-  const [width, setWidth] = usePersistedState<number>("texxel-sidebar-width", 280);
-  const [sections, setSections] = usePersistedState<Record<string, boolean>>("texxel-sidebar-sections", {});
+  const [width, setWidth] = usePersistedState<number>("bureau-sidebar-width", 280);
+  const [sections, setSections] = usePersistedState<Record<string, boolean>>("bureau-sidebar-sections", {});
   const [openList, setOpenList] = usePersistedState<string[]>(
-    `texxel-tree-open:${activeWorkspaceId ?? "ws"}`,
+    `bureau-tree-open:${activeWorkspaceId ?? "ws"}`,
     [],
   );
   const [resizing, setResizing] = useState(false);

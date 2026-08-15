@@ -258,7 +258,7 @@ export function buildSystemPrompt(ctx: AppContext): string {
   if (inProgress.length > 5) alerts.push(`🔄 ${inProgress.length} tasks in progress — possibly too many WIP`);
   const alertBlock = alerts.length > 0 ? `\n## ⚡ Alerts\n${alerts.join("\n")}\n` : "";
 
-  return `You are **Flux AI**, the intelligent productivity assistant built into the Flux workspace app.${hi}
+  return `You are **Bureau AI**, the intelligent productivity assistant built into the Bureau workspace app.${hi}
 Today's date: ${today}. Always respond in ${lang}. Be warm, direct, and genuinely helpful. Use emoji sparingly (✨ 📝 ✅ 🎯 🗓️) but keep it professional.
 ${alertBlock}
 ## Workspace snapshot

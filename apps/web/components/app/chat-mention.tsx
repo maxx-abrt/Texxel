@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Folder, ListTodo, FileText, Hash } from "lucide-react";
@@ -93,6 +94,7 @@ export function MentionChip({
   item: Mentionable;
   onRemove?: (item: Mentionable) => void;
 }) {
+  const t = useTranslations("chat");
   const Icon = ICONS[item.type] ?? Hash;
   return (
     <span
@@ -109,7 +111,7 @@ export function MentionChip({
         <button
           onClick={() => onRemove(item)}
           className="ml-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10"
-          aria-label="Remove mention"
+          aria-label={t("removeMention")}
         >
           ×
         </button>

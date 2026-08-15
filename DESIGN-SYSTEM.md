@@ -1,4 +1,4 @@
-# Texxel / Flux — Design System Analysis
+# Bureau — Design System Analysis
 
 > A complete breakdown of the design architecture, color system, component patterns,
 > and structural ideas used in this workspace application — ready to replicate for
@@ -10,7 +10,7 @@
 
 | Aspect | Value |
 |---|---|
-| **App name** | Flux (internal) / Texxel (brand) |
+| **App name** | Bureau (internal + brand) |
 | **Positioning** | "Your second brain" — docs, tasks, calendar, projects, databases in one calm workspace |
 | **Design philosophy** | Warm, paper-like, durable, Notion-meets-Monday.com |
 | **Typography** | Plus Jakarta Sans (display + body), Inter fallback, system-ui chain |
@@ -221,7 +221,7 @@ Two card systems coexist:
 
 **shadcn pattern** — composed inline with `bg-card border border-border rounded-lg shadow-sm`
 
-**Texxel durable card** (CSS classes):
+**Bureau durable card** (CSS classes):
 ```css
 .tx-card {
   background: var(--card);
@@ -243,7 +243,7 @@ Hover transition: `0.18s` with `--ease-standard: cubic-bezier(0.16, 1, 0.3, 1)`.
 **shadcn Badge** — `rounded-full`, 6 variants (default, secondary, destructive,
 outline, success, warning).
 
-**Texxel Status Pills** (Monday-style):
+**Bureau Status Pills** (Monday-style):
 ```css
 .tx-pill {
   display: inline-flex; align-items: center; gap: 6px;
@@ -360,7 +360,7 @@ Canvas-based film grain (`components/ui/noise.tsx`):
 ### 6.4 Landing Page
 
 - Sticky nav with scroll-aware background (`transparent → bg-background/80 backdrop-blur-xl`)
-- Hero with `flux-grid-bg` (dotted radial pattern), badge pill, large headline
+- Hero with `bureau-grid-bg` (dotted radial pattern), badge pill, large headline
 - Product preview mock (browser chrome with 3 colored dots)
 - Feature grid (4 cards with tinted icon backgrounds)
 - Durable band (border-y, bg-card)
@@ -385,8 +385,8 @@ Canvas-based film grain (`components/ui/noise.tsx`):
 | `tx-fade-in` | 0.5s | Page/section entrance (translateY 10px → 0) |
 | `tx-typing` | 1.1s infinite | AI typing indicator dots |
 | `tx-gradient-drift` | 26s infinite | Auth panel gradient shift |
-| `flux-float` | 6s infinite | Decorative floating elements |
-| `texxel-anchor-flash` | 1.3s | Comment anchor highlight pulse |
+| `bureau-float` | 6s infinite | Decorative floating elements |
+| `bureau-anchor-flash` | 1.3s | Comment anchor highlight pulse |
 | `tx-tree-expand` | 0.22s | Document tree node expand |
 
 ### 7.3 Hover Transitions

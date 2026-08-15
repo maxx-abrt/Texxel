@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { timeAgo } from "@/components/app/common";
 import { Messages2, Send2, TickCircle, Trash, ArchiveTick } from "iconsax-reactjs";
 
@@ -69,6 +70,7 @@ export function DocumentComments({
   members: CommentMember[];
   meId?: string | null;
 }) {
+  const t = useTranslations("comments");
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"open" | "resolved">("open");
   const comments = useQuery(api.flux_comments.listForDocument, { documentId });
@@ -87,7 +89,7 @@ export function DocumentComments({
         <button
           className="relative flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
           data-testid="doc-comments-btn"
-          title="Comments"
+          title={t("title")}
         >
           <Messages2 variant="Bulk" size={18} />
           {openCount > 0 && (
@@ -107,29 +109,29 @@ export function DocumentComments({
       >
         <SheetHeader className="border-b border-border px-4 py-3">
           <SheetTitle className="flex items-center gap-2 text-base">
-            <Messages2 variant="Bulk" size={18} className="text-primary" /> Comments
+            <Messages2 variant="Bulk" size={18} className="text-primary" /> {t("title")}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            Discuss this document with your team. Mention people with @.
+            {t("description")}
           </SheetDescription>
         </SheetHeader>
 
         {/* Tabs */}
         <div className="flex items-center gap-1 border-b border-border px-4 py-2">
-          {(["open", "resolved"] as const).map((t) => (
+          {(["open", "resolved"] as const).map((tabKey) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              data-testid={`comments-tab-${t}`}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
+              data-testid={`comments-tab-${tabKey}`}
               className={cn(
                 "rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors",
-                tab === t
+                tab === tabKey
                   ? "bg-muted text-foreground"
                   : "text-muted-foreground hover:bg-muted/50",
               )}
             >
-              {t}
-              {t === "open" && openCount > 0 ? ` · ${openCount}` : ""}
+              {t(tabKey)}
+              {tab === "open" && openCount > 0 ? ` · ${openCount}` : ""}
             </button>
           ))}
         </div>
@@ -148,9 +150,7 @@ export function DocumentComments({
               data-testid="comments-empty"
             >
               <Messages2 variant="Bulk" size={40} className="mb-2 opacity-40" />
-              {tab === "open"
-                ? "No comments yet. Start the conversation."
-                : "No resolved comments."}
+              {tab === "open" ? t("noOpen") : t("noResolved")}
             </div>
           ) : (
             <ul className="space-y-4">
@@ -168,14 +168,14 @@ export function DocumentComments({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="truncate text-sm font-semibold">
-                            {c.author?.name ?? "Member"}
+                            {c.author?.name ?? t("member")}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {timeAgo(c.createdAt)}
                           </span>
                           {c.resolved && (
                             <span className="rounded-full bg-[var(--flux-coral-soft)] px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                              Resolved
+                              {t("resolvedBadge")}
                             </span>
                           )}
                         </div>
@@ -192,11 +192,11 @@ export function DocumentComments({
                           >
                             {c.resolved ? (
                               <>
-                                <TickCircle variant="Bulk" size={14} /> Reopen
+                                <TickCircle variant="Bulk" size={14} /> {t("reopen")}
                               </>
                             ) : (
                               <>
-                                <ArchiveTick variant="Bulk" size={14} /> Resolve
+                                <ArchiveTick variant="Bulk" size={14} /> {t("resolve")}
                               </>
                             )}
                           </button>
@@ -206,7 +206,7 @@ export function DocumentComments({
                               className="flex items-center gap-1 text-muted-foreground hover:text-destructive"
                               data-testid="comment-delete"
                             >
-                              <Trash variant="Bulk" size={14} /> Delete
+                              <Trash variant="Bulk" size={14} /> {t("delete")}
                             </button>
                           )}
                         </div>
@@ -231,7 +231,7 @@ export function DocumentComments({
               });
               setTab("open");
             } catch {
-              toast.error("Could not post comment");
+              toast.error(t("postFailed"));
             }
           }}
         />
@@ -247,6 +247,7 @@ function Composer({
   members: CommentMember[];
   onSubmit: (content: string, mentionedUserIds: string[]) => Promise<void> | void;
 }) {
+  const t = useTranslations("comments");
   const [value, setValue] = useState("");
   const [query, setQuery] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -272,7 +273,7 @@ function Composer({
   };
 
   const pick = (m: CommentMember) => {
-    const name = m.name || m.email || "Member";
+    const name = m.name || m.email || t("member");
     const ta = taRef.current;
     if (!ta) return;
     const caret = ta.selectionStart ?? value.length;
@@ -346,7 +347,7 @@ function Composer({
             }
           }}
           rows={2}
-          placeholder="Add a comment… use @ to mention"
+          placeholder={t("addPlaceholder")}
           data-testid="comment-input"
           className="flex-1 resize-none rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
         />
@@ -355,13 +356,13 @@ function Composer({
           disabled={busy || !value.trim()}
           data-testid="comment-submit"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
-          title="Send (⌘/Ctrl + Enter)"
+          title={t("sendTitle")}
         >
           <Send2 variant="Bulk" size={18} />
         </button>
       </div>
       <p className="mt-1 text-[11px] text-muted-foreground">
-        Press ⌘/Ctrl + Enter to send
+        {t("pressToSend")}
       </p>
     </div>
   );

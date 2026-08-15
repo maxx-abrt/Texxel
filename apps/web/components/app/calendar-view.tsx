@@ -233,17 +233,17 @@ export function CalendarView() {
                   setRecurOpts(null);
                   setEditing({ ...recurOpts, _id: newId, _recurring: false, _isCore: true });
                   setSeedDate(null); setSeedEnd(null); setDialogOpen(true);
-                }).catch(() => toast.error("Failed to detach occurrence"));
-              } else {
-                detachOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
-                  .then((newId: any) => { setRecurOpts(null); setEditing({ ...recurOpts, _id: newId, _recurring: false }); setSeedDate(null); setSeedEnd(null); setDialogOpen(true); })
-                  .catch(() => toast.error("Failed to detach occurrence"));
+                }).catch(() => toast.error(t("detachFailed")));
+                } else {
+                  detachOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
+                    .then((newId: any) => { setRecurOpts(null); setEditing({ ...recurOpts, _id: newId, _recurring: false }); setSeedDate(null); setSeedEnd(null); setDialogOpen(true); })
+                    .catch(() => toast.error(t("detachFailed")));
               }
-            }}>{t("editThisOccurrence") ?? "Edit this occurrence only"}</button>
+            }}>{t("editThisOccurrence")}</button>
             <button className={cn(btnOutline, "w-full justify-start")} onClick={() => {
               const e = recurOpts; setRecurOpts(null);
               setEditing(e); setSeedDate(null); setSeedEnd(null); setDialogOpen(true);
-            }}>{t("editAllOccurrences") ?? "Edit all occurrences"}</button>
+            }}>{t("editAllOccurrences")}</button>
             <button className={cn(btnOutline, "w-full justify-start text-destructive border-destructive/40")} onClick={() => {
               if (!recurOpts) return;
               if (recurOpts._isCore) {
@@ -251,26 +251,26 @@ export function CalendarView() {
                 coreMutations.update({
                   eventId: recurOpts._id as any,
                   recurrenceExceptions: [...existing, recurOpts._occurrenceStart],
-                }).then(() => { toast.success(t("eventDeleted") ?? "Occurrence deleted"); setRecurOpts(null); })
-                  .catch(() => toast.error("Failed"));
+                }).then(() => { toast.success(t("occurrenceDeleted")); setRecurOpts(null); })
+                  .catch(() => toast.error(t("failed")));
               } else {
                 skipOccurrence({ eventId: recurOpts._id, occurrenceStart: recurOpts._occurrenceStart })
-                  .then(() => { toast.success(t("eventDeleted") ?? "Occurrence deleted"); setRecurOpts(null); })
-                  .catch(() => toast.error("Failed"));
+                  .then(() => { toast.success(t("occurrenceDeleted")); setRecurOpts(null); })
+                  .catch(() => toast.error(t("failed")));
               }
-            }}>{t("deleteThisOccurrence") ?? "Delete this occurrence only"}</button>
+            }}>{t("deleteThisOccurrence")}</button>
             <button className={cn(btnOutline, "w-full justify-start text-destructive border-destructive/40")} onClick={() => {
               if (!recurOpts) return;
               if (recurOpts._isCore) {
                 coreMutations.remove({ eventId: recurOpts._id as any })
-                  .then(() => { toast.success(t("eventDeleted") ?? "Event deleted"); setRecurOpts(null); })
-                  .catch(() => toast.error("Failed"));
+                  .then(() => { toast.success(t("eventDeletedToast")); setRecurOpts(null); })
+                  .catch(() => toast.error(t("failed")));
               } else {
                 localRemove({ eventId: recurOpts._id })
-                  .then(() => { toast.success(t("eventDeleted") ?? "Event deleted"); setRecurOpts(null); })
-                  .catch(() => toast.error("Failed"));
+                  .then(() => { toast.success(t("eventDeletedToast")); setRecurOpts(null); })
+                  .catch(() => toast.error(t("failed")));
               }
-            }}>{t("deleteAllOccurrences") ?? "Delete all occurrences"}</button>
+            }}>{t("deleteAllOccurrences")}</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -325,7 +325,7 @@ function MonthView({ cursor, events, onDay, onEvent, onTaskCreate, weekdays, t, 
                 <span onClick={() => onDay(day)} className={cn("inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-xs hover:bg-muted", isToday && "bg-primary font-bold text-primary-foreground hover:bg-primary")}>{day.getDate()}</span>
                 <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                   <button onClick={() => onDay(day)} title={t("newEvent")} className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><Add size={12} /></button>
-                  <button onClick={(ev) => { ev.stopPropagation(); onTaskCreate(day); }} title="New task" className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><TaskSquare variant="Bulk" size={12} /></button>
+                  <button onClick={(ev) => { ev.stopPropagation(); onTaskCreate(day); }} title={t("newTask")} className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"><TaskSquare variant="Bulk" size={12} /></button>
                 </div>
               </div>
               <div className="mt-1 space-y-1">
@@ -479,8 +479,8 @@ function QuickTaskDialog({ open, onOpenChange, seedDate, workspaceId, onCreate, 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
-        <DialogHeader><DialogTitle><TaskSquare variant="Bulk" size={18} className="mr-2 inline text-primary" />New task</DialogTitle></DialogHeader>
-        <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Task title…" className={inputBase} onKeyDown={(e) => e.key === "Enter" && title.trim() && onCreate({ workspaceId, title: title.trim(), status: "todo", dueDate: dueDate ? new Date(dueDate).getTime() : undefined }).then(() => { setTitle(""); onOpenChange(false); })} />
+        <DialogHeader><DialogTitle><TaskSquare variant="Bulk" size={18} className="mr-2 inline text-primary" />{t("newTask")}</DialogTitle></DialogHeader>
+        <input autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("taskTitle")} className={inputBase} onKeyDown={(e) => e.key === "Enter" && title.trim() && onCreate({ workspaceId, title: title.trim(), status: "todo", dueDate: dueDate ? new Date(dueDate).getTime() : undefined }).then(() => { setTitle(""); onOpenChange(false); })} />
         <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={inputBase} />
         <DialogFooter>
           <button onClick={() => onOpenChange(false)} className={btnOutline}>{tc("cancel")}</button>

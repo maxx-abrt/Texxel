@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ============================ FLUX DESIGN TOKENS ============================ */
+/* ============================ BUREAU DESIGN TOKENS ============================ */
 /* Palette: accent #E14B3D · warm white #FAF6F2 · warm black #31302E */
 :root {
   --radius: 0.85rem;
@@ -49,7 +49,7 @@
   --sidebar-border: #e9e1d8;
   --sidebar-ring: #E14B3D;
 
-  /* Flux brand scale */
+  /* Bureau brand scale */
   --flux-coral: #E14B3D;
   --flux-coral-600: #c7473b;
   --flux-coral-soft: color-mix(in oklch, #E14B3D 14%, var(--background));
@@ -179,13 +179,13 @@
   scrollbar-width: none;
 }
 
-.flux-grid-bg {
+.bureau-grid-bg {
   background-image: radial-gradient(color-mix(in oklch, var(--foreground) 7%, transparent) 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
-@keyframes flux-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-.flux-float { animation: flux-float 6s ease-in-out infinite; }
+@keyframes bureau-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+.bureau-float { animation: bureau-float 6s ease-in-out infinite; }
 
 /* ============================ BLOCKNOTE EDITOR ============================ */
 /* Map every BlockNote surface to the app's design tokens so editor text boxes,
@@ -232,7 +232,7 @@ html .bn-container[data-color-scheme="dark"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-float { animation: none; }
+  .bureau-float { animation: none; }
 }
 
 /* ── Print / Export-to-PDF: when exporting a document, show only the doc body ── */
@@ -328,13 +328,13 @@ html .bn-container[data-color-scheme="dark"] {
   border-bottom-style: dashed;
   opacity: 0.55;
 }
-@keyframes texxel-anchor-flash {
+@keyframes bureau-anchor-flash {
   0% { box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 55%, transparent); }
   100% { box-shadow: 0 0 0 14px transparent; }
 }
-.texxel-anchor-flash { animation: texxel-anchor-flash 1.3s ease-out; border-radius: 3px; }
+.bureau-anchor-flash { animation: bureau-anchor-flash 1.3s ease-out; border-radius: 3px; }
 
-/* Threads panel: cards follow the Texxel token system, not raw Mantine. */
+/* Threads panel: cards follow the Bureau token system, not raw Mantine. */
 .bn-threads-sidebar {
   display: flex;
   flex-direction: column;
@@ -405,7 +405,7 @@ html[data-easyread="true"] .ProseMirror {
 }
 
 
-/* ============================ TEXXEL SYSTEM v2 ============================ */
+/* ============================ BUREAU SYSTEM v2 ============================ */
 /* Durable / engineered elevation, status colours, motion + surfaces.        */
 :root {
   --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);

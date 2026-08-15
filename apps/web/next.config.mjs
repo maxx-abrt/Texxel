@@ -2,6 +2,9 @@
 import { existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 // Monorepo root (…/apps/web/next.config.mjs → …/), computed from this file so it
 // is correct wherever the repo is checked out.
@@ -55,4 +58,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

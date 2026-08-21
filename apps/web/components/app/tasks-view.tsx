@@ -52,6 +52,20 @@ const PRIORITIES: Record<string, { label: string; color: string }> = {
 
 const STATUS_PALETTE = ["#2f7ea6", "#d98324", "#2fbf9b", "#8b5cf6", "#ec4899", "#e5484d", "#0ea5e9", "#f59e0b"];
 
+// Higher priority => shown first. Manual `order` is the tiebreaker so kanban
+// drag-and-drop still works within the same priority bucket.
+const PRIORITY_RANK: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3, none: 4 };
+
+function compareTasks(a: any, b: any): number {
+  const ra = PRIORITY_RANK[a.priority ?? "none"] ?? PRIORITY_RANK.none;
+  const rb = PRIORITY_RANK[b.priority ?? "none"] ?? PRIORITY_RANK.none;
+  if (ra !== rb) return ra - rb;
+  const oa = a.order ?? 0;
+  const ob = b.order ?? 0;
+  if (oa !== ob) return oa - ob;
+  return (a.createdAt ?? 0) - (b.createdAt ?? 0);
+}
+
 function fmtDate(ts?: number) {
   if (!ts) return "";
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
@@ -143,6 +157,7 @@ export function TasksView() {
   const ensureDefaults = useCore ? (async () => {}) : localEnsureDefaults;
 
   const [view, setView] = useState<"board" | "list" | "assignee">("board");
+  const [sortByPriority, setSortByPriority] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [createStatus, setCreateStatus] = useState<string>("todo");
   const [selected, setSelected] = useState<any>(null);
@@ -199,6 +214,14 @@ export function TasksView() {
                 <Profile variant="Bulk" size={16} /> {t("views.assignee")}
               </button>
             </div>
+            <button
+              onClick={() => setSortByPriority((v) => !v)}
+              className={cn(btnOutline, "h-9", sortByPriority && "border-primary/50 bg-primary/5 text-primary")}
+              data-testid="tasks-sort-priority-toggle"
+              title={sortByPriority ? (t("sortManual") ?? "Sort: manual") : (t("sortPriority") ?? "Sort: priority first")}
+            >
+              <Flag variant="Bulk" size={16} /> {sortByPriority ? (t("sortPriority") ?? "Priority") : (t("sortManual") ?? "Manual")}
+            </button>
             <button
               onClick={() => exportTasksCSV(filteredTasks, cols)}
               className={cn(btnOutline, "h-9")}
@@ -296,6 +319,7 @@ export function TasksView() {
           cols={cols}
           tasks={filteredTasks}
           labelColor={labelColor}
+          sortByPriority={sortByPriority}
           onOpen={(t: any) => setSelected(t)}
           onAdd={(statusKey: string) => { setCreateStatus(statusKey); setCreateOpen(true); }}
           onMove={async (taskId: string, statusKey: string, order: number) => { await setStatus({ taskId: taskId as Id<"tasks">, status: statusKey, order }); }}
@@ -306,6 +330,7 @@ export function TasksView() {
           members={members ?? []}
           cols={cols}
           labelColor={labelColor}
+          sortByPriority={sortByPriority}
           onOpen={(t: any) => setSelected(t)}
         />
       ) : (
@@ -313,6 +338,7 @@ export function TasksView() {
           cols={cols}
           tasks={filteredTasks}
           labelColor={labelColor}
+          sortByPriority={sortByPriority}
           members={members ?? []}
           projects={projects ?? []}
           labels={labels ?? []}
@@ -329,7 +355,9 @@ export function TasksView() {
       <TaskCreateDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        members={members ?? []}
+        members={members}
+        me={useCore ? coreMe : me}
+        meId={meId}
         projects={projects ?? []}
         labels={labels ?? []}
         statuses={cols}
@@ -362,7 +390,9 @@ export function TasksView() {
       <TaskDetailSheet
         task={selected}
         onClose={() => setSelected(null)}
-        members={members ?? []}
+        members={members}
+        me={useCore ? coreMe : me}
+        meId={meId}
         statuses={cols}
         labels={labels ?? []}
         labelColor={labelColor}
@@ -407,7 +437,7 @@ const kanbanCollisionDetection: CollisionDetection = (args) => {
   return closestCenter(args);
 };
 
-function KanbanBoard({ cols, tasks, labelColor, onOpen, onAdd, onMove }: any) {
+function KanbanBoard({ cols, tasks, labelColor, sortByPriority = true, onOpen, onAdd, onMove }: any) {
   // Local board state for instant, smooth drag feedback. Synced from props when
   // not actively dragging.
   const [board, setBoard] = useState<Record<string, any[]>>({});
@@ -419,9 +449,11 @@ function KanbanBoard({ cols, tasks, labelColor, onOpen, onAdd, onMove }: any) {
     const map: Record<string, any[]> = {};
     for (const c of cols) map[c.key] = [];
     for (const t of tasks) (map[t.status] ?? (map[t.status] = [])).push(t);
-    for (const k of Object.keys(map)) map[k].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    for (const k of Object.keys(map)) {
+      map[k].sort(sortByPriority ? compareTasks : (a, b) => (a.order ?? 0) - (b.order ?? 0));
+    }
     setBoard(map);
-  }, [tasks, cols]);
+  }, [tasks, cols, sortByPriority]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -613,7 +645,7 @@ function TaskCardInner({ task, labelColor, dragging }: any) {
 
 /* ───────────────────────── List view + bulk ops ───────────────────────── */
 
-function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, onToggleDone, onDelete }: any) {
+function ListView({ cols, tasks, labelColor, sortByPriority = true, members, projects, labels, onOpen, onToggleDone, onDelete }: any) {
   const t = useTranslations("tasks");
   const { isSelecting, toggleSelecting, exitSelecting, selectedIds, toggle, isSelected, selectAll, deselectAll, lastSelectedId, toggleIds, selectRange } = useBulkSelect();
   const bulkUpdate = useMutation(api.flux_tasks.bulkUpdate);
@@ -625,8 +657,11 @@ function ListView({ cols, tasks, labelColor, members, projects, labels, onOpen, 
     const map: Record<string, any[]> = {};
     for (const c of cols) map[c.key] = [];
     for (const t of tasks) (map[t.status] ?? (map[t.status] = [])).push(t);
+    if (sortByPriority) {
+      for (const k of Object.keys(map)) map[k].sort(compareTasks);
+    }
     return map;
-  }, [tasks, cols]);
+  }, [tasks, cols, sortByPriority]);
 
   const idsByStatus = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -906,7 +941,31 @@ function LabelEditor({ workspaceId, labels, selected, onChange, t }: any) {
 
 /* ───────────────────────── Create dialog ───────────────────────── */
 
-export function TaskCreateDialog({ open, onOpenChange, onCreate, members, projects, labels, statuses, defaultStatus, workspaceId, defaultProjectId }: any) {
+// Renders the assignee Select options. Always includes the current user (so a
+// solo workspace can still self-assign) and shows explicit loading/empty
+// states instead of a silently empty dropdown.
+function AssigneeOptions({ members, me, meId, t }: any) {
+  const list: any[] = members ?? [];
+  const meInList = meId ? list.some((m: any) => m.userId === meId) : false;
+  return (
+    <>
+      <SelectItem value="none">{t("unassigned")}</SelectItem>
+      {meId && !meInList && me && (
+        <SelectItem value={meId}>{me.name ?? me.email ?? t("me")}</SelectItem>
+      )}
+      {list.map((m: any) => (
+        <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>
+      ))}
+      {members !== undefined && list.length === 0 && !meId && (
+        <div className="px-2 py-2 text-xs text-muted-foreground">
+          {t("noMembers") ?? "No members yet — invite teammates from the Members page."}
+        </div>
+      )}
+    </>
+  );
+}
+
+export function TaskCreateDialog({ open, onOpenChange, onCreate, members, me, meId, projects, labels, statuses, defaultStatus, workspaceId, defaultProjectId }: any) {
   const t = useTranslations("tasks");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -965,11 +1024,10 @@ export function TaskCreateDialog({ open, onOpenChange, onCreate, members, projec
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("assignee")}</label>
-              <Select value={assigneeId} onValueChange={setAssigneeId}>
-                <SelectTrigger><SelectValue placeholder={t("unassigned")} /></SelectTrigger>
+              <Select value={assigneeId} onValueChange={setAssigneeId} disabled={members === undefined}>
+                <SelectTrigger data-testid="task-assignee-select"><SelectValue placeholder={members === undefined ? (t("loading") ?? "Loading…") : t("unassigned")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">{t("unassigned")}</SelectItem>
-                  {members.map((m: any) => <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>)}
+                  <AssigneeOptions members={members} me={me} meId={meId} t={t} />
                 </SelectContent>
               </Select>
             </div>
@@ -1069,7 +1127,7 @@ function TaskTimeTracking({ task, workspaceId, onUpdate }: any) {
 
 /* ───────────────────────── Detail sheet ───────────────────────── */
 
-function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor, workspaceId, coreWorkspaceId, onUpdate, onDelete }: any) {
+function TaskDetailSheet({ task, onClose, members, me, meId, statuses, labels, labelColor, workspaceId, coreWorkspaceId, onUpdate, onDelete }: any) {
   const t = useTranslations("tasks");
   // A core-sourced task carries `_isCore`: its id belongs to the CORE deployment,
   // so the local sidecar queries (comments / subtasks / time) must be skipped —
@@ -1137,11 +1195,10 @@ function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor,
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("assignee")}</label>
-              <Select value={task.assigneeId ?? "none"} onValueChange={(v) => onUpdate({ assigneeId: v === "none" ? undefined : v })}>
-                <SelectTrigger><SelectValue placeholder={t("unassigned")} /></SelectTrigger>
+              <Select value={task.assigneeId ?? "none"} onValueChange={(v) => onUpdate({ assigneeId: v === "none" ? undefined : v })} disabled={members === undefined}>
+                <SelectTrigger data-testid="task-detail-assignee-select"><SelectValue placeholder={members === undefined ? (t("loading") ?? "Loading…") : t("unassigned")} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">{t("unassigned")}</SelectItem>
-                  {members.map((m: any) => <SelectItem key={m.userId} value={m.userId}>{m.name ?? m.email}</SelectItem>)}
+                  <AssigneeOptions members={members} me={me} meId={meId} t={t} />
                 </SelectContent>
               </Select>
             </div>
@@ -1237,7 +1294,7 @@ function TaskDetailSheet({ task, onClose, members, statuses, labels, labelColor,
 
 /* ───────────────────────── Assignee swim lanes ───────────────────── */
 
-function AssigneeLanesView({ tasks, members, cols, labelColor, onOpen }: any) {
+function AssigneeLanesView({ tasks, members, cols, labelColor, sortByPriority = true, onOpen }: any) {
   const t = useTranslations("tasks");
   const lanes: { member: any; tasks: any[] }[] = useMemo(() => {
     const assignedMemberIds = new Set(tasks.map((task: any) => task.assigneeId).filter(Boolean));
@@ -1249,8 +1306,11 @@ function AssigneeLanesView({ tasks, members, cols, labelColor, onOpen }: any) {
     }
     const unassigned = tasks.filter((task: any) => !task.assigneeId);
     if (unassigned.length) result.push({ member: null, tasks: unassigned });
+    if (sortByPriority) {
+      for (const lane of result) lane.tasks.sort(compareTasks);
+    }
     return result;
-  }, [tasks, members]);
+  }, [tasks, members, sortByPriority]);
 
   if (lanes.length === 0) {
     return <EmptyState icon={Profile} title={t("empty.title")} description={t("empty.description")} />;

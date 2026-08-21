@@ -191,9 +191,14 @@ function DocumentTreeNode({
     disabled: editing,
   });
 
+  // Only folders and docs that already have children accept "drop into".
+  // Leaf documents stay draggable but are not drop targets — dropping onto them
+  // no longer silently nests, which was the main source of confusion.
+  const acceptsDrop = isFolderNode || hasChildren;
   const { isOver, setNodeRef: setDropRef } = useDroppable({
     id: `tree-${doc._id}`,
     data: { documentId: doc._id, isFolder: isFolderNode },
+    disabled: !acceptsDrop,
   });
 
   const isTrashing = trashingIds.has(doc._id);
@@ -310,7 +315,7 @@ function DocumentTreeNode({
   };
 
   const triggerClassName = cn(
-    isOver && !isDragging && "tx-drop-into bg-primary/[0.07] ring-1 ring-primary/30",
+    isOver && !isDragging && "tx-drop-into bg-primary/10 ring-2 ring-primary/50",
   );
 
   const renderIcon = () => {

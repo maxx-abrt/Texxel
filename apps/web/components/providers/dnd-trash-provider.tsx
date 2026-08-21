@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useState } from "react";
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
-import { useMutation } from "convex/react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, rectIntersection, closestCenter, type CollisionDetection, type DragEndEvent, type DragStartEvent } from "@dnd-kit/core";
+import { useMutation, useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
@@ -42,6 +42,48 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
       activationConstraint: { distance: 8 },
     }),
   );
+
+  // Docs list for the cycle guard (prevent dropping a folder into its own descendant).
+  const docs = useQuery(
+    api.flux_documents.list,
+    activeWorkspaceId ? { workspaceId: activeWorkspaceId } : "skip",
+  );
+
+  // Composed collision detection: pointerWithin (precise for nested rows), then
+  // rectIntersection, then closestCenter — fixes drops onto empty folders.
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const pointer = pointerWithin(args);
+    if (pointer.length > 0) return pointer;
+    const rect = rectIntersection(args);
+    if (rect.length > 0) return rect;
+    return closestCenter(args);
+  }, []);
+
+  // True when `targetId` is `ancestorId` or one of its descendants.
+  const isDescendant = useCallback(
+    (ancestorId: string, targetId: string): boolean => {
+      if (!docs) return false;
+      let cur: string | undefined = targetId;
+      const seen = new Set<string>();
+      while (cur) {
+        if (cur === ancestorId) return true;
+        if (seen.has(cur)) return false;
+        seen.add(cur);
+        cur = docs.find((d: any) => d._id === cur)?.parentId as string | undefined;
+      }
+      return false;
+    },
+    [docs],
+  );
+
+  // Mark the body while dragging so CSS can dim non-droppable rows.
+  useEffect(() => {
+    if (activeDrag) {
+      document.body.dataset.dragging = "doc";
+    } else {
+      delete document.body.dataset.dragging;
+    }
+  }, [activeDrag]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.active.data.current as { documentId?: string; title?: string; icon?: string; type?: string } | undefined;
@@ -85,6 +127,11 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
       if (overId.startsWith("tree-")) {
         const targetId = (over.data.current as { documentId?: string } | undefined)?.documentId;
         if (!targetId || targetId === activeId) return;
+        // Cycle guard: refuse to nest a node inside itself or its descendant.
+        if (isDescendant(activeId, targetId)) {
+          toast.error(t("couldNotMove"));
+          return;
+        }
         try {
           await moveDoc({ documentId: activeId as Id<"flux_documents">, parentId: targetId as Id<"flux_documents"> });
           toast.success(t("movedToFolder"));
@@ -113,14 +160,14 @@ export function TrashDndProvider({ children }: { children: React.ReactNode }) {
         }, 300);
       }
     },
-    [activeWorkspaceId, archive, moveDoc, t],
+    [activeWorkspaceId, archive, moveDoc, isDescendant, t],
   );
 
   return (
     <TrashDndContext.Provider value={{ trashingIds, activeDrag }}>
       <DndContext
         sensors={sensors}
-        collisionDetection={pointerWithin}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragCancel={handleDragCancel}
         onDragEnd={handleDragEnd}

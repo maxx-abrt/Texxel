@@ -11,10 +11,16 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t("metaDescription"),
     icons: {
       icon: [
-        { url: "/favicon-32.png" },
-        { url: "/favicon-dark-32.png", media: "(prefers-color-scheme: dark)" },
+        { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+        { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+        { url: "/favicon-64.png", sizes: "64x64", type: "image/png" },
+        { url: "/favicon-dark-16.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
+        { url: "/favicon-dark-32.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
+        { url: "/favicon-dark-64.png", sizes: "64x64", type: "image/png", media: "(prefers-color-scheme: dark)" },
       ],
-      apple: "/apple-touch-icon.png",
+      apple: [
+        { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      ],
     },
   };
 }

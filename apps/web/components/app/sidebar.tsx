@@ -88,8 +88,10 @@ export function Sidebar({
   const createDoc = useMutation(api.flux_documents.create);
   const createFolder = useMutation(api.flux_documents.createFolder);
   const { isOver, setNodeRef } = useDroppable({ id: "sidebar-trash" });
+  // Two root drop targets: the "Private" section header and the tree area itself.
+  // (The old extra "sidebar-root-tree" strip was redundant with the area and
+  // competed for pointerWithin hits.)
   const { isOver: isOverRoot, setNodeRef: setRootRef } = useDroppable({ id: "sidebar-private-root" });
-  const { isOver: isOverRootTree, setNodeRef: setRootTreeRef } = useDroppable({ id: "sidebar-root-tree" });
   const { isOver: isOverRootArea, setNodeRef: setRootAreaRef } = useDroppable({ id: "sidebar-root-area" });
   const { activeDrag } = useTrashDnd();
 
@@ -301,7 +303,8 @@ export function Sidebar({
             ref={setRootRef}
             className={cn(
               "flex items-center justify-between rounded-lg px-3 py-1 transition-colors",
-              isOverRoot && "bg-primary/10 ring-1 ring-primary/40",
+              activeDrag && "ring-1 ring-transparent",
+              isOverRoot && activeDrag && "bg-primary/10 ring-primary/40",
             )}
           >
             <button
@@ -325,9 +328,9 @@ export function Sidebar({
             <div
               ref={setRootAreaRef}
               className={cn(
-                "mt-0.5 min-h-[2rem] rounded-lg transition-all",
-                activeDrag && "border border-dashed border-primary/20 p-0.5",
-                isOverRootArea && activeDrag && "bg-primary/[0.06] ring-1 ring-primary/30 border-primary/40",
+                "mt-0.5 min-h-[3rem] rounded-lg transition-all",
+                activeDrag && "border border-dashed border-primary/30 p-0.5",
+                isOverRootArea && activeDrag && "bg-primary/[0.07] ring-2 ring-primary/40 border-primary/50",
               )}
             >
               <DocumentTree
@@ -351,17 +354,6 @@ export function Sidebar({
                   <DocumentText variant="Bulk" size={14} /> {t("moveToRoot")}
                 </div>
               )}
-            </div>
-          )}
-          {activeDrag && (
-            <div
-              ref={setRootTreeRef}
-              className={cn(
-                "mt-1 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/30 px-3 py-1.5 text-xs text-primary/70 transition-all",
-                isOverRootTree && "bg-primary/10 ring-1 ring-primary/40 border-primary/60 text-primary",
-              )}
-            >
-              <DocumentText variant="Bulk" size={14} /> {t("moveToRoot")}
             </div>
           )}
         </div>

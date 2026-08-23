@@ -30,28 +30,6 @@ const EXPAND_DELAY = 60;
 const COLLAPSE_GRACE = 260;
 const CLICK_GUARD_MS = 240;
 
-/** Theme-aware brand icon: light-theme asset + dark-theme asset. */
-function BrandIcon({
-  light,
-  dark,
-  size = 22,
-  alt = "",
-}: {
-  light: string;
-  dark: string;
-  size?: number;
-  alt?: string;
-}) {
-  return (
-    <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={light} alt={alt} draggable={false} style={{ width: size, height: size, maxWidth: "none", flexShrink: 0 }} className="select-none dark:hidden" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={dark} alt={alt} draggable={false} style={{ width: size, height: size, maxWidth: "none", flexShrink: 0 }} className="hidden select-none dark:block" />
-    </>
-  );
-}
-
 function Pill({
   icon: Icon,
   iconNode,
@@ -335,7 +313,7 @@ export function DockedBubbles() {
           className="flex justify-end"
         >
           <Pill
-            iconNode={<BrandIcon light="/brand/syna-light.png" dark="/brand/syna-dark.png" size={20} />}
+            iconNode={<BureauLogo size={20} />}
             label={tAi("askAi")}
             active={aiOpen}
             variant="ai"

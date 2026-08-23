@@ -23,7 +23,6 @@ import {
   Calendar,
   Flag,
   Plus,
-  Sparkles,
   Trash2,
   X,
   LayoutTemplate,
@@ -33,6 +32,7 @@ import {
   ExternalLink,
   CheckCircle2,
 } from "lucide-react";
+import { SynaIcon } from "./app/syna-icon";
 
 interface Milestone {
   id: string;
@@ -752,7 +752,7 @@ export function RetroPlanningPanel({
         disabled={isGenerating || validCount === 0}
         className="w-full gap-2 rounded-2xl h-11"
       >
-        <Sparkles className="h-4 w-4" />
+        <SynaIcon size={16} />
         {isGenerating ? t("generating") : t("generateTasks")}
         {validCount > 0 && !isGenerating && (
           <span className="ml-1 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums">

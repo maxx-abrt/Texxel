@@ -30,12 +30,12 @@ import {
   Profile2User,
   AddSquare,
   Message,
-  Magicpen,
   CalendarAdd,
   Moon,
   SidebarLeft,
   Clock,
 } from "iconsax-reactjs";
+import { SynaIcon } from "./syna-icon";
 
 const PAGES_KEYS = [
   { key: "home", href: "/app", Icon: Element3 },
@@ -137,7 +137,7 @@ export function CommandPalette({ open, setOpen }: { open: boolean; setOpen: (o: 
     { key: "newTask", Icon: TaskSquare, run: () => go("/app/tasks"), testId: "cmd-new-task" },
     { key: "newEvent", Icon: CalendarAdd, run: () => go("/app/calendar"), testId: "cmd-new-event" },
     { key: "openChat", Icon: Message, run: () => fire("bureau:open-chat"), testId: "cmd-open-chat" },
-    { key: "askAi", Icon: Magicpen, run: () => fire("bureau:open-ai"), testId: "cmd-ask-ai" },
+    { key: "askAi", Icon: SynaIcon, run: () => fire("bureau:open-ai"), testId: "cmd-ask-ai" },
     { key: "toggleTheme", Icon: Moon, run: () => { setTheme(resolvedTheme === "dark" ? "light" : "dark"); setOpen(false); }, testId: "cmd-toggle-theme" },
     { key: "toggleSidebar", Icon: SidebarLeft, run: () => fire("bureau:toggle-sidebar"), testId: "cmd-toggle-sidebar" },
   ];

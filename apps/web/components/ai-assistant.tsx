@@ -29,9 +29,7 @@ import {
   RotateCcw,
   Send,
   SpellCheck,
-  Sparkles,
   Table,
-  Wand2,
   X,
   XCircle,
   Zap,
@@ -51,6 +49,7 @@ import { useWorkspace } from "@/hooks/useWorkspace";
 import { Crown, Globe, BookOpen, Code2, MessageSquareText } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { SynaIcon } from "./app/syna-icon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -83,7 +82,7 @@ type SidebarTab = "chat" | "history";
 
 const SUGGESTION_ICONS: Record<string, React.ElementType> = {
   summarize: FileText,
-  improveWriting: Wand2,
+  improveWriting: SynaIcon,
   generateTasks: ListTodo,
   suggestPriority: Lightbulb,
   correctErrors: Pencil,
@@ -131,7 +130,7 @@ const ACTION_TYPE_ICONS: Record<string, React.ElementType> = {
   create_subtask: ListTodo,
   create_document: FileText,
   replace_content: Pencil,
-  edit_document_blocks: Wand2,
+  edit_document_blocks: SynaIcon,
   insert_blocks: Plus,
   create_project: FolderPlus,
 };
@@ -140,13 +139,13 @@ const ACTION_TYPE_ICONS: Record<string, React.ElementType> = {
 
 function A2EAvatar({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
   const s = size === "lg" ? "h-10 w-10" : size === "md" ? "h-7 w-7" : "h-6 w-6";
-  const icon = size === "lg" ? "h-5 w-5" : size === "md" ? "h-4 w-4" : "h-3 w-3";
+  const px = size === "lg" ? 20 : size === "md" ? 16 : 12;
   return (
     <div className={cn(
       s,
       "shrink-0 rounded-xl bg-gradient-to-br from-violet-500/20 via-primary/15 to-blue-500/20 flex items-center justify-center ring-1 ring-primary/10",
     )}>
-      <Sparkles className={cn(icon, "text-primary")} />
+      <SynaIcon size={px} className="text-primary" />
     </div>
   );
 }
@@ -211,7 +210,7 @@ function ActionCard({
   documentContent?: string;
 }) {
   const t = useTranslations("ai");
-  const Icon = ACTION_TYPE_ICONS[pa.action.type] ?? Sparkles;
+  const Icon = ACTION_TYPE_ICONS[pa.action.type] ?? SynaIcon;
   const isDone = pa.status !== "pending";
 
   const showDiff =
@@ -1178,7 +1177,7 @@ export function AiAssistantPanel({
           </p>
           <div className="flex flex-wrap gap-1.5">
             {suggestions.map((key) => {
-              const Icon = SUGGESTION_ICONS[key] ?? Sparkles;
+              const Icon = SUGGESTION_ICONS[key] ?? SynaIcon;
               const isSuiteOnly = SUITE_ACTIONS.has(key);
               return (
                 <button

@@ -20,6 +20,7 @@ import { useWorkspace } from "@/hooks/use-flux-workspace";
 import { ChatBubble } from "./chat-bubble";
 import { AiPanel } from "./ai-panel";
 import { BureauLogo } from "./bureau-logo";
+import { SynaIcon } from "./syna-icon";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { motion } from "framer-motion";
@@ -313,7 +314,7 @@ export function DockedBubbles() {
           className="flex justify-end"
         >
           <Pill
-            iconNode={<BureauLogo size={20} />}
+            iconNode={<SynaIcon size={20} />}
             label={tAi("askAi")}
             active={aiOpen}
             variant="ai"

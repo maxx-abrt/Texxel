@@ -29,7 +29,6 @@ import Folder2 from "iconsax-react-native/dist/esm/Folder2";
 import Grid2 from "iconsax-react-native/dist/esm/Grid2";
 import Home2 from "iconsax-react-native/dist/esm/Home2";
 import LogoutCurve from "iconsax-react-native/dist/esm/LogoutCurve";
-import Magicpen from "iconsax-react-native/dist/esm/Magicpen";
 import Menu from "iconsax-react-native/dist/esm/Menu";
 import Minus from "iconsax-react-native/dist/esm/Minus";
 import Moon from "iconsax-react-native/dist/esm/Moon";
@@ -52,6 +51,7 @@ import TickSquare from "iconsax-react-native/dist/esm/TickSquare";
 import Timer1 from "iconsax-react-native/dist/esm/Timer1";
 import Trash from "iconsax-react-native/dist/esm/Trash";
 import User from "iconsax-react-native/dist/esm/User";
+import { SynaIcon } from "./syna-icon";
 
 export const Icons = {
   activity: Activity,
@@ -80,7 +80,7 @@ export const Icons = {
   home: Home2,
   list: Menu,
   logout: LogoutCurve,
-  magic: Magicpen,
+  magic: SynaIcon,
   more: More,
   note: Note1,
   notification: Notification,

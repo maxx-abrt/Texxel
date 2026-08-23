@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { useConvexAuth } from "convex/react";
 import { useTranslations } from "next-intl";
 import { BureauLogo } from "@/components/app/bureau-logo";
+import { SynaIcon } from "@/components/app/syna-icon";
 import {
   ArrowRight2,
-  Magicpen,
   DocumentText,
   TaskSquare,
   Calendar,
@@ -87,7 +87,7 @@ export default function LandingPage() {
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] bureau-grid-bg opacity-60" />
         <div className="mx-auto max-w-5xl px-5 pb-6 pt-16 text-center sm:px-6 md:pt-24">
           <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-sm font-medium text-primary shadow-[var(--elev-1)]">
-            <Magicpen variant="Bulk" size={15} /> {t("yourSecondBrain")}
+            <SynaIcon size={15} /> {t("yourSecondBrain")}
           </div>
           <h1
             className="mx-auto mt-6 max-w-3xl font-display text-5xl font-extrabold leading-[0.98] tracking-[-0.03em] sm:text-6xl lg:text-7xl"
@@ -299,7 +299,7 @@ export default function LandingPage() {
               </div>
             ))}
             <div className="col-span-3 tx-card p-6">
-              <div className="flex items-center gap-2 text-sm font-semibold"><Magicpen variant="Bulk" size={17} className="text-primary" /> {t("aiNative")}</div>
+              <div className="flex items-center gap-2 text-sm font-semibold"><SynaIcon size={17} className="text-primary" /> {t("aiNative")}</div>
               <p className="mt-2 text-sm text-muted-foreground">{t("aiDesc")}</p>
             </div>
           </div>

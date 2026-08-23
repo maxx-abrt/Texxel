@@ -18,7 +18,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  Sparkles,
   X,
   Send,
   Loader2,
@@ -26,18 +25,17 @@ import {
   FileText,
   ListTodo,
   FolderPlus,
-  Wand2,
   PanelRight,
   Minimize2,
 } from "lucide-react";
 import {
-  Magicpen,
   DocumentText as IxDoc,
   TaskSquare as IxTask,
   FolderAdd as IxFolder,
   Flash as IxFlash,
   MessageText1 as IxMsg,
 } from "iconsax-reactjs";
+import { SynaIcon } from "./syna-icon";
 
 type ChatRole = "user" | "ai";
 interface PendingAction {
@@ -227,7 +225,7 @@ export function AiPanel({
           <div className="flex items-center justify-between border-b border-border bg-gradient-to-b from-primary/[0.06] to-transparent px-4 py-3">
             <div className="flex items-center gap-2.5">
               <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[var(--elev-1)]">
-                <Magicpen variant="Bulk" size={17} />
+                <SynaIcon size={17} />
               </span>
               <div>
                 <div className="text-sm font-bold leading-tight">{t("panelTitle")}</div>
@@ -242,7 +240,7 @@ export function AiPanel({
                   title={t("reset")}
                   className="hidden h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:flex"
                 >
-                  <Sparkles size={14} /> {t("reset")}
+                  <SynaIcon size={14} /> {t("reset")}
                 </button>
               )}
               <button
@@ -262,7 +260,7 @@ export function AiPanel({
               <div className="space-y-4">
                 <div className="flex flex-col items-center pt-4 text-center">
                   <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[var(--elev-2)]">
-                    <Magicpen variant="Bulk" size={26} />
+                    <SynaIcon size={26} />
                   </span>
                   <p className="mt-3 text-base font-semibold">{t("intro", { name: me?.name?.split(" ")[0] ?? t("there") })}</p>
                   <p className="mt-1 max-w-[16rem] text-xs text-muted-foreground">{t("greetingDesc")}</p>
@@ -289,7 +287,7 @@ export function AiPanel({
               <div key={mi} className={cn("flex items-end gap-2", m.role === "user" ? "justify-end" : "justify-start")}>
                 {m.role === "ai" && (
                   <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
-                    <Magicpen variant="Bulk" size={15} />
+                    <SynaIcon size={15} />
                   </span>
                 )}
                 <div className={cn("max-w-[84%] rounded-2xl px-3.5 py-2.5 text-sm", m.role === "user" ? "bg-primary text-primary-foreground" : "border border-border bg-card text-foreground shadow-[var(--elev-1)]")}>
@@ -304,7 +302,7 @@ export function AiPanel({
                   {m.actions && m.actions.length > 0 && (
                     <div className="mt-2.5 space-y-2">
                       {m.actions.map((pa, ai) => {
-                        const Icon = ICON_FOR[pa.action.type] ?? Sparkles;
+                        const Icon = ICON_FOR[pa.action.type] ?? SynaIcon;
                         return (
                           <div key={ai} className="rounded-xl border border-border bg-background p-2.5">
                             <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
@@ -345,7 +343,7 @@ export function AiPanel({
 
             {busy && (
               <div className="flex items-end gap-2">
-                <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><Magicpen variant="Bulk" size={15} /></span>
+                <span className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary"><SynaIcon size={15} /></span>
                 <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-3.5 py-3 shadow-[var(--elev-1)]">
                   <span className="tx-typing-dot" /><span className="tx-typing-dot" style={{ animationDelay: "0.15s" }} /><span className="tx-typing-dot" style={{ animationDelay: "0.3s" }} />
                 </div>

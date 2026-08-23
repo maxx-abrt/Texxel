@@ -1,10 +1,13 @@
 #!/usr/bin/env node
-// Regenerate Bureau brand assets.
+// Regenerate Bureau brand assets from the master transparent SVG.
 //
-// - Small wordmark + favicons: trim and square the existing 1080 puzzle PNGs,
-//   then resize down to 512, 64, 32 and 16.
-// - Large brand assets (apple-touch-icon, PWA sizes): render the master SVGs
-//   with sharp at 180/192/512/1080.
+// The master is a single red puzzle mark on transparent background that
+// reads well on both light and dark surfaces, so we only need one source.
+//
+// Outputs:
+//  - favicons: 16, 32, 64 (light + dark variants are the same asset)
+//  - apple-touch-icon: 180
+//  - PWA icons: 192, 512, 1080
 //
 // Run from the repo root: node scripts/generate-logos.mjs
 
@@ -16,63 +19,15 @@ import sharp from "sharp";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 
-const brandDir = path.join(root, "apps/web/public/brand");
 const publicDir = path.join(root, "apps/web/public");
+const brandDir = path.join(publicDir, "brand");
 
-const sourceSvg = {
-  light: path.join(root, "Logo-Bureau-Clair.svg"),
-  dark: path.join(root, "Logo-Bureau-Sombre.svg"),
-};
-
-const sourcePng = {
-  light: path.join(brandDir, "bureau-logo-light.png"),
-  dark: path.join(brandDir, "bureau-logo-dark.png"),
-};
-
-const markPaths = {
-  "1080": {
-    light: path.join(brandDir, "bureau-logo-light.png"),
-    dark: path.join(brandDir, "bureau-logo-dark.png"),
-  },
-  "512": {
-    light: path.join(brandDir, "bureau-logo-light-512.png"),
-    dark: path.join(brandDir, "bureau-logo-dark-512.png"),
-  },
-};
-
-const faviconPaths = {
-  light: {
-    16: path.join(publicDir, "favicon-16.png"),
-    32: path.join(publicDir, "favicon-32.png"),
-    64: path.join(publicDir, "favicon-64.png"),
-  },
-  dark: {
-    16: path.join(publicDir, "favicon-dark-16.png"),
-    32: path.join(publicDir, "favicon-dark-32.png"),
-    64: path.join(publicDir, "favicon-dark-64.png"),
-  },
-};
-
-const largePaths = {
-  light: {
-    180: path.join(publicDir, "apple-touch-icon.png"),
-    192: path.join(publicDir, "icon-192.png"),
-    512: path.join(publicDir, "icon-512.png"),
-    1080: path.join(publicDir, "icon-1080.png"),
-  },
-  dark: {
-    180: path.join(publicDir, "apple-touch-icon-dark.png"),
-    192: path.join(publicDir, "icon-192-dark.png"),
-    512: path.join(publicDir, "icon-512-dark.png"),
-    1080: path.join(publicDir, "icon-1080-dark.png"),
-  },
-};
+const sourceSvg = path.join(brandDir, "bureau-logo.svg");
 
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 
 /**
  * Trim an image and centre the content on a new square canvas, then resize to `size`.
- * Preserves aspect ratio and avoids stretching.
  */
 async function makeSquare(input, output, size) {
   const { data: trimmed, info: tInfo } = await sharp(input)
@@ -98,7 +53,7 @@ async function makeSquare(input, output, size) {
     .png()
     .toFile(output);
 
-  console.log(`Generated ${output} (${size}×${size})`);
+  console.log(`Generated ${output} (${size}x${size})`);
 }
 
 /**
@@ -119,7 +74,7 @@ async function makeFavicon(input, output, size) {
 }
 
 /**
- * Render an SVG master to a PNG at the requested size.
+ * Render the master SVG to a PNG at the requested size.
  */
 async function renderSvg(input, output, size) {
   const svg = await readFile(input);
@@ -132,21 +87,22 @@ async function renderSvg(input, output, size) {
 }
 
 async function main() {
-  // Small mark set from existing PNGs (trim, square, scale).
-  for (const theme of ["light", "dark"]) {
-    await makeSquare(sourcePng[theme], markPaths["1080"][theme], 1080);
-    await makeSquare(sourcePng[theme], markPaths["512"][theme], 512);
-
-    for (const s of [16, 32, 64]) {
-      await makeFavicon(markPaths["512"][theme], faviconPaths[theme][s], s);
-    }
+  // Favicons (single asset, same for light and dark).
+  const faviconSizes = [16, 32, 64];
+  for (const s of faviconSizes) {
+    await makeFavicon(sourceSvg, path.join(publicDir, `favicon-${s}.png`), s);
+    // Dark variants are the same red mark; keep them for the layout.tsx references.
+    await makeFavicon(sourceSvg, path.join(publicDir, `favicon-dark-${s}.png`), s);
   }
 
-  // Large brand assets from master SVGs.
-  for (const theme of ["light", "dark"]) {
-    for (const [size, out] of Object.entries(largePaths[theme])) {
-      await renderSvg(sourceSvg[theme], out, Number(size));
-    }
+  // Apple touch icon (180).
+  await renderSvg(sourceSvg, path.join(publicDir, "apple-touch-icon.png"), 180);
+  await renderSvg(sourceSvg, path.join(publicDir, "apple-touch-icon-dark.png"), 180);
+
+  // PWA icons.
+  for (const s of [192, 512, 1080]) {
+    await renderSvg(sourceSvg, path.join(publicDir, `icon-${s}.png`), s);
+    await renderSvg(sourceSvg, path.join(publicDir, `icon-${s}-dark.png`), s);
   }
 }
 

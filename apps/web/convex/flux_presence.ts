@@ -125,3 +125,49 @@ export const listForDocument = query({
     return out;
   },
 });
+
+/**
+ * List active presences across a whole workspace (who's online anywhere in
+ * the workspace right now), deduped per user with the freshest state. Used by
+ * the Presence widget (§3). No `by_workspace` index exists yet, so this scans
+ * the table and filters by `workspaceId` + the active cutoff — presence rows
+ * are short-lived and few, so this is cheap. Additive only (no schema change).
+ */
+export const listForWorkspace = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    try {
+      await assertWorkspaceMember(ctx, args.workspaceId);
+    } catch {
+      return [];
+    }
+
+    const cutoff = Date.now() - PRESENCE_TTL_MS;
+    const rows = await ctx.db.query("flux_presence").collect();
+    const active = rows
+      .filter((r) => r.workspaceId === args.workspaceId && r.lastSeen >= cutoff)
+      .sort((a, b) => b.lastSeen - a.lastSeen);
+
+    const seen = new Set<string>();
+    const out: Array<{
+      userId: string;
+      name: string | null;
+      image: string | null;
+      state: string;
+      lastSeen: number;
+    }> = [];
+    for (const r of active) {
+      if (seen.has(r.userId)) continue;
+      seen.add(r.userId);
+      const user = await ctx.db.get(r.userId);
+      out.push({
+        userId: r.userId,
+        name: (user as any)?.name ?? (user as any)?.email ?? "Member",
+        image: (user as any)?.image ?? null,
+        state: r.state,
+        lastSeen: r.lastSeen,
+      });
+    }
+    return out;
+  },
+});

@@ -98,9 +98,12 @@ export default defineSchema({
       v.literal("on_hold"),
     ),
     startDate: v.optional(v.number()),
+    targetDate: v.optional(v.number()), // milestone target date (§15.1 milestones; M10.5)
     endDate: v.optional(v.number()),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
+    key: v.optional(v.string()), // short uppercase prefix for task identifiers, e.g. "PRJ" (§15.1; M0.3)
+    nextTaskNumber: v.optional(v.number()), // per-project counter for `tasks.number` (§15.1; M0.3)
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -121,6 +124,12 @@ export default defineSchema({
     assigneeId: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     coreTaskId: v.optional(v.string()),
+    // ---- M0.2 (§15.1) tracker fields; additive/optional, backward-compatible ----
+    blockedBy: v.optional(v.array(v.id("tasks"))), // dependency: tasks blocking this one
+    estimation: v.optional(v.string()), // t-shirt size "XS"|"S"|"M"|"L"|"XL" (points kept in flux_taskMeta.estimateMinutes)
+    startDate: v.optional(v.number()), // task-level start date (mirrors flux_taskMeta.startDate)
+    // ---- M0.3 (§15.1) human identifier PRJ-42 = projects.key + number ----
+    number: v.optional(v.number()), // per-project sequence; paired with projects.key
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -129,7 +138,8 @@ export default defineSchema({
     .index("by_project", ["projectId"])
     .index("by_assignee", ["assigneeId"])
     .index("by_parent", ["parentId"])
-    .index("by_coreTaskId", ["coreTaskId"]),
+    .index("by_coreTaskId", ["coreTaskId"])
+    .index("by_project_number", ["projectId", "number"]),
 
   activities: defineTable({
     workspaceId: v.id("workspaces"),
@@ -396,10 +406,12 @@ export default defineSchema({
     content: v.optional(v.string()),
     icon: v.optional(v.string()),
     coverImage: v.optional(v.string()),
+    coverY: v.optional(v.number()), // cover crop offset 0-100 for reposition drag (§14.5; M0.4)
     isArchived: v.boolean(),
     isPublished: v.boolean(),
     allowGuestEdit: v.optional(v.boolean()), // published page editable by anonymous guests
     order: v.optional(v.number()),
+    sortKey: v.optional(v.string()), // fractional index (§14.2); supersedes `order` once reads flip in M3
     shareToken: v.optional(v.string()),
     visibility: v.optional(v.string()), // "workspace" | "private" | "custom"
     accessUserIds: v.optional(v.array(v.id("users"))),
@@ -414,6 +426,7 @@ export default defineSchema({
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_workspace_parent", ["workspaceId", "parentId"])
+    .index("by_workspace_parent_sortKey", ["workspaceId", "parentId", "sortKey"])
     .index("by_share_token", ["shareToken"])
     .searchIndex("search_title", {
       searchField: "title",
@@ -679,6 +692,9 @@ export default defineSchema({
     projectId: v.optional(v.id("projects")),
     taskId: v.optional(v.id("tasks")),
     coreEventId: v.optional(v.string()),
+    // ---- M0.4 (§15.2) calendar upgrades; additive/optional ----
+    reminders: v.optional(v.array(v.number())), // minutes before start to notify
+    startDate: v.optional(v.number()), // separate calendar start date (`start` stays the effective instant)
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -725,6 +741,36 @@ export default defineSchema({
     docToolbarHidden: v.optional(v.array(v.string())),
     onboardingCompleted: v.optional(v.boolean()),
     lastWorkspaceId: v.optional(v.id("workspaces")),
+    // ---- M0.5: workbench tabs (§4), command frecency (§5), shortcut overrides (§10) ----
+    tabs: v.optional(
+      v.array(
+        v.object({
+          id: v.string(),
+          kind: v.string(), // 'doc'|'task'|'project'|'view'
+          refId: v.optional(v.string()),
+          title: v.string(),
+          icon: v.optional(v.string()),
+        }),
+      ),
+    ),
+    commandHistory: v.optional(
+      v.array(
+        v.object({
+          key: v.string(), // command/result id
+          uses: v.number(),
+          lastUsed: v.number(),
+        }),
+      ),
+    ),
+    shortcuts: v.optional(v.any()), // { [actionId]: keyCombo } user overrides merged over defaults
+    // ---- M5.5 (§6) quiet hours: suppresses browser push, inbox still fills ----
+    quietHours: v.optional(
+      v.object({
+        enabled: v.boolean(),
+        start: v.string(), // "HH:MM" 24h, local time
+        end: v.string(), // "HH:MM" 24h, local time (may be next day)
+      }),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -906,6 +952,20 @@ export default defineSchema({
   })
     .index("by_user_workspace", ["userId", "workspaceId"])
     .index("by_role", ["roleId"])
+    .index("by_workspace", ["workspaceId"]),
+
+  // Teams inside a workspace (§15.3; M0.5). Tasks can be assigned to a team and
+  // boards can filter/group by team; @team mentions notify all members (M12).
+  flux_teams: defineTable({
+    workspaceId: v.id("workspaces"),
+    name: v.string(),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    memberIds: v.optional(v.array(v.id("users"))),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
     .index("by_workspace", ["workspaceId"]),
 }, {
   // SHARED A2E Suite deployment: other apps in the suite own and extend some

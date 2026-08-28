@@ -43,6 +43,9 @@ export function ShortcutsHelp() {
     { label: t("help"), keys: <Key>?</Key> },
     { label: t("slashMenu"), keys: <Key>/</Key> },
     { label: t("mention"), keys: <Key>@</Key> },
+    { label: t("closeTab"), keys: <><Key>⌘</Key> <Key>W</Key></> },
+    { label: t("jumpTab"), keys: <><Key>⌘</Key> <Key>1</Key>–<Key>9</Key></> },
+    { label: t("openTab"), keys: <><Key>⌘</Key> <Key>Click</Key></> },
   ];
 
   return (

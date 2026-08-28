@@ -1,7 +1,200 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { assertWorkspaceMember, logActivity, requireUserId, getOptionalUserId } from "./lib/auth";
+
+/**
+ * M0.1 (§14.2) — fractional-index sort keys, LexoRank-style.
+ * Keys are lowercased base36 (`0-9a-z`) strings that sort lexicographically.
+ */
+
+/** Encode a non-negative integer as a base36 sort key (used for backfill). */
+export function base36Key(n: number): string {
+  if (!Number.isFinite(n) || n < 0) return "a0";
+  if (n === 0) return "a0";
+  // Bucket by magnitude so keys remain lexicographically comparable across
+  // different lengths: <base36len(magnitude)><base36(n)>.
+  const b36 = Math.floor(n).toString(36);
+  return b36.length.toString(36) + b36;
+}
+
+/** Key that sorts after `after` (or a default first key when `after` is null). */
+export function sortKeyAfter(after: string | null | undefined): string {
+  if (!after) return "a0";
+  const head = after.charCodeAt(0);
+  if (head < 122 /* 'z' */) return String.fromCharCode(head + 1) + "0";
+  return after + "8";
+}
+
+/** Backfill `sortKey` for docs that only have numeric `order` (batched; pass cursor to continue). */
+export const backfillSortKeys = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize ?? 256;
+    const page = await ctx.db
+      .query("flux_documents")
+      .order("asc")
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+    let patched = 0;
+    for (const doc of page.page) {
+      if (doc.sortKey === undefined) {
+        // Per §14.2: sortKey = base36(order), fall back to createdAt.
+        await ctx.db.patch(doc._id, {
+          sortKey: base36Key(doc.order ?? doc.createdAt),
+        });
+        patched++;
+      }
+    }
+    return { patched, continueCursor: page.continueCursor, isDone: page.isDone };
+  },
+});
+
+// ----- M3.3.1: Periodic sortKey rebalance (LexoRank maintenance) -----
+
+const REBALANCE_DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz";
+/**
+ * Evenly-spaced key gap. `base36Key(i * GAP)` produces lexicographically
+ * sortable keys with ample room for future `midKey` inserts between any
+ * two adjacent siblings.
+ */
+const REBALANCE_GAP = 1_000_000;
+/**
+ * SortKey length threshold for triggering a rebalance from the `move`
+ * mutation. Normal `midKey` results are 2–4 chars; degenerate adjacency
+ * from repeated 'i'-append fallbacks grows keys beyond this.
+ */
+const DEGENERATE_LENGTH_THRESHOLD = 8;
+
+/**
+ * Detect degenerate adjacency in a sorted sibling list: when adjacent
+ * sortKeys are so close that `midKey` would fall back to the 'i'-append
+ * path (no room for a midpoint at the current digit level). This arises
+ * from repeated inserts at the same boundary.
+ */
+function hasDegenerateAdjacency(docs: Doc<"flux_documents">[]): boolean {
+  const keys = docs.map((d) => d.sortKey ?? base36Key(d.order ?? d.createdAt));
+  for (let i = 0; i < keys.length - 1; i++) {
+    const prev = keys[i];
+    const next = keys[i + 1];
+    if (prev >= next) return true; // out of order or equal
+    let j = 0;
+    while (j < prev.length && j < next.length && prev[j] === next[j]) j++;
+    // One is a prefix of the other (from repeated 'i'-append fallback).
+    if (j === prev.length || j === next.length) return true;
+    // First differing digits are adjacent (no room for a midpoint).
+    const aIdx = REBALANCE_DIGITS.indexOf(prev[j]);
+    const bIdx = REBALANCE_DIGITS.indexOf(next[j]);
+    if (bIdx - aIdx <= 1) return true;
+  }
+  return false;
+}
+
+/**
+ * M3.3.1 — Periodic sortKey rebalance. Renumbers a sibling list with fresh
+ * evenly-spaced keys (`base36Key(i * GAP)`) when degenerate adjacency is
+ * detected. Batched via `offset`/`batchSize` for large sibling lists.
+ *
+ * No-op (returns `needed: false`) when the sibling list is healthy, so it
+ * is safe to schedule speculatively from `move` and the daily cron.
+ */
+export const rebalanceSortKeys = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    parentId: v.optional(v.id("flux_documents")),
+    batchSize: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize ?? 256;
+    const offset = args.offset ?? 0;
+
+    const children = await ctx.db
+      .query("flux_documents")
+      .withIndex("by_workspace_parent", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("parentId", args.parentId ?? undefined),
+      )
+      .collect();
+    const sorted = children
+      .filter((d) => !d.isArchived)
+      .sort(compareDocs);
+
+    if (offset === 0) {
+      if (!hasDegenerateAdjacency(sorted)) {
+        return { needed: false, rebalanced: 0, total: sorted.length, isDone: true };
+      }
+    }
+
+    let patched = 0;
+    const end = Math.min(offset + batchSize, sorted.length);
+    for (let i = offset; i < end; i++) {
+      const newKey = base36Key(i * REBALANCE_GAP);
+      const doc = sorted[i];
+      if (doc.sortKey !== newKey) {
+        await ctx.db.patch(doc._id, { sortKey: newKey, updatedAt: Date.now() });
+        patched++;
+      }
+    }
+    const isDone = end >= sorted.length;
+    return {
+      needed: true,
+      rebalanced: patched,
+      total: sorted.length,
+      isDone,
+      nextOffset: isDone ? undefined : end,
+    };
+  },
+});
+
+/**
+ * M3.3.1 — Workspace-wide rebalance scan. Scans all `flux_documents` in
+ * batches, collects unique `(workspaceId, parentId)` groups, and schedules
+ * `rebalanceSortKeys` for each. Self-chains via `ctx.scheduler` until all
+ * docs have been scanned. Called by the daily cron.
+ */
+export const rebalanceAllSortKeys = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize ?? 512;
+    const page = await ctx.db
+      .query("flux_documents")
+      .order("asc")
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+
+    const seen = new Set<string>();
+    let scheduled = 0;
+    for (const doc of page.page) {
+      if (doc.isArchived) continue;
+      const key = `${doc.workspaceId}|${doc.parentId ?? "root"}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      await ctx.scheduler.runAfter(0, internal.flux_documents.rebalanceSortKeys, {
+        workspaceId: doc.workspaceId,
+        parentId: doc.parentId,
+      });
+      scheduled++;
+    }
+
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(0, internal.flux_documents.rebalanceAllSortKeys, {
+        cursor: page.continueCursor,
+        batchSize: args.batchSize,
+      });
+    }
+
+    return {
+      scanned: page.page.length,
+      scheduled,
+      isDone: page.isDone,
+    };
+  },
+});
 
 function makeToken() {
   return (
@@ -18,6 +211,28 @@ function canAccessDoc(doc: any, userId: any): boolean {
   return false; // private + not owner
 }
 
+/**
+ * Position comparator. M3.3 read-path flip: `sortKey` is now the authoritative
+ * position — reorders (§14.2) write a `midKey`-computed sortKey via `move`.
+ * Numeric `order` is kept only as a legacy fallback for docs that still lack
+ * a `sortKey` (e.g. un-backfilled deployments) and as a final tiebreak.
+ */
+function compareDocs(a: Doc<"flux_documents">, b: Doc<"flux_documents">): number {
+  const ka = a.sortKey ?? null;
+  const kb = b.sortKey ?? null;
+  if (ka !== null && kb !== null) {
+    if (ka !== kb) return ka < kb ? -1 : 1;
+  } else if (ka !== null) {
+    // Backfill-encoded legacy position for comparison during rollout.
+    const legacy = base36Key(b.order ?? b.createdAt);
+    if (ka !== legacy) return ka < legacy ? -1 : 1;
+  } else if (kb !== null) {
+    const legacy = base36Key(a.order ?? a.createdAt);
+    if (legacy !== kb) return legacy < kb ? -1 : 1;
+  }
+  return (a.order ?? a.createdAt) - (b.order ?? b.createdAt);
+}
+
 /** All non-archived docs in a workspace the current user may see. */
 export const list = query({
   args: { workspaceId: v.id("workspaces") },
@@ -29,7 +244,7 @@ export const list = query({
       .collect();
     return docs
       .filter((d) => !d.isArchived && canAccessDoc(d, userId))
-      .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
+      .sort(compareDocs);
   },
 });
 
@@ -47,7 +262,7 @@ export const listChildren = query({
       .collect();
     return children
       .filter((d) => !d.isArchived && canAccessDoc(d, userId))
-      .sort((a, b) => (a.order ?? a.createdAt) - (b.order ?? b.createdAt));
+      .sort(compareDocs);
   },
 });
 
@@ -97,6 +312,7 @@ export const create = mutation({
       isArchived: false,
       isPublished: false,
       order: now,
+      sortKey: base36Key(now),
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
@@ -133,6 +349,7 @@ export const duplicate = mutation({
       isArchived: false,
       isPublished: false,
       order: now,
+      sortKey: base36Key(now),
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
@@ -168,6 +385,7 @@ export const createFolder = mutation({
       isArchived: false,
       isPublished: false,
       order: now,
+      sortKey: base36Key(now),
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
@@ -188,6 +406,10 @@ export const move = mutation({
   args: {
     documentId: v.id("flux_documents"),
     parentId: v.optional(v.id("flux_documents")),
+    // §14.2 / M3.3: fractional-index sort key computed client-side from the
+    // sibling neighbors (midKey). Server only persists it; the cycle guard
+    // below still runs on `parentId`.
+    sortKey: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const doc = await ctx.db.get(args.documentId);
@@ -205,7 +427,18 @@ export const move = mutation({
         cursor = parent.parentId ?? null;
       }
     }
-    await ctx.db.patch(args.documentId, { parentId: args.parentId, updatedAt: Date.now() });
+    const patch: any = { parentId: args.parentId, updatedAt: Date.now() };
+    if (args.sortKey !== undefined) patch.sortKey = args.sortKey;
+    await ctx.db.patch(args.documentId, patch);
+    // M3.3.1: if the computed sortKey is unusually long (degenerate adjacency
+    // from repeated 'i'-append fallbacks), schedule a rebalance for this
+    // sibling list. The rebalance mutation no-ops when the list is healthy.
+    if (args.sortKey !== undefined && args.sortKey.length > DEGENERATE_LENGTH_THRESHOLD) {
+      await ctx.scheduler.runAfter(0, internal.flux_documents.rebalanceSortKeys, {
+        workspaceId: doc.workspaceId,
+        parentId: args.parentId ?? undefined,
+      });
+    }
     return args.documentId;
   },
 });
@@ -217,8 +450,10 @@ export const update = mutation({
     content: v.optional(v.string()),
     icon: v.optional(v.string()),
     coverImage: v.optional(v.string()),
+    coverY: v.optional(v.number()),
     parentId: v.optional(v.id("flux_documents")),
     order: v.optional(v.number()),
+    sortKey: v.optional(v.string()),
     visibility: v.optional(v.string()),
     accessUserIds: v.optional(v.array(v.id("users"))),
     allowGuestEdit: v.optional(v.boolean()),

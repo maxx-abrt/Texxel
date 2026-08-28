@@ -50,6 +50,8 @@ export const create = mutation({
     color: v.optional(v.string()),
     location: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
+    reminders: v.optional(v.array(v.number())),
+    startDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId } = await assertWorkspaceMember(ctx, args.workspaceId, "member");
@@ -60,6 +62,8 @@ export const create = mutation({
       description: args.description,
       start: args.start,
       end: args.end,
+      reminders: args.reminders,
+      startDate: args.startDate,
       allDay: args.allDay,
       recurrence: args.recurrence,
       recurrenceFreq: args.recurrenceFreq,
@@ -117,6 +121,8 @@ export const update = mutation({
     color: v.optional(v.string()),
     location: v.optional(v.string()),
     projectId: v.optional(v.id("projects")),
+    reminders: v.optional(v.array(v.number())),
+    startDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const e = await ctx.db.get(args.eventId);
@@ -154,6 +160,8 @@ export const detachOccurrence = mutation({
       location: e.location,
       projectId: e.projectId,
       taskId: e.taskId,
+      reminders: (e as any).reminders,
+      startDate: (e as any).startDate,
       createdBy: userId,
       createdAt: Date.now(),
       updatedAt: Date.now(),

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTranslations } from "next-intl";
+import { MusicMiniPlayer } from "@/components/app/music/music-mini-player";
 
 export function Topbar({ onMenu, onSearch, sidebarCollapsed, onExpandSidebar }: { onMenu: () => void; onSearch: () => void; sidebarCollapsed?: boolean; onExpandSidebar?: () => void }) {
   const { theme, setTheme } = useTheme();
@@ -93,6 +94,13 @@ export function Topbar({ onMenu, onSearch, sidebarCollapsed, onExpandSidebar }: 
         <span className="flex-1 text-left">{t("searchDocuments")}</span>
         <span className="hidden rounded-md border border-border px-1.5 text-xs sm:inline">⌘K</span>
       </button>
+
+      {/* Dynamic Island mini-player (§3.1 #4) — hidden below md; the mobile
+          bottom pill variant is mounted in the shell layout instead so it
+          never fights the topbar layout. It renders null until media loads. */}
+      <div className="ml-2 hidden w-0 max-w-[19rem] flex-initial items-center overflow-visible md:flex" data-testid="topbar-music-island">
+        <MusicMiniPlayer placement="topbar" />
+      </div>
 
       <div className="ml-auto flex items-center gap-1">
         <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} data-testid="theme-toggle" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted">

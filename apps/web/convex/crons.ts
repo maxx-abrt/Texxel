@@ -73,4 +73,14 @@ crons.daily(
   (internal as any).flux_tasks.emptyExpiredTrash,
 );
 
+// M3.3.1: daily sortKey rebalance scan — detects degenerate adjacency in
+// any sibling list and renumbers with evenly-spaced keys (LexoRank maintenance).
+crons.daily(
+  "rebalance-sortkeys",
+  { hourUTC: 3, minuteUTC: 0 },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (internal as any).flux_documents.rebalanceAllSortKeys,
+  {},
+);
+
 export default crons;

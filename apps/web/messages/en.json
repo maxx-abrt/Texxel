@@ -48,24 +48,76 @@
     "expandSidebar": "Expand sidebar",
     "goBack": "Go back",
     "goForward": "Go forward",
-    "analytics": "Analytics"
+    "analytics": "Analytics",
+    "files": "Files"
+  },
+  "widgets": {
+    "label": "Widgets",
+    "toggle": "Toggle widgets bar",
+    "collapse": "Collapse widgets",
+    "expand": "Expand widgets",
+    "float": "Pop out as floating bubble",
+    "dock": "Dock back into bar",
+    "empty": "Nothing here yet",
+    "emptyHint": "This widget fills in as you use Bureau.",
+    "inbox": "Inbox",
+    "comments": "Comments",
+    "ai": "AI Assistant",
+    "myTasks": "My Tasks",
+    "activity": "Activity",
+    "pomodoro": "Focus Timer",
+    "presence": "Presence",
+    "myTasksEmpty": "All clear",
+    "myTasksEmptyHint": "Tasks assigned to you and due this week show up here.",
+    "commentsNoDoc": "No document open",
+    "commentsNoDocHint": "Open a document to see and add its comment threads.",
+    "presenceEmpty": "Nobody online",
+    "presenceEmptyHint": "Workspace members appear here while they're active.",
+    "presenceYou": "you",
+    "presenceEditing": "Editing",
+    "presenceViewing": "Viewing",
+    "music": "Music",
+    "files": "Files",
+    "filesNoDoc": "No document open",
+    "filesNoDocHint": "Open a document to see and add its file attachments."
+  },
+  "connection": {
+    "reconnecting": "Reconnecting… changes are queued locally.",
+    "queued": "{count, plural, one {# change queued} other {# changes queued}}"
   },
   "commandPalette": {
     "title": "Search and navigate",
     "searchPlaceholder": "Search anything — documents, tasks, projects…",
     "goTo": "Go to",
+    "people": "People",
     "quickActions": "Quick actions",
     "actions": {
       "newDoc": "New document",
       "newTask": "New task",
+      "newProject": "New project",
       "newEvent": "New event",
+      "inviteMember": "Invite member",
       "openChat": "Open chat",
       "askAi": "Ask AI",
       "toggleTheme": "Toggle dark / light theme",
-      "toggleSidebar": "Toggle sidebar"
+      "toggleSidebar": "Toggle sidebar",
+      "toggleWidgets": "Toggle widgets panel"
+    },
+    "shortcuts": {
+      "open": "C",
+      "toggleSidebar": "⌘\\",
+      "toggleWidgets": "⌘."
     },
     "recent": "Recent",
-    "suite": "Suite"
+    "suite": "Suite",
+    "scopeHint": "Searching this scope only",
+    "scopes": {
+      "scopeDocs": "Documents",
+      "scopeTasks": "Tasks",
+      "scopeProjects": "Projects",
+      "scopeLabels": "Labels",
+      "scopePeople": "People"
+    }
   },
   "common": {
     "cancel": "Cancel",
@@ -172,7 +224,6 @@
     "overdue_filter": "Overdue",
     "dueToday": "Due Today",
     "sort": "Sort",
-    "sortPriority": "Priority",
     "sortDueDate": "Due date",
     "sortName": "Name",
     "addTaskPlaceholder": "Add task... (Enter to create)",
@@ -551,11 +602,38 @@
     "markAllRead": "Mark all read",
     "markedAllRead": "All marked as read",
     "cleared": "Inbox cleared",
+    "archiveRead": "Archive read",
+    "archivedRead": "Read notifications archived",
+    "onlyUnread": "Only unread",
     "today": "Today",
+    "yesterday": "Yesterday",
     "earlier": "Earlier",
+    "filters": {
+      "all": "All",
+      "mentions": "Mentions",
+      "assigned": "Assigned",
+      "reactions": "Reactions"
+    },
     "empty": {
       "title": "No notifications",
       "description": "You'll see team invites, task assignments, and @mentions here."
+    },
+    "preview": {
+      "selectPrompt": "Select a notification to preview it",
+      "selectHint": "Preview shows the linked document, task, or project without leaving your inbox.",
+      "open": "Open",
+      "noPreview": "No preview available",
+      "noPreviewHint": "This notification isn't linked to a previewable item.",
+      "notFound": "Item no longer available",
+      "document": "Document",
+      "task": "Task",
+      "project": "Project",
+      "discussion": "Discussion",
+      "status": "Status",
+      "assignee": "Assignee",
+      "due": "Due",
+      "client": "Client",
+      "excerpt": "Excerpt"
     },
     "notifTypes": {
       "task_assigned": "New task assigned to you",
@@ -576,7 +654,8 @@
       "clear": "Clear",
       "markRead": "Mark read",
       "remove": "Remove"
-    }
+    },
+    "archived": "Notification archived"
   },
   "settings": {
     "title": "Settings",
@@ -763,6 +842,16 @@
       "title": "Easy reading",
       "desc": "Bolder text, more spacing and higher contrast",
       "saved": "Reading preference updated"
+    },
+    "quietHours": {
+      "title": "Quiet hours",
+      "desc": "Suppress browser push notifications during set hours. Your inbox still fills — you just won't be disturbed.",
+      "start": "From",
+      "end": "To",
+      "saved": "Quiet hours updated",
+      "activeNow": "Active now",
+      "inactiveNow": "Inactive",
+      "hint": "Notifications are still written to your inbox and badge count; only browser push alerts are paused."
     },
     "cropImage": {
       "title": "Crop image",
@@ -954,6 +1043,8 @@
     "basicBlocksGroup": "Basic blocks",
     "addIcon": "Add icon",
     "untitled": "Untitled",
+    "dropAttached": "{count, plural, one {# file attached and inserted} other {# files attached and inserted}}",
+    "dropFailed": "Could not attach the dropped file(s).",
     "addCover": "Add cover",
     "pageNavigation": "Page navigation",
     "exportPdf": "Export PDF",
@@ -2486,7 +2577,10 @@
     "closePanel": "Close panel or dialog",
     "help": "Show this help",
     "slashMenu": "Insert block (in a document)",
-    "mention": "Mention someone or something"
+    "mention": "Mention someone or something",
+    "closeTab": "Close active tab",
+    "jumpTab": "Jump to tab 1–9",
+    "openTab": "Open link in a new tab"
   },
   "tree": {
     "actions": "Actions",
@@ -2500,7 +2594,15 @@
     "newPage": "New page inside",
     "newFolder": "New folder inside",
     "trash": "Move to trash",
-    "trashed": "Moved to trash"
+    "trashed": "Moved to trash",
+    "bulkTrashed": "{count, plural, one {# page moved to trash} other {# pages moved to trash}}",
+    "bulkRestored": "{count, plural, one {# page restored} other {# pages restored}}",
+    "bulkRestoreFailed": "Could not restore pages",
+    "undo": "Undo",
+    "pagesSelected": "{count, plural, one {# page selected} other {# pages selected}}",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "unreadActivity": "Unread activity"
   },
   "analytics": {
     "title": "Analytics",
@@ -2590,5 +2692,134 @@
     "pickDate": "Pick a date",
     "commandPaletteTitle": "Command Palette",
     "commandPaletteDesc": "Search for a command to run..."
+  },
+  "music": {
+    "pasteLabel": "Paste a Spotify, YouTube, YouTube Music, or SoundCloud link",
+    "pastePlaceholder": "https://open.spotify.com/track/…",
+    "privacyNote": "Playback is delivered by the selected provider; Bureau never proxies or stores audio.",
+    "errorUnsupported": "That link isn't supported. Paste a Spotify, YouTube, YouTube Music, or SoundCloud track, album, playlist, or set link.",
+    "errorGeneric": "Couldn't load that link. Check that it's public and try again.",
+    "play": "Play",
+    "pause": "Pause",
+    "volume": "Volume",
+    "queue": "Queue",
+    "pinned": "Pinned",
+    "openInProvider": "Open in provider",
+    "removeFromQueue": "Remove from queue",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "empty": "No music yet",
+    "emptyHint": "Paste a link above to start listening while you work.",
+    "statusLoading": "Loading…",
+    "statusBlocked": "Playback blocked",
+    "statusError": "Playback error",
+    "tapToPlay": "Autoplay was blocked — press play to start.",
+    "recent": "Recently played",
+    "seek": "Seek",
+    "playQueueItem": "Play this item",
+    "dragToReorder": "Drag to reorder",
+    "next": "Next",
+    "previous": "Previous",
+    "dismiss": "Dismiss player",
+    "openWidget": "Open music widget",
+    "startFocusTimer": "Start focus timer",
+    "pauseOnFocus": "Pause on focus",
+    "videoPlaying": "video playing in player"
+  },
+  "tabs": {
+    "home": "Home",
+    "emptyHint": "Pin a page with + to keep it open in a tab.",
+    "close": "Close {title}",
+    "noRoute": "This item has no page yet",
+    "pinCurrent": "Pin current page as a tab",
+    "unreadActivity": "Unread activity"
+  },
+  "files": {
+    "title": "Files",
+    "subtitle": "All files uploaded across Bureau, stored on Backblaze B2 via the shared A2E Core drive.",
+    "empty": "No files here yet",
+    "emptyDesc": "Upload files from a document, chat, or the editor to see them appear here.",
+    "emptyFolder": "This folder is empty",
+    "emptyFolderDesc": "Drop files here or create a sub-folder to get started.",
+    "loading": "Loading files…",
+    "viewGrid": "Grid view",
+    "viewList": "List view",
+    "root": "All files",
+    "openFolder": "Open folder",
+    "backToParent": "Back to {name}",
+    "column": {
+      "name": "Name",
+      "size": "Size",
+      "attachedTo": "Attached to",
+      "uploadedBy": "Uploaded by",
+      "date": "Date"
+    },
+    "attached": {
+      "unattached": "Unattached",
+      "chat_channel": "Chat channel",
+      "project": "Project",
+      "document": "Document",
+      "task": "Task",
+      "event": "Event",
+      "font": "Font",
+      "database": "Database"
+    },
+    "unknownUser": "Unknown user",
+    "fileCount": "{count} file(s)",
+    "folderCount": "{count} folder(s)",
+    "coreUnavailable": "File storage is temporarily unavailable. Your files are safe — please try again in a moment.",
+    "notLinked": "This workspace is not linked to the shared A2E Core drive. Files cannot be listed here.",
+    "upload": {
+      "uploadButton": "Upload",
+      "dropHere": "Drop files to upload",
+      "dropActive": "Drop to upload",
+      "dropReject": "Some files can't be uploaded",
+      "dropHint": "Files are uploaded to the current folder and stored on the shared A2E Core drive.",
+      "stackLabel": "Uploads",
+      "statusUploading": "Uploading {pct}%",
+      "statusDone": "Uploaded",
+      "statusError": "Failed",
+      "statusCancelled": "Cancelled",
+      "progressLabel": "{name} upload progress",
+      "cancel": "Cancel upload",
+      "dismiss": "Dismiss",
+      "retry": "Retry upload",
+      "errorGeneric": "Upload failed. Check your connection and try again.",
+      "errorQuota": "Storage quota exceeded."
+    },
+    "bulk": {
+      "selected": "{count} selected",
+      "download": "Download",
+      "move": "Move",
+      "delete": "Delete",
+      "clear": "Clear selection",
+      "selectAll": "Select all",
+      "selectNone": "Select none",
+      "downloadZipping": "Zipping {count} files…",
+      "downloadFailed": "Download failed for {count} file(s).",
+      "downloadSingleFailed": "Download failed.",
+      "moved": "{count} file(s) moved to {name}.",
+      "moveFailed": "{count} file(s) could not be moved.",
+      "moveHere": "Move here",
+      "moveTo": "Move to folder",
+      "moveDialogDesc": "Choose a destination folder for {count} file(s).",
+      "moveRoot": "All files (root)",
+      "moveCurrent": "Current folder",
+      "deleted": "{count} file(s) moved to trash.",
+      "deleteFailed": "{count} file(s) could not be deleted.",
+      "deleteConfirmTitle": "Delete {count} file(s)?",
+      "deleteConfirmDesc": "They will be moved to trash. You can restore them from the trash for 30 days.",
+      "undo": "Undo",
+      "openFolder": "Open",
+      "noFolders": "No folders available."
+    }
+  },
+  "filesWidget": {
+    "count": "{count, plural, one {# file} other {# files}}",
+    "uploadButton": "Upload",
+    "empty": "No files attached to this document yet.",
+    "unavailable": "File storage unavailable",
+    "unavailableHint": "The shared A2E Core drive is not linked to this workspace.",
+    "open": "Open {name}"
   }
 }

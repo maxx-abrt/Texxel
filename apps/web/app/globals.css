@@ -379,6 +379,15 @@ html .bn-container[data-color-scheme="dark"] {
 /* Comment badge count uses tabular numbers for stability. */
 [data-testid="doc-comments-count"] { font-variant-numeric: tabular-nums; }
 
+/* M2.5 (§5 #6) — Command Center backdrop: semi-transparent + blur.
+   Scoped to the command palette via :has() so the shared Dialog overlay
+   is untouched for every other dialog. */
+[data-slot="dialog-portal"]:has([data-testid="command-palette"]) [data-slot="dialog-overlay"] {
+  background-color: rgb(0 0 0 / 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 
 /* ============================ EASY READING MODE ============================ */
 /* Accessibility preference: everything bolder, roomier and higher-contrast

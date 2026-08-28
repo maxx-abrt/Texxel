@@ -33,6 +33,11 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { ConvexThreadStore } from "@/lib/convex-thread-store";
 import { cn } from "@/lib/utils";
 import { MessageText1 } from "iconsax-reactjs";
+import { useUpload, useCoreAction, coreApi } from "@a2e/core";
+import type { EntityRef, Id as CoreId } from "@a2e/core";
+import { useCoreWorkspaceId } from "@/hooks/use-core-workspace-id";
+import { coreFlags } from "@/lib/core-flags";
+import { toast } from "sonner";
 import { ChartBlock, buildChartSlashMenuItems } from "./chart-block";
 import { FontFamilySelect, FontFamilyStyle, type FontOption } from "./font-style";
 import { suggestionMenuFloatingUIOptions } from "@/lib/suggestion-menu-options";
@@ -218,8 +223,23 @@ export function FluxEditor({
   const { locale } = useLocale();
   const tComments = useTranslations("docsExperience.comments");
   const tChips = useTranslations("chips");
+  const tEditor = useTranslations("editor");
   const convex = useConvex();
   const generateUploadUrl = useMutation(api.flux_files.generateUploadUrl);
+
+  // ── OS file drop → core drive attachment (§14.6) ────────────────────────
+  // When the user drags a file from the OS onto the editor, upload it to the
+  // shared A2E Core drive with `linkedTo` = the current document so it shows
+  // up in the Files widget, then insert a block at the caret (image block for
+  // images, a named link paragraph for other files). When the core drive is
+  // unavailable, the drop is left to BlockNote's native image handling
+  // (Convex `flux_files`) so the editor never regresses. The handler itself
+  // is defined after `editor` is created below (it closes over the editor).
+  const coreWsId = useCoreWorkspaceId();
+  const { upload: uploadToCoreDrive } = useUpload();
+  const presignView = useCoreAction(coreApi.drive.presignView);
+  const presignDownload = useCoreAction(coreApi.drive.presignDownload);
+
   const createThread = useMutation(api.flux_commentThreads.createThread);
   const addComment = useMutation(api.flux_commentThreads.addComment);
   const updateComment = useMutation(api.flux_commentThreads.updateComment);
@@ -279,6 +299,67 @@ export function FluxEditor({
       return publicUrl;
     },
   }, [threadStore]);
+
+  // ── OS file drop → core drive attachment (§14.6) ────────────────────────
+  // Intercepts OS file drops on the editor wrapper (capture phase, before
+  // BlockNote's native image handling). Uploads each file to the shared A2E
+  // Core drive with `linkedTo` = the current document so it appears in the
+  // Files widget, then inserts a block at the caret (image block for images,
+  // a named link paragraph for other files). Internal block drags carry no
+  // `dataTransfer.files` and pass through untouched. When the core drive is
+  // unavailable, the drop is left to BlockNote's native image handling
+  // (Convex `flux_files`) so the editor never regresses.
+  const handleDropCapture = (e: React.DragEvent) => {
+    const dropped = e.dataTransfer?.files;
+    if (!dropped || dropped.length === 0) return;
+    if (!editable || !documentId || !coreFlags.drive || !coreWsId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const linkedTo: EntityRef = { app: "bureau", type: "document", id: String(documentId) };
+    void (async () => {
+      let inserted = 0;
+      for (const file of Array.from(dropped)) {
+        try {
+          const { fileId } = await uploadToCoreDrive({
+            workspaceId: coreWsId as CoreId<"workspaces">,
+            file,
+            sourceApp: "bureau",
+            linkedTo,
+          });
+          const isImage = file.type.startsWith("image/");
+          const { url } = isImage
+            ? await presignView({ fileId })
+            : await presignDownload({ fileId });
+          const currentBlock = editor.getTextCursorPosition?.().block;
+          if (isImage) {
+            editor.insertBlocks(
+              [{ type: "image", props: { url, caption: file.name } } as any],
+              currentBlock,
+              "after",
+            );
+          } else {
+            editor.insertBlocks(
+              [
+                {
+                  type: "paragraph",
+                  content: [
+                    { type: "link", href: url, content: [{ type: "text", text: file.name, styles: {} }] } as any,
+                  ],
+                } as any,
+              ],
+              currentBlock,
+              "after",
+            );
+          }
+          inserted++;
+        } catch {
+          /* per-file failure; continue with the rest */
+        }
+      }
+      if (inserted > 0) toast.success(tEditor("dropAttached", { count: inserted }));
+      else if (dropped.length > 0) toast.error(tEditor("dropFailed"));
+    })();
+  };
 
   useEffect(() => threadStore?.updateFromServer(threadRows as any), [threadRows, threadStore]);
   useEffect(() => {
@@ -368,6 +449,7 @@ export function FluxEditor({
       className="flux-editor relative"
       style={{ "--doc-font-family": `"${fontFamily}", var(--font-sans)`, "--doc-font-size": `${fontSize}px`, "--doc-line-height": lineHeight } as React.CSSProperties}
       data-testid="flux-editor"
+      onDropCapture={handleDropCapture}
     >
       <BlockNoteView
         editor={editor}

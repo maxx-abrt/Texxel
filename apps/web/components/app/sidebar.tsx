@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useDeferredValue } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useWorkspace } from "@/hooks/use-flux-workspace";
+import { useUnreadEntityRefs } from "@/hooks/use-unread-entity-refs";
 import { Id } from "@/convex/_generated/dataModel";
-import { DocumentTree } from "@/components/app/document-tree";
+import { DocumentTree, flattenVisibleTree } from "@/components/app/document-tree";
 import { usePersistedState } from "@/hooks/use-sidebar-prefs";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -34,6 +35,7 @@ import {
   ArrowRight2,
   CloseCircle,
   Folder,
+  FolderOpen,
   Messages3,
   SidebarLeft,
 } from "iconsax-reactjs";
@@ -54,12 +56,16 @@ const NAV_KEYS = [
   { href: "/app/calendar", key: "calendar", Icon: Calendar },
   { href: "/app/analytics", key: "analytics", Icon: Chart2 },
   { href: "/app/databases", key: "databases", Icon: Data2 },
+  { href: "/app/files", key: "files", Icon: FolderOpen },
   { href: "/app/inbox", key: "inbox", Icon: Notification },
   { href: "/app/members", key: "members", Icon: Profile2User },
 ];
 
 const MIN_W = 224;
 const MAX_W = 400;
+// §1.1 panelstore snap: a resize ending within 12px of MIN_W collapses the
+// panel instead of leaving a useless sliver.
+const SNAP_THRESHOLD = 12;
 
 export function Sidebar({
   mobileOpen,
@@ -93,7 +99,14 @@ export function Sidebar({
   // competed for pointerWithin hits.)
   const { isOver: isOverRoot, setNodeRef: setRootRef } = useDroppable({ id: "sidebar-private-root" });
   const { isOver: isOverRootArea, setNodeRef: setRootAreaRef } = useDroppable({ id: "sidebar-root-area" });
-  const { activeDrag } = useTrashDnd();
+  const { activeDrag, registerVisibleOrder, registerScrollContainer } = useTrashDnd();
+  // §14.8: local ref to the tree scroll container, shared with the DnD
+  // provider (for edge auto-scroll) and with DocumentTree (for virtualization).
+  const treeScrollRef = useRef<HTMLDivElement>(null);
+  const setTreeScrollRef = useCallback((el: HTMLDivElement | null) => {
+    treeScrollRef.current = el;
+    registerScrollContainer(el);
+  }, [registerScrollContainer]);
 
   const t = useTranslations("nav");
   const tc = useTranslations("common");
@@ -108,6 +121,24 @@ export function Sidebar({
   );
   const [resizing, setResizing] = useState(false);
   const openIds = useMemo(() => new Set(openList), [openList]);
+
+  // §14.8: useDeferredValue on docs so typing elsewhere (search, command
+  // palette) stays smooth while the tree recomputes.
+  const deferredDocs = useDeferredValue(docs);
+  // §14.3 / §14.8: flat ordered list of currently visible tree-row document
+  // ids (depth-first, only descending into open nodes), reusing the shared
+  // `flattenVisibleTree` helper from document-tree.tsx. Registered with the
+  // DnD provider so ⇧-click range selection resolves against what the user
+  // actually sees.
+  const visibleOrder = useMemo(() => {
+    if (!deferredDocs) return [] as string[];
+    return flattenVisibleTree(deferredDocs as any[], openIds).map((r) =>
+      String(r.doc._id),
+    );
+  }, [deferredDocs, openIds]);
+  useEffect(() => {
+    registerVisibleOrder(visibleOrder);
+  }, [visibleOrder, registerVisibleOrder]);
   const sectionOpen = (key: string) => sections[key] !== false;
   const toggleSection = (key: string) =>
     setSections((prev) => ({ ...prev, [key]: !(prev[key] !== false) }));
@@ -132,19 +163,40 @@ export function Sidebar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDocId, docs]);
 
+  // §14.1 / M3.2: auto-expand a node after an "into" drop so the user sees
+  // the moved doc nested inside its new parent (children auto-make parent
+  // expandable). Dispatched by TrashDndProvider on a successful into-drop.
+  useEffect(() => {
+    const onExpand = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (id) setOpenList((prev) => Array.from(new Set([...prev, id])));
+    };
+    window.addEventListener("bureau:tree-expand", onExpand);
+    return () => window.removeEventListener("bureau:tree-expand", onExpand);
+  }, []);
+
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
     const startX = e.clientX;
     const startW = width;
+    let currentW = startW;
     setResizing(true);
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
-    const onMove = (ev: MouseEvent) =>
-      setWidth(Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX)));
+    const onMove = (ev: MouseEvent) => {
+      currentW = Math.min(MAX_W, Math.max(MIN_W, startW + ev.clientX - startX));
+      setWidth(currentW);
+    };
     const onUp = () => {
       setResizing(false);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
+      // §1.1 snap-collapse: end within 12px of min → collapse, and restore the
+      // pre-drag width so the next expand reuses the last good value.
+      if (currentW <= MIN_W + SNAP_THRESHOLD) {
+        setCollapsed(true);
+        setWidth(startW);
+      }
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
@@ -156,6 +208,9 @@ export function Sidebar({
     () => new Set((favorites ?? []).map((f: any) => String(f._id))),
     [favorites],
   );
+
+  // §6 / M5.4: unread-activity refs for NotifyMarker dots in the tree.
+  const { docIds: unreadDocIds } = useUnreadEntityRefs();
 
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [templateParentId, setTemplateParentId] = useState<Id<"flux_documents"> | undefined>();
@@ -279,7 +334,11 @@ export function Sidebar({
           })}
         </nav>
 
-        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-1.5 no-scrollbar">
+        <div
+          ref={setTreeScrollRef}
+          className="mt-4 min-h-0 flex-1 overflow-y-auto px-1.5 no-scrollbar"
+          data-testid="sidebar-tree-scroll"
+        >
           {favorites && favorites.length > 0 && (
             <div className="mb-3">
               <button
@@ -334,13 +393,13 @@ export function Sidebar({
               )}
             >
               <DocumentTree
-                docs={docs ?? []}
-                parentId={null}
+                docs={deferredDocs ?? []}
+                scrollContainerRef={treeScrollRef}
                 onNavigate={onClose}
                 onCreateChild={onCreate}
-                level={0}
                 activeId={activeDocId}
                 favoriteIds={favoriteIds}
+                notifyDocIds={unreadDocIds}
                 openIds={openIds}
                 onToggleOpen={onToggleOpen}
               />
@@ -393,6 +452,19 @@ export function Sidebar({
           />
         )}
       </aside>
+      {/* §1.1 edge-hover reveal: when the navigator is collapsed to 0 on
+          desktop, an 8px transparent strip at the left edge reveals on hover
+          and expands back to the last width on click (Huly panelstore). */}
+      {collapsed && (
+        <button
+          type="button"
+          data-testid="sidebar-edge-reveal"
+          aria-label={t("expandSidebar")}
+          title={`${t("expandSidebar")} (\u2318\\)`}
+          onClick={() => setCollapsed(false)}
+          className="fixed inset-y-0 left-0 z-40 hidden w-2 cursor-pointer bg-transparent transition-colors hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:block"
+        />
+      )}
       <TemplatePickerDialog
         open={templatePickerOpen}
         onOpenChange={setTemplatePickerOpen}

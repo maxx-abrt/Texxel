@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConvexAuth, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { WorkspaceProvider, useWorkspace } from "@/hooks/use-flux-workspace";
 import { Sidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
+import { WidgetsBar } from "@/components/app/widgets/widgets-bar";
+import { ConnectionBanner } from "@/components/app/connection-banner";
+import { WorkbenchTabs } from "@/components/app/tabs/workbench-tabs";
+import { useTabScrollRestore } from "@/components/app/tabs/use-tab-scroll-restore";
+import { MusicPlayerHost } from "@/components/app/music/music-player-host";
+import { MusicMiniPlayer } from "@/components/app/music/music-mini-player";
 import { CommandPalette } from "@/components/app/command-palette";
 import { Onboarding } from "@/components/app/onboarding";
 import { DockedBubbles } from "@/components/app/docked-bubbles";
@@ -56,11 +62,25 @@ function Shell({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [collapsed, setCollapsed] = usePersistedState<boolean>("bureau-sidebar-collapsed", false);
 
+  // M4.3 (§12.8) — main content remembers scroll per workbench tab.
+  const mainRef = useRef<HTMLElement | null>(null);
+  useTabScrollRestore(mainRef);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearchOpen((o) => !o);
+        return;
+      }
+      // M2.2 (§5 #2) — `C` opens the command center from anywhere outside a
+      // text field; the hint chip rides on the palette's quick actions.
+      if (
+        !e.metaKey && !e.ctrlKey && !e.altKey && e.key.toLowerCase() === "c" &&
+        !(e.target instanceof HTMLElement && e.target.closest('input, textarea, [contenteditable="true"]'))
+      ) {
+        e.preventDefault();
+        setSearchOpen(true);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -89,7 +109,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <TrashDndProvider>
       <AccentProvider />
+      {/* 3-zone workbench shell (§1.1): navigator | content | widgets.
+          The widgets zone is a hidden stub in M1.1 — M1.2 fills it with the
+          real icon rail (MINI) ↔ expanded panel. DockedBubbles stays until
+          M1.6 migrates its content into widgets. */}
       <div className="flex h-screen overflow-hidden bg-background">
+        {/* Zone 1 — Navigator (left rail) */}
         <Sidebar
           mobileOpen={mobileOpen}
           onClose={() => setMobileOpen(false)}
@@ -97,6 +122,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           collapsed={collapsed}
           setCollapsed={setCollapsed}
         />
+        {/* Zone 2 — Content (topbar + routed page) */}
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar
             onMenu={() => setMobileOpen(true)}
@@ -104,11 +130,28 @@ function Shell({ children }: { children: React.ReactNode }) {
             sidebarCollapsed={collapsed}
             onExpandSidebar={() => setCollapsed(false)}
           />
-          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+          <ConnectionBanner />
+          {/* M4.1 (§4) — workbench tab strip between topbar and content.
+              Persisted per user in `flux_userPrefs.tabs`. M4.2 wires
+              middle-click / ⌘W / ⌘1..9 / dnd reorder; M4.3 wires internal
+              link resolution into an existing tab. */}
+          <WorkbenchTabs />
+          <main ref={mainRef} className="min-h-0 flex-1 overflow-y-auto" data-testid="app-main-scroll">{children}</main>
         </div>
+        {/* Zone 3 — Widgets (right dock) */}
+        <WidgetsBar />
         <CommandPalette open={searchOpen} setOpen={setSearchOpen} />
         <DockedBubbles />
         <ShortcutsHelp />
+        {/* Singleton music player host (§3.1 #5) — mounted once, outside the
+            widgets dock, so route/dock/float changes never remount the
+            active provider player. */}
+        <MusicPlayerHost />
+        {/* Mobile Dynamic Island mini-player (§3.1 #4) — bottom pill above
+            the safe area on <md. The topbar mounts the wide-screen pill. Both
+            are pure control surfaces over the same store; they render null
+            until media is loaded. */}
+        <MusicMiniPlayer placement="mobile" />
       </div>
     </TrashDndProvider>
   );

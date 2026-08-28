@@ -19,11 +19,12 @@ import { toast } from "sonner";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity, Edit2, Global } from "iconsax-reactjs";
+import { Setting2, Profile, Buildings, Sun1, Moon, Add, Logout, Gallery, Trash, Crown, People, Brush2, Activity, Edit2, Global, Notification } from "iconsax-reactjs";
 import { ACCENT_PRESETS, DEFAULT_ACCENT, normalizeAccent, applyAccent, cacheAccent, applyDensity, cacheDensity, applyEasyRead, cacheEasyRead, type Density } from "@/components/providers/accent-provider";
 import { ActivityFeed } from "@/components/app/activity-feed";
 import { CoreStatusCard } from "@/components/app/core-status-card";
 import { ImageCropperModal } from "@/components/app/image-cropper-modal";
+import { useQuietHours, type QuietHours } from "@/hooks/use-quiet-hours";
 
 function EasyReadToggle() {
   const t = useTranslations("settings");
@@ -83,6 +84,68 @@ function DensityPicker() {
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function QuietHoursSection() {
+  const t = useTranslations("settings");
+  const { quietHours, isQuietHours, updateQuietHours } = useQuietHours();
+
+  const save = async (next: Partial<QuietHours>) => {
+    await updateQuietHours(next);
+    toast.success(t("quietHours.saved"));
+  };
+
+  return (
+    <div className="mt-4 border-t border-border pt-4" data-testid="quiet-hours-section">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <span className="text-sm font-medium">{t("quietHours.title")}</span>
+          <p className="text-xs text-muted-foreground">{t("quietHours.desc")}</p>
+        </div>
+        <Switch
+          checked={quietHours.enabled}
+          onCheckedChange={(v) => save({ enabled: v })}
+          data-testid="quiet-hours-toggle"
+        />
+      </div>
+      {quietHours.enabled && (
+        <div className="mt-3 flex flex-wrap items-center gap-3" data-testid="quiet-hours-range">
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{t("quietHours.start")}</span>
+            <input
+              type="time"
+              value={quietHours.start}
+              onChange={(e) => save({ start: e.target.value })}
+              className={cn(inputBase, "h-8 w-28 text-xs")}
+              data-testid="quiet-hours-start"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{t("quietHours.end")}</span>
+            <input
+              type="time"
+              value={quietHours.end}
+              onChange={(e) => save({ end: e.target.value })}
+              className={cn(inputBase, "h-8 w-28 text-xs")}
+              data-testid="quiet-hours-end"
+            />
+          </label>
+          <span
+            className={cn(
+              "rounded-full px-2.5 py-1 text-xs font-medium",
+              isQuietHours ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+            )}
+            data-testid="quiet-hours-status"
+          >
+            {isQuietHours ? t("quietHours.activeNow") : t("quietHours.inactiveNow")}
+          </span>
+        </div>
+      )}
+      {quietHours.enabled && (
+        <p className="mt-2 text-xs text-muted-foreground">{t("quietHours.hint")}</p>
+      )}
     </div>
   );
 }
@@ -416,6 +479,11 @@ export default function SettingsPage() {
           <AccentPicker />
           <DensityPicker />
           <EasyReadToggle />
+        </Section>
+
+        <Section title={t("tabs.notifications")} icon={Notification}>
+          <p className="mb-2 text-xs text-muted-foreground">{t("notifications.subtitle")}</p>
+          <QuietHoursSection />
         </Section>
 
         <Section title={t("workspace")} icon={Buildings}>

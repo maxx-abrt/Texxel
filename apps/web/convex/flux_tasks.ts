@@ -188,19 +188,44 @@ export const create = mutation({
     startDate: v.optional(v.number()),
     labels: v.optional(v.array(v.string())),
     estimateMinutes: v.optional(v.number()),
+    estimation: v.optional(v.string()),
+    blockedBy: v.optional(v.array(v.id("tasks"))),
   },
   handler: async (ctx, args) => {
     const { userId } = await assertPermission(ctx, args.workspaceId, "tasks:manage");
     const now = Date.now();
+    // M0.3 (§15.1): allocate the per-project sequence number so tasks get a
+    // human identifier `PRJ-42` = projects.key + number. Counter lives on the
+    // project row (`nextTaskNumber`); fallback = max existing number + 1.
+    let number: number | undefined;
+    if (args.projectId) {
+      const project = await ctx.db.get(args.projectId);
+      if (project) {
+        if (typeof project.nextTaskNumber === "number") {
+          number = project.nextTaskNumber;
+        } else {
+          const siblings = await ctx.db
+            .query("tasks")
+            .withIndex("by_project_number", (q: any) => q.eq("projectId", args.projectId))
+            .collect();
+          number = siblings.reduce((m: number, t: any) => Math.max(m, t.number ?? 0), 0) + 1;
+        }
+        await ctx.db.patch(args.projectId, { nextTaskNumber: number + 1, updatedAt: now });
+      }
+    }
     const taskId = await ctx.db.insert("tasks", {
       workspaceId: args.workspaceId,
       projectId: args.projectId,
       parentId: args.parentId,
+      number,
       title: args.title,
       description: args.description,
       status: args.status ?? "todo",
       assigneeId: args.assigneeId,
       dueDate: args.dueDate,
+      startDate: args.startDate,
+      estimation: args.estimation,
+      blockedBy: args.blockedBy,
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
@@ -254,6 +279,8 @@ export const update = mutation({
     labels: v.optional(v.array(v.string())),
     order: v.optional(v.number()),
     estimateMinutes: v.optional(v.number()),
+    estimation: v.optional(v.string()),
+    blockedBy: v.optional(v.array(v.id("tasks"))),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
@@ -266,7 +293,7 @@ export const update = mutation({
       if (!canAssign) throw new Error("Forbidden: requires tasks:assign");
     }
     const taskPatch: any = { updatedAt: now };
-    for (const k of ["title", "description", "status", "assigneeId", "dueDate", "projectId"] as const) {
+    for (const k of ["title", "description", "status", "assigneeId", "dueDate", "projectId", "startDate", "estimation", "blockedBy"] as const) {
       if ((args as any)[k] !== undefined) taskPatch[k] = (args as any)[k];
     }
     await ctx.db.patch(args.taskId, taskPatch);
@@ -650,5 +677,55 @@ export const addComment = mutation({
       content: args.content,
       createdAt: Date.now(),
     });
+  },
+});
+
+/**
+ * M0.3 (§15.1) backfill: assign `projects.key` / `projects.nextTaskNumber` and
+ * per-project sequential `tasks.number` to existing rows (oldest first).
+ * Idempotent — rows that already have the fields are skipped, so it is safe to
+ * run again after new legacy data appears. Batched; pass `cursor` to continue.
+ */
+export const backfillTaskNumbers = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+    batchSize: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const batchSize = args.batchSize ?? 128;
+    const projects = await ctx.db.query("projects").collect();
+    // 1) Ensure every project has a key.
+    for (const p of projects) {
+      if (p.key) continue;
+      const base = (p.name ?? "PRJ").replace(/[^A-Za-z]/g, "").toUpperCase();
+      const key = (base || "PRJ").slice(0, 4) || "PRJ";
+      await ctx.db.patch(p._id, { key, updatedAt: Date.now() });
+    }
+    // 2) Ensure every project has a counter = max(existing numbers) + 1.
+    for (const p of projects) {
+      if (typeof p.nextTaskNumber === "number") continue;
+      const rows = await ctx.db
+        .query("tasks")
+        .withIndex("by_project", (q: any) => q.eq("projectId", p._id))
+        .collect();
+      const maxNum = rows.reduce((m: number, t: any) => Math.max(m, t.number ?? 0), 0);
+      await ctx.db.patch(p._id, { nextTaskNumber: maxNum + 1, updatedAt: Date.now() });
+    }
+    // 3) Batched: number tasks that belong to a project but have none.
+    const page = await ctx.db
+      .query("tasks")
+      .paginate({ cursor: args.cursor ?? null, numItems: batchSize });
+    for (const t of page.page) {
+      if (!t.projectId || t.number !== undefined) continue;
+      const project = await ctx.db.get(t.projectId);
+      if (!project) continue;
+      const n =
+        typeof project.nextTaskNumber === "number"
+          ? project.nextTaskNumber
+          : 1;
+      await ctx.db.patch(t._id, { number: n, updatedAt: Date.now() });
+      await ctx.db.patch(t.projectId, { nextTaskNumber: n + 1, updatedAt: Date.now() });
+    }
+    return { continueCursor: page.continueCursor, isDone: page.isDone };
   },
 });

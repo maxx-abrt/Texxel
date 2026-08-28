@@ -48,24 +48,76 @@
     "expandSidebar": "Afficher la barre latérale",
     "goBack": "Retour",
     "goForward": "Avancer",
-    "analytics": "Analytiques"
+    "analytics": "Analytiques",
+    "files": "Fichiers"
+  },
+  "widgets": {
+    "label": "Widgets",
+    "toggle": "Basculer la barre de widgets",
+    "collapse": "Réduire les widgets",
+    "expand": "Afficher les widgets",
+    "float": "Détacher en bulle flottante",
+    "dock": "Réattacher à la barre",
+    "empty": "Rien à afficher pour l'instant",
+    "emptyHint": "Ce widget se remplit au fil de votre utilisation de Bureau.",
+    "inbox": "Boîte de réception",
+    "comments": "Commentaires",
+    "ai": "Assistant IA",
+    "myTasks": "Mes tâches",
+    "activity": "Activité",
+    "pomodoro": "Minuteur de concentration",
+    "presence": "Présence",
+    "myTasksEmpty": "Tout est fait",
+    "myTasksEmptyHint": "Les tâches qui vous sont assignées et dues cette semaine s'affichent ici.",
+    "commentsNoDoc": "Aucun document ouvert",
+    "commentsNoDocHint": "Ouvrez un document pour voir et ajouter ses fils de discussion.",
+    "presenceEmpty": "Personne en ligne",
+    "presenceEmptyHint": "Les membres de l'espace apparaissent ici lorsqu'ils sont actifs.",
+    "presenceYou": "vous",
+    "presenceEditing": "Édition",
+    "presenceViewing": "Consultation",
+    "music": "Musique",
+    "files": "Fichiers",
+    "filesNoDoc": "Aucun document ouvert",
+    "filesNoDocHint": "Ouvrez un document pour voir et ajouter ses fichiers joints."
+  },
+  "connection": {
+    "reconnecting": "Reconnexion en cours… vos modifications sont en file d'attente localement.",
+    "queued": "{count, plural, one {# modification en attente} other {# modifications en attente}}"
   },
   "commandPalette": {
     "title": "Rechercher et naviguer",
     "searchPlaceholder": "Recherchez des documents, tâches, projets…",
     "goTo": "Aller à",
+    "people": "Personnes",
     "quickActions": "Actions rapides",
     "actions": {
       "newDoc": "Nouveau document",
       "newTask": "Nouvelle tâche",
+      "newProject": "Nouveau projet",
       "newEvent": "Nouvel événement",
+      "inviteMember": "Inviter un membre",
       "openChat": "Ouvrir le chat",
       "askAi": "Demander à l’IA",
       "toggleTheme": "Basculer thème sombre / clair",
-      "toggleSidebar": "Afficher / masquer la barre latérale"
+      "toggleSidebar": "Afficher / masquer la barre latérale",
+      "toggleWidgets": "Afficher / masquer le panneau de widgets"
+    },
+    "shortcuts": {
+      "open": "C",
+      "toggleSidebar": "⌘\\",
+      "toggleWidgets": "⌘."
     },
     "recent": "Récents",
-    "suite": "Suite"
+    "suite": "Suite",
+    "scopeHint": "Recherche limitée à ce périmètre",
+    "scopes": {
+      "scopeDocs": "Documents",
+      "scopeTasks": "Tâches",
+      "scopeProjects": "Projets",
+      "scopeLabels": "Étiquettes",
+      "scopePeople": "Personnes"
+    }
   },
   "common": {
     "cancel": "Annuler",
@@ -170,7 +222,6 @@
     "overdue_filter": "En retard",
     "dueToday": "Échéance aujourd'hui",
     "sort": "Trier",
-    "sortPriority": "Priorité",
     "sortDueDate": "Date d'échéance",
     "sortName": "Nom",
     "addTaskPlaceholder": "Ajouter une tâche... (Entrée pour créer)",
@@ -657,11 +708,38 @@
     "markAllRead": "Tout marquer comme lu",
     "markedAllRead": "Tout marqué comme lu",
     "cleared": "Boîte vidée",
+    "archiveRead": "Archiver les lus",
+    "archivedRead": "Notifications lues archivées",
+    "onlyUnread": "Non lus uniquement",
     "today": "Aujourd'hui",
+    "yesterday": "Hier",
     "earlier": "Précédemment",
+    "filters": {
+      "all": "Tout",
+      "mentions": "Mentions",
+      "assigned": "Assignées",
+      "reactions": "Réactions"
+    },
     "empty": {
       "title": "Aucune notification",
       "description": "Vous verrez ici les invitations d'équipe, les assignations et les @mentions."
+    },
+    "preview": {
+      "selectPrompt": "Sélectionnez une notification pour la prévisualiser",
+      "selectHint": "L'aperçu montre le document, la tâche ou le projet lié sans quitter votre boîte de réception.",
+      "open": "Ouvrir",
+      "noPreview": "Aucun aperçu disponible",
+      "noPreviewHint": "Cette notification n'est pas liée à un élément prévisualisable.",
+      "notFound": "L'élément n'est plus disponible",
+      "document": "Document",
+      "task": "Tâche",
+      "project": "Projet",
+      "discussion": "Discussion",
+      "status": "Statut",
+      "assignee": "Assigné à",
+      "due": "Échéance",
+      "client": "Client",
+      "excerpt": "Extrait"
     },
     "notifTypes": {
       "task_assigned": "Nouvelle tâche assignée",
@@ -682,7 +760,8 @@
       "clear": "Effacer",
       "markRead": "Marquer comme lu",
       "remove": "Retirer"
-    }
+    },
+    "archived": "Notification archivée"
   },
   "settings": {
     "title": "Paramètres",
@@ -870,6 +949,16 @@
       "desc": "Texte plus gras, plus aéré et plus contrasté",
       "saved": "Préférence de lecture mise à jour"
     },
+    "quietHours": {
+      "title": "Heures tranquilles",
+      "desc": "Couper les notifications push du navigateur sur des plages définies. La boîte de réception continue de se remplir — vous n'êtes simplement pas dérangé.",
+      "start": "De",
+      "end": "À",
+      "saved": "Heures tranquilles mises à jour",
+      "activeNow": "Actives maintenant",
+      "inactiveNow": "Inactives",
+      "hint": "Les notifications sont toujours écrites dans votre boîte de réception et votre compteur ; seules les alertes push du navigateur sont mises en pause."
+    },
     "cropImage": {
       "title": "Recadrer l'image",
       "zoom": "Zoom",
@@ -954,6 +1043,8 @@
     "basicBlocksGroup": "Blocs de base",
     "addIcon": "Ajouter une icône",
     "untitled": "Sans titre",
+    "dropAttached": "{count, plural, one {# fichier joint et inséré} other {# fichiers joints et insérés}}",
+    "dropFailed": "Impossible de joindre le(s) fichier(s) déposé(s).",
     "addCover": "Ajouter une couverture",
     "pageNavigation": "Navigation de page",
     "exportPdf": "Exporter en PDF",
@@ -2486,7 +2577,10 @@
     "closePanel": "Fermer le panneau ou la fenêtre",
     "help": "Afficher cette aide",
     "slashMenu": "Insérer un bloc (dans un document)",
-    "mention": "Mentionner quelqu’un ou quelque chose"
+    "mention": "Mentionner quelqu’un ou quelque chose",
+    "closeTab": "Fermer l’onglet actif",
+    "jumpTab": "Aller à l’onglet 1–9",
+    "openTab": "Ouvrir le lien dans un nouvel onglet"
   },
   "tree": {
     "actions": "Actions",
@@ -2500,7 +2594,15 @@
     "newPage": "Nouvelle page à l'intérieur",
     "newFolder": "Nouveau dossier à l'intérieur",
     "trash": "Mettre à la corbeille",
-    "trashed": "Déplacé vers la corbeille"
+    "trashed": "Déplacé vers la corbeille",
+    "bulkTrashed": "{count, plural, one {# page déplacée vers la corbeille} other {# pages déplacées vers la corbeille}}",
+    "bulkRestored": "{count, plural, one {# page restaurée} other {# pages restaurées}}",
+    "bulkRestoreFailed": "Impossible de restaurer les pages",
+    "undo": "Annuler",
+    "pagesSelected": "{count, plural, one {# page sélectionnée} other {# pages sélectionnées}}",
+    "collapse": "Réduire",
+    "expand": "Déplier",
+    "unreadActivity": "Activité non lue"
   },
   "analytics": {
     "title": "Statistiques",
@@ -2590,5 +2692,134 @@
     "pickDate": "Choisir une date",
     "commandPaletteTitle": "Palette de commandes",
     "commandPaletteDesc": "Rechercher une commande à exécuter..."
+  },
+  "music": {
+    "pasteLabel": "Collez un lien Spotify, YouTube, YouTube Music ou SoundCloud",
+    "pastePlaceholder": "https://open.spotify.com/track/…",
+    "privacyNote": "La lecture est assurée par le fournisseur choisi ; Bureau ne proxifie ni ne stocke aucun audio.",
+    "errorUnsupported": "Ce lien n'est pas pris en charge. Collez un lien de morceau, d'album, de playlist ou de set Spotify, YouTube, YouTube Music ou SoundCloud.",
+    "errorGeneric": "Impossible de charger ce lien. Vérifiez qu'il est public et réessayez.",
+    "play": "Lecture",
+    "pause": "Pause",
+    "volume": "Volume",
+    "queue": "File d'attente",
+    "pinned": "Épinglés",
+    "openInProvider": "Ouvrir dans le fournisseur",
+    "removeFromQueue": "Retirer de la file",
+    "pin": "Épingler",
+    "unpin": "Désépingler",
+    "empty": "Pas encore de musique",
+    "emptyHint": "Collez un lien ci-dessus pour écouter en travaillant.",
+    "statusLoading": "Chargement…",
+    "statusBlocked": "Lecture bloquée",
+    "statusError": "Erreur de lecture",
+    "tapToPlay": "La lecture automatique a été bloquée — appuyez sur lecture.",
+    "recent": "Écoutés récemment",
+    "seek": "Position",
+    "playQueueItem": "Lire cet élément",
+    "dragToReorder": "Glisser pour réordonner",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "dismiss": "Fermer le lecteur",
+    "openWidget": "Ouvrir le widget musique",
+    "startFocusTimer": "Démarrer le minuteur de concentration",
+    "pauseOnFocus": "Pause pendant la concentration",
+    "videoPlaying": "vidéo en lecture dans le lecteur"
+  },
+  "tabs": {
+    "home": "Accueil",
+    "emptyHint": "Épinglez une page avec + pour la garder ouverte dans un onglet.",
+    "close": "Fermer {title}",
+    "noRoute": "Cet élément n'a pas encore de page",
+    "pinCurrent": "Épingler la page actuelle comme onglet",
+    "unreadActivity": "Activité non lue"
+  },
+  "files": {
+    "title": "Fichiers",
+    "subtitle": "Tous les fichiers envoyés depuis Bureau, stockés sur Backblaze B2 via le drive partagé A2E Core.",
+    "empty": "Aucun fichier ici pour le moment",
+    "emptyDesc": "Envoyez des fichiers depuis un document, le chat ou l'éditeur pour les voir apparaître ici.",
+    "emptyFolder": "Ce dossier est vide",
+    "emptyFolderDesc": "Déposez des fichiers ici ou créez un sous-dossier pour commencer.",
+    "loading": "Chargement des fichiers…",
+    "viewGrid": "Vue grille",
+    "viewList": "Vue liste",
+    "root": "Tous les fichiers",
+    "openFolder": "Ouvrir le dossier",
+    "backToParent": "Retour à {name}",
+    "column": {
+      "name": "Nom",
+      "size": "Taille",
+      "attachedTo": "Attaché à",
+      "uploadedBy": "Envoyé par",
+      "date": "Date"
+    },
+    "attached": {
+      "unattached": "Non attaché",
+      "chat_channel": "Canal de discussion",
+      "project": "Projet",
+      "document": "Document",
+      "task": "Tâche",
+      "event": "Événement",
+      "font": "Police",
+      "database": "Base de données"
+    },
+    "unknownUser": "Utilisateur inconnu",
+    "fileCount": "{count} fichier(s)",
+    "folderCount": "{count} dossier(s)",
+    "coreUnavailable": "Le stockage de fichiers est temporairement indisponible. Vos fichiers sont en sécurité — veuillez réessayer dans un instant.",
+    "notLinked": "Cet espace de travail n'est pas lié au drive partagé A2E Core. Les fichiers ne peuvent pas être listés ici.",
+    "upload": {
+      "uploadButton": "Envoyer",
+      "dropHere": "Déposez des fichiers à envoyer",
+      "dropActive": "Déposer pour envoyer",
+      "dropReject": "Certains fichiers ne peuvent pas être envoyés",
+      "dropHint": "Les fichiers sont envoyés dans le dossier actuel et stockés sur le drive partagé A2E Core.",
+      "stackLabel": "Envois",
+      "statusUploading": "Envoi {pct}%",
+      "statusDone": "Envoyé",
+      "statusError": "Échec",
+      "statusCancelled": "Annulé",
+      "progressLabel": "Progression de l'envoi de {name}",
+      "cancel": "Annuler l'envoi",
+      "dismiss": "Fermer",
+      "retry": "Réessayer l'envoi",
+      "errorGeneric": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
+      "errorQuota": "Quota de stockage dépassé."
+    },
+    "bulk": {
+      "selected": "{count} sélectionné(s)",
+      "download": "Télécharger",
+      "move": "Déplacer",
+      "delete": "Supprimer",
+      "clear": "Effacer la sélection",
+      "selectAll": "Tout sélectionner",
+      "selectNone": "Tout désélectionner",
+      "downloadZipping": "Compression de {count} fichiers…",
+      "downloadFailed": "Échec du téléchargement pour {count} fichier(s).",
+      "downloadSingleFailed": "Échec du téléchargement.",
+      "moved": "{count} fichier(s) déplacé(s) vers {name}.",
+      "moveFailed": "{count} fichier(s) n'ont pas pu être déplacés.",
+      "moveHere": "Déplacer ici",
+      "moveTo": "Déplacer vers un dossier",
+      "moveDialogDesc": "Choisissez un dossier de destination pour {count} fichier(s).",
+      "moveRoot": "Tous les fichiers (racine)",
+      "moveCurrent": "Dossier actuel",
+      "deleted": "{count} fichier(s) déplacé(s) vers la corbeille.",
+      "deleteFailed": "{count} fichier(s) n'ont pas pu être supprimés.",
+      "deleteConfirmTitle": "Supprimer {count} fichier(s) ?",
+      "deleteConfirmDesc": "Ils seront déplacés vers la corbeille. Vous pourrez les restaurer depuis la corbeille pendant 30 jours.",
+      "undo": "Annuler",
+      "openFolder": "Ouvrir",
+      "noFolders": "Aucun dossier disponible."
+    }
+  },
+  "filesWidget": {
+    "count": "{count, plural, one {# fichier} other {# fichiers}}",
+    "uploadButton": "Importer",
+    "empty": "Aucun fichier joint à ce document pour l'instant.",
+    "unavailable": "Stockage de fichiers indisponible",
+    "unavailableHint": "Le drive A2E Core partagé n'est pas lié à cet espace.",
+    "open": "Ouvrir {name}"
   }
 }

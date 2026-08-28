@@ -99,14 +99,20 @@ export const create = mutation({
     ),
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
+    targetDate: v.optional(v.number()),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
+    key: v.optional(v.string()),
     autoCreateFiche: v.optional(v.boolean()),
     locale: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { userId } = await assertPermission(ctx, args.workspaceId, "projects:manage");
     const now = Date.now();
+    // M0.3: default the identifier key from the project name (PRJ-42 prefix).
+    const key =
+      args.key ??
+      ((args.name ?? "PRJ").replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4) || "PRJ");
     const id = await ctx.db.insert("projects", {
       workspaceId: args.workspaceId,
       name: args.name,
@@ -114,8 +120,11 @@ export const create = mutation({
       status: args.status,
       startDate: args.startDate,
       endDate: args.endDate,
+      targetDate: args.targetDate,
       description: args.description,
       color: args.color,
+      key,
+      nextTaskNumber: 1,
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
@@ -175,8 +184,10 @@ export const update = mutation({
     ),
     startDate: v.optional(v.union(v.number(), v.null())),
     endDate: v.optional(v.union(v.number(), v.null())),
+    targetDate: v.optional(v.union(v.number(), v.null())),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
+    key: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const p = await ctx.db.get(args.projectId);
